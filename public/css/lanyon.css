@@ -309,7 +309,7 @@ tbody tr:nth-child(odd) th {
 .masthead-title a span::before {
   position: absolute;
   top: 100%;
-  content: attr("忠心 耿耿~");
+  content: "衷心 耿耿~"
   -webkit-transform: translate3d(0,0,0);
   -moz-transform: translate3d(0,0,0);
   transform: translate3d(0,0,0);

@@ -8,14 +8,14 @@ encoding:         "utf-8"
 permalink:        pretty
 
 # Setup
-title:            HuS
-tagline:          'Time is limited, To be a better man'
-description:      'Hello,World! Here is my personal weblog about technology and life.'
+title:            Desgard_Duan
+tagline:          'Surprise'
+description:      'Hello,World!'
 url:              http://shelldone.com
 
 author:
-  name:           'SooHu'
-  url:            https://github.com/SooHu
+  name:           'Desgard_Duan'
+  url:            https://github.com/dgytdhy
 
 paginate:         5
 

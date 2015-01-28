@@ -309,7 +309,7 @@ tbody tr:nth-child(odd) th {
 .masthead-title a span::before {
   position: absolute;
   top: 100%;
-  content: "衷心 耿耿~"
+  content: attr(data-hover);
   -webkit-transform: translate3d(0,0,0);
   -moz-transform: translate3d(0,0,0);
   transform: translate3d(0,0,0);

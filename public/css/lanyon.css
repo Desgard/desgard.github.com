@@ -1,6 +1,6 @@
 /*博客原作者:lanyon 可以访问 https://github.com/poole/lanyon
  *
- *博客修改: SooHu 已经布置到  https://github.com/soohu.github.io
+ *博客修改: Desgard_Duan
  *
 */
 
@@ -309,7 +309,7 @@ tbody tr:nth-child(odd) th {
 .masthead-title a span::before {
   position: absolute;
   top: 100%;
-  content: attr(data-hover);
+  content: attr("忠心 耿耿~");
   -webkit-transform: translate3d(0,0,0);
   -moz-transform: translate3d(0,0,0);
   transform: translate3d(0,0,0);

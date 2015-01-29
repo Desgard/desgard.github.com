@@ -10,11 +10,7 @@ permalink:        pretty
 # Setup
 title:            Desgard_Duan
 tagline:          'Surprise'
-<<<<<<< HEAD
-description:      'Hello,World!'
-=======
 description:      'Hello,World! Here is my personal weblog about technology and life.'
->>>>>>> origin/master
 url:              http://shelldone.com
 
 author:

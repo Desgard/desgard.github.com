@@ -23,7 +23,7 @@ paginate:         5
 version:          1.0.0
 
 # duoshuo
-  comments :
+comments :
     provider : duoshuo
-    duoshuo : 
+    duoshuo :
       short_name : desgard

@@ -2,14 +2,12 @@
 layout: post
 author: Desgard_Duan
 title: Hello_World！
-category: 生活琐碎
+category: daily
 tag: [life]
 ---
 
 
 Hello_World！
-<<<<<<< HEAD
+<br />
 冬瓜的起点！
-=======
-冬瓜的起点！
->>>>>>> origin/master
+

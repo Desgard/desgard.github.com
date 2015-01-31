@@ -4,7 +4,7 @@ title: About
 ---
 
 
-###Me
+###Me###
 
 Desgard_Duan，被大家称 冬瓜~
 <br />
@@ -17,4 +17,6 @@ Desgard_Duan，被大家称 冬瓜~
 发自内心。
 <br />
 
-###
+
+<hr />
+email:<code> <a href="Mailto: desgard_duan@foxmail.com">desgard_duan@foxmail.com</a></code>

@@ -5,6 +5,8 @@ title: Desgard_Duan|冬瓜
 
 
 <div class="posts">
+
+	
   {% for post in paginator.posts %}
   <div class="post">
     <div class="post-heading">
@@ -21,6 +23,7 @@ title: Desgard_Duan|冬瓜
           转载{{ post.author }}
         {% endif %}
         </p>
+		
         <span class="post-info"><i class="fa fa-calendar"></i>&nbsp{{ post.date | date: "%Y" }}/{{ post.date | date: "%m" }}/{{ post.date | date: "%d" }}  </span>
         <span class="post-info"><i class="fa fa-book"></i>&nbsp<a href="/category/index.html#{{ post.categories }}">{{ post.categories }}</a></span>
         <span class="post-info"><i class="fa fa-tags"></i>&nbsp<a href="/tag/index.html#{{ post.tags | first }}">{{ post.tags | first }}</a></span>  
@@ -36,7 +39,6 @@ title: Desgard_Duan|冬瓜
   </div>
   {% endfor %}
 </div>
-
 <div class="pagination">
   {% if paginator.previous_page %}
     {% if paginator.page == 2 %}
@@ -53,5 +55,5 @@ title: Desgard_Duan|冬瓜
   {% else %}
     <span class="pagination-item older">已经是最后一页</span>
   {% endif %}
+ 
 </div>
-

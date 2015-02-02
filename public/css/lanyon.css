@@ -149,9 +149,8 @@ abbr[title] {
 }
 
 /* Code */
-code,
-pre {
-  font-family: Menlo, Monaco, "Courier New", monospace;
+code, pre {
+  font-family: "微软雅黑","Courier New", "Consolas", Menlo, Monaco, monospace;
 }
 code {
   padding: .25em .5em;
@@ -172,7 +171,7 @@ pre {
   white-space: pre-wrap;
   word-break: break-all;
   word-wrap: break-word;
-  background-color: rgb(29,30,25);
+  background-color: pink;
 }
 pre code {
   padding: 0;
@@ -528,7 +527,7 @@ a.sidebar-nav-item:focus {
   border-radius: 3px;
 }
 .post-name {
-  margin-top: 4rem;
+  margin-top: 0rem;
 }
 .post .post-heading {
   border-bottom: 1px solid #eee;

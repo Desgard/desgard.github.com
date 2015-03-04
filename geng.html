@@ -1,0 +1,30 @@
+---
+layout: geng
+title: 耿耿
+---
+<div id="myDate" style="font-size: 3rem; font-weight: bold; color: red">计算中...</div>
+<br />
+<div>（页面持续更新，前方高能！）</div>
+
+
+<script>
+	//alert("ready");
+	date_init();
+
+	function date_init() {
+		var first_day = new Date("2014/12/19");
+		var now_day = new Date();
+		var dis = now_day.getTime() - first_day.getTime();
+		var dis_day = Math.floor(dis / (24 * 3600 * 1e3));
+		var o = document.getElementById("myDate");
+		o.innerHTML = dis_day + " " + "<font font-size='2rem' color='orange'>Days.</font>";
+	}
+</script> 
+
+
+
+<hr />
+<h2>求个赞哦！</h2>
+<!-- Duoshuo Comment BEGIN -->  
+{% include comment.html %}
+<!-- Duoshuo Comment END -->

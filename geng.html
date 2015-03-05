@@ -2,9 +2,53 @@
 layout: geng
 title: 耿耿
 ---
+<script src="/public/js/geng/jquery.carouFredSel-6.0.4-packed.js" type="text/javascript"></script>
+<style type="text/css">
+#wrapper {
+	width: 900px;
+	height: 525px;
+	margin:0 auto;
+	overflow: hidden;
+}
+#carousel div {
+	cursor: pointer;
+	margin-right: -650px;
+	float: left;
+	position: relative;
+	box-shadow: 0 0 10px #000;
+}
+#carousel div:last-child {
+	cursor: default;
+}
+#carousel div span {
+	background-color: #222;
+	background-color: rgba(0,0,0, 0.8);
+	color: #fff;
+	font-size: 12px;
+	text-align: center;
+	display: inline-block;
+	width: 520px;
+	height: 25px;
+	padding: 20px 0;
+	overflow: hidden;
+	position: absolute;
+	left: 0;
+	bottom: 0;
+}
+</style>
 <div id="myDate" style="font-size: 3rem; font-weight: bold; color: red">计算中...</div>
 <br />
-<div>（页面持续更新，前方高能！）</div>
+<div style="text-align:right;"><code> 时间记忆便签 >_< </code></div>
+<div id="wrapper">
+	<div id="carousel">
+		<div><img src="/public/img/geng/5.jpg" width="700" height="420" /></div>
+		<div><img src="/public/img/geng/4.jpg" width="700" height="420" /></div>
+		<div><img src="/public/img/geng/3.jpg" width="700" height="420" /></div>
+		<div><img src="/public/img/geng/2.jpg" width="700" height="420" /></div>
+		<div><img src="/public/img/geng/1.jpg" width="700" height="420" /></div>
+		<div><img src="/public/img/geng/6.jpg" width="700" height="420" /></div>
+	</div>
+</div>
 
 
 <script>
@@ -21,7 +65,42 @@ title: 耿耿
 	}
 </script> 
 
-
+<script type="text/javascript">
+$(function() {
+	$('#carousel').carouFredSel({
+		width: 720,
+		height: 420,
+		align: false,
+		padding: [0, 650, 0, 0],
+		items: {
+			width: 50,
+			height: 420,
+			visible: 5,
+			minimum: 1
+		},
+		scroll: {
+			items: 1,
+			duration: 750,
+			onBefore: function( data ) {
+				data.items.old.add( data.items.visible ).find( 'span' ).stop().slideUp();
+			},
+			onAfter: function( data ) {
+				data.items.visible.last().find( 'span' ).stop().slideDown();
+			}
+		},
+		auto: false,
+//		onCreate: function() {
+//			$(this).children().each(function() {
+//				$(this).append( '<span>' + $('img', this).attr( 'alt' ) + '</span>' );
+//				$(this).find( 'span' ).hide();
+//			});
+//		}
+	});
+	$('#carousel').children().click(function() {
+		$('#carousel').trigger( 'slideTo', [this, -4, 'prev'] );
+	});
+});
+</script>
 
 <hr />
 <h2>求个赞哦！</h2>

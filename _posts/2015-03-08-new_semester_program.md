@@ -13,7 +13,7 @@ JM 和 RUO 好努力！<br />
 <!-- more -->
 
 ###NYIST_2 括号配对问题###
-Stack 的经典例题，唯一的陷阱就是注意栈空的情况。<br />
+<code>Stack</code> 的经典例题，唯一的陷阱就是注意栈空的情况。<br />
 <div>
 <pre class="brush: cpp">
 #include "bits/stdc++.h"
@@ -55,6 +55,31 @@ int main () {
             }
         }
         ok? puts ("Yes"): puts ("No");
+    }
+    return 0;
+}
+
+</pre>
+</div>
+
+###NYIST_5 Binary String Matching###
+<code>STL</code> 水过，应该是 <code>KMP</code>，结果暴力过了。谴责测试数据。<br />
+<div>
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+
+int main () {
+    int T;
+    cin >> T;
+    while (T --) {
+        string str1, str2;
+        cin >> str1 >> str2;
+        int ans = 0, pos = str2.find(str1, 0);
+        while (pos != string :: npos) {
+            ans ++;
+            pos = str2.find (str1, pos + 1);
+        }
+        cout << ans << endl;
     }
     return 0;
 }

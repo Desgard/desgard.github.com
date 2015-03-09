@@ -67,7 +67,7 @@ int main () {
 <div>
 <pre class="brush: cpp">
 #include "bits/stdc++.h"
-
+using namespace std;
 int main () {
     int T;
     cin >> T;
@@ -170,6 +170,39 @@ int main() {
             }
         }
         printf("%.2lf\n", ans[0]);
+    }
+    return 0;
+}
+
+
+</pre>
+</div>
+
+###<font color="red">NYIST_63</font> 小猴子下落###
+用数组来模拟<code>满二叉树</code>效果还不错，数据量小，<code>模拟</code>即可。<br />
+<div>
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+using namespace std;
+const int maxn = 1e7 + 100;
+int bTree[maxn];
+
+int main () {
+    int D, n;
+    while (~scanf ("%d %d", &D, &n), (D || n)) {
+        memset (bTree, -1, sizeof (bTree));
+        int len = pow (2, D) - 1;
+        for (int i = 1; i <= len; ++ i) {
+            bTree[i] = 0;
+        }
+        for (int i = 1; i <= n; ++ i) {
+            int cur = 1;
+            while (bTree[cur] != -1) {
+                if (bTree[cur] == 0) {bTree[cur] = 1; cur = cur * 2;}
+                if (bTree[cur] == 1) {bTree[cur] = 0; cur = cur * 2 + 1;}
+            }
+            if (i == n) cout << cur / 2 << endl;
+        }
     }
     return 0;
 }

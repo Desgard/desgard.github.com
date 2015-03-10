@@ -210,3 +210,144 @@ int main () {
 
 </pre>
 </div>
+
+###<font color="red">NYIST_93</font> 汉诺塔（三）###
+看题目还以为是什么神奇的<code>递归</code>，结果开3个栈<code>模拟</code>就 A 了，好水。<br />
+<div>
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+using namespace std;
+
+stack&ltint&gt S[4];
+int T, p, q, a, b;
+
+int main () {
+    cin >> T;
+    while (T --) {
+        for (int i = 1; i <= 3; ++ i) {
+            while (!S[i].empty()) {
+                S[i].pop();
+            }
+        }
+        cin >> p >> q;
+        for (int i = p; i >= 1; -- i) {
+            S[1].push(i);
+        }
+        bool ok = 1;
+        for (int index = 0; index < q; ++ index) {
+            cin >> a >> b;
+            if (S[a].empty()) {ok = 0; break;}
+            int now = S[a].top();
+            if (!S[b].empty() && S[b].top() < now) {ok = 0; break;}
+            S[b].push(now);
+            S[a].pop();
+        }
+        ok? puts("legal"): puts("illegal");
+    }
+    return 0;
+}
+
+</pre>
+</div>
+
+###<font color="red">NYIST_108</font> 士兵杀敌（一）###
+一定要注意：<font color="red">只有一组测试数据</font>。所以在输入的时候，不能读到文件末尾，否则 TLE。<br />
+简单的<code>前缀和</code>，降低复杂度至<code>O(1)</code>即可。<br />
+<div>
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+using namespace std;
+
+const int maxn = 1e6 + 10;
+int ss[maxn], s[maxn];
+int main () {
+    int n, m, a, b;
+    scanf ("%d %d", &m, &n) ;
+    memset (ss, 0, sizeof (ss));
+    memset (s, 0, sizeof (s));
+    for (int i = 1; i <= m; ++ i) {
+    scanf ("%d", &ss[i]);
+        s[i] = s[i - 1] + ss[i];
+    }
+    for (int i = 0; i < n; ++ i) {
+    scanf ("%d %d", &a, &b);
+        printf ("%d\n", s[b] - s[a - 1]);
+    }
+
+    return 0;
+}
+
+</pre>
+</div>
+
+###<font color="red">NYIST_116</font> 士兵杀敌（二）###
+<code>线段树</code>单点更新，区间查询的基本操作。用<code>树状数组</code>也能很随意的搞出。<br />
+<div>
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+
+#define lson l, m, rt << 1
+#define rson m + 1, r, rt << 1 | 1
+using namespace std;
+
+const int maxn = 1e6 + 100;
+int sum[maxn << 2];
+
+void push_up (int rt) {
+    sum[rt] = sum[rt << 1] + sum[rt << 1 | 1];
+}
+
+void build (int l, int r, int rt) {
+    if (l == r) {
+        scanf ("%d", &sum[rt]);
+        //get_val(sum[rt]);
+        return ;
+    }
+    int m = (l + r) >> 1;
+    build (lson);
+    build (rson);
+    push_up (rt);
+}
+
+int query (int L, int R, int l, int r, int rt) {
+    if (L <= l && r <= R) {
+        return sum[rt];
+    }
+    int m = (l + r) >> 1;
+    int ret = 0;
+    if (L <= m) ret += query (L, R, lson);
+    if (m  < R) ret += query (L, R, rson);
+    return ret;
+}
+
+void update (int p, int d, int l, int r, int rt) {
+    if (l == r) {
+        sum[rt] += d;
+        return ;
+    }
+    int m = (l + r) >> 1;
+    if (p <= m) update (p, d, lson);
+    else update (p, d, rson);
+    push_up (rt);
+}
+
+int ss[maxn], s[maxn];
+char op[20];
+int main () {
+    int n, m, a, b;
+    scanf ("%d %d", &n, &m);
+    build (1, n, 1);
+    for (int i = 0 ; i < m; ++ i) {
+        scanf ("%s %d %d", op, &a, &b);
+        if (op[0] == 'Q') {
+            printf ("%d\n", query (a, b, 1, n, 1));
+        } else {
+            update (a, b, 1, n, 1);
+        }
+    }
+    return 0;
+}
+
+
+</pre>
+</div>

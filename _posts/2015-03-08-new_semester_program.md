@@ -8,7 +8,8 @@ tag: [life]
 ##立文为证##
 JM 和 RUO 好努力！<br />
 刷题开始，目标 NYIST 数据结构分类。 
-[传送门](http://acm.nyist.net/JudgeOnline/problemset.php?typeid=4 )<br />
+[传送门](http://acm.nyist.net/JudgeOnline/problemset.php?typeid=4 )<br 
+/>
 ![img](/public/ach_img/2015-3-8-1.png "DS") 
 <!-- more -->
 
@@ -349,5 +350,67 @@ int main () {
 }
 
 
+</pre>
+</div>
+
+###<font color="red">NYIST_117</font> 求逆序数###
+<code>线段树</code>怎么也过不了，<code>树状数组</code> + <code>离散化</code>却可以水过。还是感觉<code>线段树</code>
+要比<code>树状数组</code>优美很多。<br />
+<div>
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+using namespace std;
+const int maxn = 1000005;
+
+struct node {
+    int val, id;
+} s[maxn];
+
+int a[maxn], n;
+int lowbit(int i) {
+    return i & (-i);
+}
+
+void update(int i) {
+    while(i <= n) {
+        a[i]++;
+        i += lowbit(i);
+    }
+}
+
+int sum(int i) {
+    int sum = 0;
+    while(i > 0) {
+        sum += a[i];
+        i -= lowbit(i);
+    }
+    return sum;
+}
+
+bool cmp(node x, node y) {
+    if(x.val != y.val)
+        return x.val < y.val;
+    return x.id < y.id;
+}
+
+int main() {
+    int t, i;
+    scanf("%d", &t);
+    while(t--) {
+        scanf("%d", &n);
+        for(i = 1; i <= n; i++) {
+            scanf("%d", &s[i].val);
+            s[i].id = i; a[i] = 0;
+        }
+        long long ans = 0;
+        sort(s + 1, s + n + 1, cmp);
+        for(i = 1; i <= n; i++) {
+            update(s[i].id);
+            ans += i - sum(s[i].id);
+        }
+        printf("%lld\n", ans);
+    }
+    return 0;
+}
 </pre>
 </div>

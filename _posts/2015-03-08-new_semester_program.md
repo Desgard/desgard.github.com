@@ -454,7 +454,50 @@ int main () {
     }
     return 0;
 }
+</pre>
+</div>
 
+###<font color="red">NYIST_123</font> 士兵杀敌（四）###
+卡常数！卡常数！卡常数啊！又无奈的改版<code>树状数组</code>，喜欢<code>线代树</code>。在思考，是不是应该
+学习下<code>zkw神树</code>了
+<div>
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+const int maxn = 1e6 + 100;
+int M, a[maxn];
+
+int lowbit(int i) {return i & (-i);}
+
+void update (int i, int num) {
+    while (i <= M) {
+        a[i] += num;
+        i += lowbit (i);
+    }
+}
+
+int get_sum (int i) {
+    int sum = 0;
+    while (i > 0) {
+        sum += a[i];
+        i -= lowbit (i);
+    }
+    return sum;
+}
+
+int main () {
+    int T, l, r, add;
+    char op[20];
+    scanf ("%d %d", &T, &M);
+    for (int i = 0; i < T; ++ i) {
+        scanf ("%s %d", op, &l);
+        if (op[0] == 'A') {
+            scanf ("%d %d", &r, &add);
+            update (l, add);
+            update (r + 1, -add);
+        } else printf ("%d\n", get_sum(l));
+    }
+    return 0;
+}
 
 </pre>
 </div>

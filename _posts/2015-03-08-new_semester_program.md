@@ -414,3 +414,47 @@ int main() {
 }
 </pre>
 </div>
+
+###<font color="red">NYIST_119</font> 士兵杀敌（三）###
+裸<code>RMQ</code>运用，直接搞即可。<br />
+<div>
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+const int maxn = 1e5 + 500;
+int Max[maxn][20], Min[maxn][20];
+int n, nq, data, l, r;
+
+void rmq (int num) {
+    for (int j = 1; j < 20; ++ j) {
+        for (int i = 1; i <= num; ++ i) {
+            if (i + (1 << j) - 1 <= num) {
+                Max[i][j] = max (Max[i][j - 1], 
+                		Max[i + (1 << (j - 1))][j - 1]);
+                Min[i][j] = min (Min[i][j - 1], 
+                		Min[i + (1 << (j - 1))][j - 1]);
+            }
+        }
+    }
+}
+
+int main () {
+    while (~scanf ("%d %d", &n, &nq)) {
+        for (int i = 1; i <= n; ++ i) {
+            scanf ("%d", &data);
+            Max[i][0] = Min[i][0] = data;
+        }
+        rmq (n);
+        for (int i = 0; i < nq; ++ i) {
+            scanf ("%d %d", &l, &r);
+            int k = (int)(log(r - l + 1.0) / log (2.0));
+            int Ma = max(Max[l][k], Max[r - (1 << k) + 1][k]);
+            int Mi = min(Min[l][k], Min[r - (1 << k) + 1][k]);
+            printf ("%d\n", Ma - Mi);
+        }
+    }
+    return 0;
+}
+
+
+</pre>
+</div>

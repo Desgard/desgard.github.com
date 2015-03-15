@@ -501,3 +501,41 @@ int main () {
 
 </pre>
 </div>
+
+###<font color="red">NYIST_128</font> 前缀式计算###
+<code>栈</code>的基本题，水过。
+<div>
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+char oneline[100010], op[105];
+stack&ltdouble&gt Stack;
+
+int main () {
+    memset (oneline, 0, sizeof (0));
+    while (gets (oneline)) {
+        for (int i = strlen(oneline) - 1; i >= 0; -- i) {
+            if (isdigit(oneline[i]) || oneline[i] == '.' ) {
+                while (isdigit(oneline[i]) || oneline[i] == '.' ) {
+                    i --;
+                }
+                double data = atof(oneline + i);
+                Stack.push (data);
+            } else if (!isdigit(oneline[i]) && oneline[i] != ' ') {
+                double a, b;
+                a = Stack.top(); Stack.pop();
+                b = Stack.top(); Stack.pop();
+                switch (oneline[i]) {
+                    case '+': Stack.push(a + b); break;
+                    case '-': Stack.push(a - b); break;
+                    case '*': Stack.push(a * b); break;
+                    case '/': Stack.push(a / b); break;
+                }
+            }
+        }
+        printf ("%.2lf\n", Stack.top());
+        while (!Stack.empty()) Stack.pop();
+    }
+    return 0;
+}
+</pre>
+</div>

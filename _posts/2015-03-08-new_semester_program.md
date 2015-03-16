@@ -507,6 +507,7 @@ int main () {
 <div>
 <pre class="brush: cpp">
 #include "bits/stdc++.h"
+using namespace std;
 char oneline[100010], op[105];
 stack&ltdouble&gt Stack;
 
@@ -537,5 +538,74 @@ int main () {
     }
     return 0;
 }
+</pre>
+</div>
+
+###<font color="red">NYIST_129</font> 树的判定###
+以前在POJ上做过的一道<code>并查集</code>基本题。开始做的时候还是有一些难度的。其中有两个地方需要注意：<br>
+<li>树的基本性质：结点数 = 边数 + 1。</li>
+<li>树上不会出现一个结点有两个入度。也就是，一个子结点不能拥有两个父亲结点。</li>
+<div>
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+using namespace std;
+
+const int maxn = 10005;
+int father[maxn], edge[maxn];
+bool vis[maxn], flag;
+int sum = 0;
+
+int get_father (int x) {
+    while (father[x] != x)  x = father[x];
+    return x;
+}
+
+void _union (int p, int q) {
+    int x = get_father (p);
+    int y = get_father (q);
+    if (x != y) {
+        father[y] = x;
+        sum += 1;
+    } else flag = 0;
+}
+
+int main () {
+    int x, y, cur = 0;
+    while (~scanf ("%d %d", &x, &y)) {
+        if (x < 0 && y < 0) break;
+        if (x == 0 && y == 0) {
+            printf("Case %d is a tree.\n", ++ cur);
+            continue;
+        }
+        flag = 1;
+        memset (vis, 0, sizeof (vis));
+        memset (edge,0, sizeof (edge));
+        for (int i = 0; i < maxn; ++ i) {
+            father[i] = i;
+        }
+        vis[x] = vis[y] = 1;
+        _union (x, y);
+        edge[y] ++;
+        while (~scanf ("%d %d", &x, &y)) {
+            if (x + y == 0) break;
+            vis[x] = vis[y] = 1;
+            _union (x, y);
+            edge[y] ++;
+        }
+        sort (edge, edge + maxn, greater&ltint&gt());
+        if (edge[0] > 1) {flag = 0;}
+        int p = 0;
+        for (int i = 1; i < maxn && flag; ++ i) {
+            if (vis[i] && father[i] == i) {
+                p += 1;
+                if (p > 1) {flag = 0; break;}
+            }
+        }
+        flag? printf ("Case %d is a tree.\n", ++ cur):
+              printf ("Case %d is not a tree.\n", ++ cur);
+    }
+    return 0;
+}
+
 </pre>
 </div>

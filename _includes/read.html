@@ -1,0 +1,19 @@
+<!--<a id="right-panel-link" href="#right-panel">打开右面板</a>-->
+<a id="right-panel-link" href="#right-panel" style="position: fixed; top: 4rem; left: 1.55rem; z-index: 1000; color: #202020;">
+	書
+</a>
+<div id="right-panel" class="panel">
+	<h1><font color="whitesmoke">读&nbsp;&nbsp;书</font></h1>
+	<h2><font color="whitesmoke">loading...</font></h2>
+</div>
+
+<script type="text/javascript" src="/public/js/jquery.panelslider.min.js"></script>
+<script>
+	$('#right-panel-link').panelslider({
+		side: 'right',
+		duration: 200
+	});
+	$('#close-panel-bt').click(function() {
+		$.panelslider.close();
+	});
+</script>

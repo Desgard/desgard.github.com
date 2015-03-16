@@ -426,6 +426,7 @@ a.sidebar-nav-item:focus {
   display: none;
 }
 
+
 /* Style the `label` that we use to target the `.sidebar-checkbox` */
 .sidebar-toggle {
   position: absolute;

@@ -609,3 +609,68 @@ int main () {
 
 </pre>
 </div>
+
+###<font color="red">NYIST_130</font> 相同的雪花###
+挺好玩的一题，用一个类似<code>Hash</code>的数据结构能存储，<code>key</code>值
+设置为数组和。之后就是将数组进行12次的移位变化，去匹配待搜索串，这里使用通过数组模拟<code>约瑟夫问题</code>
+的思想进行求模比对即可。另外的，可以使用<code>循环链表</code>但是代码过于冗长。推荐<code>数组模拟 + Hash</code>查询这种
+做法。
+<div>
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+using namespace std;
+const int maxn = 1e6 + 1005;
+int n, T, snow[maxn][6];
+map&ltint, vector&ltint&gt &gt Hash;
+
+bool cmp (int x[6], int y[6]) {
+    bool vis = 0;
+    for (int add = 0; add < 6; ++ add) {
+        vis = 1;
+        for (int i = 0; i < 6; ++ i) {
+            if (x[(add + i) % 6] != y[i]) {
+                vis = 0;
+            }
+        }
+        if (vis) return true;
+    }
+    reverse (x, x + 6);
+    for (int add = 0; add < 6; ++ add) {
+        vis = 1;
+        for (int i = 0; i < 6; ++ i) {
+            if (x[(add + i) % 6] != y[i]) {
+                vis = 0;
+            }
+        }
+        if (vis) return true;
+    }
+    return false;
+}
+
+int main () {
+    scanf ("%d", &T);
+    while (T --) {
+        Hash.clear();
+        bool ok = 0;
+        scanf ("%d", &n);
+        for (int index = 0; index < n; ++ index) {
+            for (int i = 0; i < 6; ++ i) {
+                scanf ("%d", &snow[index][i]);
+            }
+            int cur = accumulate (snow[index], snow[index] + 6, 0);
+            if (Hash[cur].size() && !ok) {
+                for (int i = 0; i < Hash[cur].size(); ++ i) {
+                    if (cmp(snow[Hash[cur][i]], snow[index])) {
+                        ok = 1; break;
+                    }
+                }
+            }
+            Hash[cur].push_back (index);
+        }
+        ok? puts ("Twin snowflakes found."):
+            puts ("No two snowflakes are alike.");
+    }
+    return 0;
+}
+</pre>
+</div>

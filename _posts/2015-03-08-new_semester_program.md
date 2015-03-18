@@ -674,3 +674,128 @@ int main () {
 }
 </pre>
 </div>
+
+###<font color="red">NYIST_136</font> 等式###
+手写的<code>Hash</code>，开小了会TLE，开大了会MLE，果然还是不行。用了RUO酱的<code>Hash</code>感觉自己萌萌的，
+一口气A掉了不费劲。</br>
+思路就是将等式拆分成两边去枚举，将<code>O(n^5)</code>的问题，使用<code>O(n^2 + n^3)</code>进行转换。缩短时间。
+<div>
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+using namespace std;
+const int MAX = 100003;
+const int MAXSUM = 12500000;
+int Hash[1003];
+
+void g() {
+    for(int i = -50; i <= 50; i++) {
+        Hash[i + 50] = i * i * i;
+    }
+}
+
+template &ltclass T&gt
+class hash {
+private:
+    int pos;
+    int next[MAX];
+    int head[MAX];
+    int key[MAX];
+    int cnt[MAX];
+public:
+    long long count;
+    void search(const int x);
+    bool search1(const int x);
+    void push(const int x);
+    void clear();
+
+};
+
+template &ltclass T&gt
+inline bool hash&ltT&gt::search1(const int x) {
+    int temp = abs(x) % MAX;
+    int t = head[temp];
+    while(t != -1) {
+        if (x == key[t]) {
+            cnt[t]++;
+            return true;
+        }
+        t = next[t];
+    }
+    return false;
+}
+
+template &ltclass T&gt
+inline void hash&ltT&gt::search(const int x) {
+    int temp = abs(x) % MAX;
+    int t = head[temp];
+    while(t != -1) {
+        if (x == -key[t]) {
+            count += cnt[t];
+        }
+        t = next[t];
+    }
+}
+template &ltclass T&gt
+inline void hash&ltT&gt::push(const int x) {
+    if(search1(x)) return;
+    int temp = abs(x) % MAX;
+
+    if (head[temp] != -1) {
+        next[pos] = head[temp];
+    }
+    head[temp] = pos;
+    key[pos] = x;
+    cnt[pos] = 1;
+    pos++;
+}
+template &ltclass T&gt
+void hash&ltT&gt::clear() {
+    count = 0;
+    pos = 0;
+    memset(next, -1, sizeof(next));
+    memset(head, -1, sizeof(head));
+    memset(cnt, 0, sizeof(cnt));
+}
+hash&ltint&gt h;
+
+int main() {
+    int T;
+    scanf("%d", &T);
+    memset(Hash, 0, sizeof(Hash));
+    g();
+    while(T--) {
+        h.clear();
+        int a1, a2, a3, a4, a5;
+        int i, j, k;
+        int n;
+        scanf("%d %d %d %d %d", &a1, &a2, &a3, &a4, &a5);
+        for(i = -50; i <= 50; ++ i) {
+            if (i == 0) continue;
+            for(j = -50; i != 0 && j <= 50; j++) {
+                if(j == 0) continue;
+                n = a1 * Hash[i + 50] + a2 * Hash[j + 50];
+                h.push(n);
+            }
+        }
+
+        for(i = -50; i <= 50; ++ i) {
+            if (i == 0) continue;
+            for(j = -50; i != 0 && j <= 50; ++ j) {
+                if (j == 0) continue;
+                for(k = -50; j != 0 && k <= 50; ++ k) {
+                    if(k == 0) continue;
+                    n = a3 * Hash[i + 50] + a4 * Hash[j + 50] 
+                      + a5 * Hash[k + 50];
+                    if(n > MAXSUM || n < -MAXSUM)
+                        continue;
+                    h.search(n);
+                }
+            }
+        }
+        printf("%lld\n", h.count);
+    }
+
+    return 0;
+}
+</pre>
+</div>

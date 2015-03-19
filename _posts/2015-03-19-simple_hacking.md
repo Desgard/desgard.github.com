@@ -14,8 +14,18 @@ tag: [JavaScript]
 <strong>Ⅰ</strong>.打开一个<a href="http://202.115.71.131/course/page/widered/index.jsp?c_id=196&c_name=3C0CD8506934059CA20281C5737DA286&c_count=0BDC281BA283D098&c_domain=289F67C16B2D311A&c_template=B7564C0FD61B679B"><strong>视频页面</strong></a>，
 并且保证已经<strong>成功登录</strong>。<br /><br />
 <strong>Ⅱ</strong>.打开<strong>控制台</strong>。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>Chrome浏览器</strong>：页面空白处<code>右键</code>--> <code>审查元素</code>--><code>Console</code>；<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>Firefox浏览器</strong>：页面空白处<code>右键</code>--><code>查看元素</code>--><code>控制台</code>；<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>IE浏览器</strong>：<code>F12</code>--><code>控制台</code><br /><br />
-<strong>Ⅲ</strong>.将<strong>代码君</strong>（建议点击<code>完整版代码君</code>）黏上去，猛戳<strong>回车↵</strong>。  >_<<br /><br />
+<strong>Ⅲ</strong>.将<strong>代码君</strong>（建议点击<a href="http://paste.ubuntu.com/10625786/"><code>完整版代码君</code></a>）黏上去，猛戳<strong>回车↵</strong>。  >_<<br /><br />
 <strong>Ⅳ</strong>.去<strong>碎觉</strong>。
+##实现效果##
+将以上代码成功嵌入后，视频页面会发出提示。并且在右侧<strong>视频简介</strong>的盒子下面会出现<strong>使用说明</strong>。<br />
+###手动计时方案###
+方案如果想立即计时，则可点击右上方的<strong>手动计时</strong>按钮，再去查询累计时间后会发现自己立即添加了一条观看记录，时间为从<strong>首次打开视频</strong>或者<strong>上次手动（自动）计时</strong>
+到现在的时间。<br />
+###自动计时方案###
+每次出现弹窗输入验证码的时候，大家千万不要害怕。在10s后如果没有填写，<strong>并不会停止计时</strong>，而是会在累计时间中多一条观看记录。所以，这就方便
+啦~大家只要将代码复制到页面，就可以<strong>撒手不管</strong>咯！yeah！小睡之后，你就会发现累计时间多了这么多条记录呢！如下如下！<br /><br /><br />
+ ![img](/public/ach_img/2015-3-19-1.jpg "Geek冬瓜")
+
 ##代码君##
 [完整版代码君](http://paste.ubuntu.com/10625786/ "完整版代码")
 <div>

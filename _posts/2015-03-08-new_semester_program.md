@@ -799,3 +799,85 @@ int main() {
 }
 </pre>
 </div>
+
+###<font color="red">NYIST_138</font> 找球号(二）###
+由于RUO给的<code>Hash</code>模版跪了，所以就模仿网上的方法，写了个静态<code>Hash</code>。
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+using namespace std;
+
+const int maxn = 1e6 + 100;
+const int MOD = 100007;
+int key[maxn], o[maxn], next[maxn];
+int n, T, num, cnt = 0;
+
+int main () {
+    char op[10];
+    memset (o, -1, sizeof (o));
+    scanf ("%d", &T);
+    while (T --) {
+        scanf ("%s %d", op, &n);
+        if (op[0] == 'A') {
+            for (int i = 0; i < n; ++ i) {
+                scanf ("%d", &num);
+                int index = num % MOD;
+                key[cnt] = num;
+                next[cnt] = o[index];
+                o[index] = cnt;
+                cnt ++;
+            }
+        }
+        if (op[0] == 'Q') {
+            for (int i = 0; i < n; ++ i) {
+                scanf ("%d", &num);
+                int tmp = num % MOD, j;
+                for (j = o[tmp]; j != -1; j = next[j]) {
+                    if (key[j] == num) break;
+                }
+                puts (j + 1? "YES": "NO");
+            }
+        }
+    }
+    return 0;
+}
+</pre>
+</div>
+
+###<font color="red">NYIST_202</font> 红黑树###
+直接跑一遍二叉树的<code>中序遍历</code>即可，不用去管旋转操作。
+<pre class="brush: cpp">
+#include "bits/stdc++.h"
+using namespace std;
+struct Node {
+    int ls, rs;
+} tree[20];
+
+void search_mid (int r) {
+    if (r == -1) return ;
+    search_mid (tree[r].ls);
+    printf ("%d\n", r);
+    search_mid (tree[r].rs);
+}
+
+int main () {
+    int T, a, b, c, n;
+    scanf ("%d", &T);
+    while (T --) {
+        memset (tree, -1, sizeof (tree));
+        scanf ("%d", &n);
+        for (int i = 0; i < n; ++ i) {
+            scanf ("%d %d %d", &a, &b, &c);
+            tree[a].ls = b;
+            tree[a].rs = c;
+        }
+        scanf ("%d", &n);
+        for (int i = 0; i < n; ++ i) {
+            scanf ("%d %d", &a, &b);
+        }
+        search_mid(0);
+        puts ("");
+    }
+    return 0;
+}
+</pre>
+</div>

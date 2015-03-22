@@ -802,6 +802,7 @@ int main() {
 
 ###<font color="red">NYIST_138</font> 找球号(二）###
 由于RUO给的<code>Hash</code>模版跪了，所以就模仿网上的方法，写了个静态<code>Hash</code>。
+<div>
 <pre class="brush: cpp">
 #include "bits/stdc++.h"
 using namespace std;
@@ -845,6 +846,7 @@ int main () {
 
 ###<font color="red">NYIST_202</font> 红黑树###
 直接跑一遍二叉树的<code>中序遍历</code>即可，不用去管旋转操作。
+<div>
 <pre class="brush: cpp">
 #include "bits/stdc++.h"
 using namespace std;

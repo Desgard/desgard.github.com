@@ -295,7 +295,7 @@ tbody tr:nth-child(odd) th {
   color: #ac4142;
   display: inline-block;
   font-size: 1.8rem;
-  line-height: 1.8rem;
+  line-height: 2.0rem;
   text-decoration: none;
   overflow: hidden;
   padding-right: 10px;

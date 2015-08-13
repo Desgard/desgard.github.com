@@ -45,3 +45,42 @@ tag: [life]
 > ruby 2.0.0p451 (2014-02-24) [x64-mingw32]
 
 ##安装 DevKit
+DevKit 是一个在 Windows 上帮助简化安装及使用 Ruby C/C++ 扩展如 RDiscount 和 RedCloth 的工具箱。 详细的安装指南可以在程序的[wiki页面](https://github.com/oneclick/rubyinstaller/wiki/Development-Kit#installation-instructions)阅读。
+一、再次前往 [Ruby下载页面](http://rubyinstaller.org/downloads/)
+二、下载同系统及 Ruby 版本相对应的 DevKit 安装包。
+三、运行安装包并解压缩至某文件夹，如 C:\DevKit
+四、通过初始化来创建 config.yml 文件。在命令行窗口内，输入下列命令：
+> cd “C:\DevKit”
+
+
+> ruby dk.rb init
+
+
+> notepad config.yml
+
+五、在打开的记事本窗口中，于末尾添加新的一行 - C:\Ruby200-x64，保存文件并退出。
+六、回到命令行窗口内，审查（非必须）并安装。
+> ruby dk.rb review
+
+
+> ruby dk.rb install
+
+##安装 Jekyll
+一、确保 gem 已经正确安装
+> gem -v
+
+输出示例：
+> 2.0.14
+
+二、安装 <code>Jekyll gem</code>
+> gem install jekyll
+
+##启动 Jekyll
+按照官方的 [Jekyll 快速开始手册](http://jekyllrb.com/docs/quickstart/)的步骤， 一个新的 Jekyll 博客可以被建立并在localhost:4000浏览。
+
+> jekyll new myblog
+
+> cd myblog
+
+> jekyll server
+

@@ -28,7 +28,8 @@
  * along with SyntaxHighlighter.  If not, see <http://www.gnu.org/copyleft/lesser.html>.
  */
 /**
- * Django SyntaxHighlighter theme
+ * Emacs SyntaxHighlighter theme based on theme by Joshua Emmons
+ * http://www.skia.net/
  */
 
 /************************************
@@ -37,19 +38,19 @@
 
 .syntaxhighlighter
 {
-	background-color: #0B2F20 !important;
+	background-color: #000000 !important;
 }
 
 /* Gutter line numbers */
 .syntaxhighlighter .line .number
 {
-	color: #497958 !important;
+	color: #D3D3D3 !important;
 }
 
 /* Add border to the lines */
 .syntaxhighlighter .line .content
 {
-	border-left: 3px solid #41A83E !important;
+	border-left: 3px solid #990000 !important;
 	color: #B9BDB6 !important;
 }
 
@@ -66,13 +67,13 @@
 /* Second line */
 .syntaxhighlighter .line.alt2
 {
-	background-color: #0a2b1d !important;
+	background-color: #0f0f0f !important;
 }
 
 /* Highlighed line number */
 .syntaxhighlighter .line.highlighted .number
 {
-	background-color: #336442 !important;
+	background-color: #435A5F !important;
 	color: #fff !important;
 }
 
@@ -80,23 +81,23 @@
 .syntaxhighlighter .line.highlighted.alt1,
 .syntaxhighlighter .line.highlighted.alt2
 {
-	background-color: #336442 !important;
+	background-color: #435A5F !important;
 }
 
 .syntaxhighlighter .toolbar
 {
-	background-color: #245032 !important;
-	border: #0B2F20 solid 1px !important;
+	background-color: #000000 !important;
+	border: #000000 solid 1px !important;
 }
 
 .syntaxhighlighter .toolbar a
 {
-	color: #C4B14A !important;
+	color: #646763 !important;
 }
 
 .syntaxhighlighter .toolbar a:hover
 {
-	color: #FFE862 !important;
+	color: #9CCFF4 !important;
 }
 
 /************************************
@@ -104,32 +105,30 @@
  ************************************/
 .syntaxhighlighter .plain,
 .syntaxhighlighter .plain a
-{
-	color: #F8F8F8 !important;
+{ 
+	color: #D3D3D3 !important;
 }
 
 .syntaxhighlighter .comments,
 .syntaxhighlighter .comments a
 { 
-	color: #336442 !important;
-	font-style: italic !important;
+	color: #FF7D27 !important;
 }
 
 .syntaxhighlighter .string,
 .syntaxhighlighter .string a
 {
-	color: #9DF39F !important; 
+	color: #FF9E7B !important; 
 }
 
 .syntaxhighlighter .keyword
 { 
-	color: #96DD3B !important; 
-	font-weight: bold !important;
+	color: #00FFFF !important; 
 }
 
 .syntaxhighlighter .preprocessor 
 { 
-	color: #91BB9E !important; 
+	color: #AEC4DE !important; 
 }
 
 .syntaxhighlighter .variable 
@@ -139,38 +138,38 @@
 
 .syntaxhighlighter .value
 { 
-	color: #F7E741 !important; 
+	color: #090 !important; 
 }
 
 .syntaxhighlighter .functions
 { 
-	color: #FFAA3E !important; 
+	color: #81CEF9 !important; 
 }
 
 .syntaxhighlighter .constants
 { 
-	color: #E0E8FF !important; 
+	color: #FF9E7B !important; 
 }
 
 .syntaxhighlighter .script
 { 
-	background-color: #497958 !important;
+	background-color: #990000 !important;
 }
 
 .syntaxhighlighter .color1,
 .syntaxhighlighter .color1 a
 { 
-	color: #EB939A !important; 
+	color: #EBDB8D !important; 
 }
 
 .syntaxhighlighter .color2,
 .syntaxhighlighter .color2 a
 { 
-	color: #91BB9E !important; 
+	color: #FF7D27 !important; 
 }
 
 .syntaxhighlighter .color3,
 .syntaxhighlighter .color3 a
 { 
-	color: #EDEF7D !important; 
+	color: #AEC4DE !important; 
 }

@@ -3,17 +3,19 @@ layout: post
 author: Desgard_Duan
 title: 在Windows环境下配置Jekyll
 category: learning
-tag: [life]
+tag: [Jekyll]
 ---
 
  ![img](/public/ach_img/2015-8-9-1.png "github&jekyll")
-之前电脑硬盘突然崩溃，造成大量的数据丢失。之后自己从github上重新把站点clone下来，结果配置本地<code>Jekyll</code>的时候出现了大量的问题。</br>
+之前电脑硬盘突然崩溃，造成大量的数据丢失。之后自己从github上重新把站点clone下来，结果配置本地<code>Jekyll</code>的时候出现了大量的问题。
+
 这次赶快写一篇博文，把过程记录下来。
 
 <!-- more -->
 
 ##Jekyll 简介
-<code>Jekyll</code>是一个静态网站生成工具。它允许用户使用`HTML`、`Markdown`或`Textile`来建立静态页面，然后通过模板引擎`Liquid（Liquid Templating Engine）`来运行。</br >
+<code>Jekyll</code>是一个静态网站生成工具。它允许用户使用`HTML`、`Markdown`或`Textile`来建立静态页面，然后通过模板引擎`Liquid（Liquid Templating Engine）`来运行。
+
 [原文链接:Setup Jekyll on Windows](http://yizeng.me/2013/05/10/setup-jekyll-on-windows/)
 
 ##Jekyll 的安装步骤
@@ -38,6 +40,7 @@ tag: [life]
 ![img](http://cn.yizeng.me/assets/images/posts/2013-05-11-ruby-installer.png)
 
 四、打开一个命令提示行并输入以下命令来检测 Ruby 是否成功安装。
+
 > ruby -v
 
 
@@ -50,6 +53,7 @@ DevKit 是一个在 Windows 上帮助简化安装及使用 Ruby C/C++ 扩展如 
 二、下载同系统及 Ruby 版本相对应的 DevKit 安装包。<br />
 三、运行安装包并解压缩至某文件夹，如 C:\DevKit<br />
 四、通过初始化来创建 config.yml 文件。在命令行窗口内，输入下列命令：<br />
+
 > cd “C:\DevKit”
 
 
@@ -58,8 +62,11 @@ DevKit 是一个在 Windows 上帮助简化安装及使用 Ruby C/C++ 扩展如 
 
 > notepad config.yml
 
+
 五、在打开的记事本窗口中，于末尾添加新的一行 - C:\Ruby200-x64，保存文件并退出。<br />
 六、回到命令行窗口内，审查（非必须）并安装。<br />
+
+
 > ruby dk.rb review
 
 
@@ -67,12 +74,18 @@ DevKit 是一个在 Windows 上帮助简化安装及使用 Ruby C/C++ 扩展如 
 
 ##安装 Jekyll
 一、确保 gem 已经正确安装
+
+
 > gem -v
 
 输出示例：
+
+
 > 2.0.14
 
 二、安装 <code>Jekyll gem</code>
+
+
 > gem install jekyll
 
 ##启动 Jekyll

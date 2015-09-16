@@ -20,3 +20,9 @@ Desgard_Duan，被大家称 冬瓜~
 
 <hr />
 email:<code> <a href="Mailto: desgard_duan@foxmail.com">desgard_duan@foxmail.com</a></code>
+<hr />
+
+<h2>About Me From You.</h2>
+<!-- Duoshuo Comment BEGIN -->  
+{% include comment.html %}
+<!-- Duoshuo Comment END -->

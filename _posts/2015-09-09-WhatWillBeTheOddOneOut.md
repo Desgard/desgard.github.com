@@ -29,7 +29,7 @@ JavaScript runs on Node v0.10.21. All code is ran through BabelJS (ES 2015 suppo
 
 
 <!-- more -->
-
+<!-- 题目 -->
 ##题目解析
 看到第一眼，就想到了用`数组`去记录元素个数，然后每两个进行消除即可。在`JavaScript`中，`Array()`对象支持`字典`功能，比较方便的处理了计数问题。<br />
 于是，有了如下的第一反应的代码。<br />

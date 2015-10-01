@@ -64,3 +64,10 @@ Desgard Flying
 [Git源码](https://github.com/dgytdhy/desgardFlying "Git源码")
 <br />
 [Desgard Flying 0.9.0 Beta](http://pan.baidu.com/s/1bn5CJev "Desgard Flying 0.9.0 Beta")
+
+
+============
+
+资助开源者：
+
+ ![img](http://image17-c.poco.cn/mypoco/myphoto/20151001/18/17823283120151001181909028.jpg "支付宝") 

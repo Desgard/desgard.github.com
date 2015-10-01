@@ -69,5 +69,6 @@ Desgard Flying
 ============
 
 资助开源者：
-
- ![img](http://image17-c.poco.cn/mypoco/myphoto/20151001/18/17823283120151001181909028.jpg "支付宝") 
+<div>
+	 <img src="http://image17-c.poco.cn/mypoco/myphoto/20151001/18/17823283120151001181909028.jpg" height="200px"> 
+</div> 

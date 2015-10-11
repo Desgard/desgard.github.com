@@ -1,0 +1,2 @@
+$("#top").lettering();
+$("#bottom").lettering();

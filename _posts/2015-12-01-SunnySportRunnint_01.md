@@ -23,4 +23,9 @@ app类型是一款运动跑步软件，从类型上就能看出技术难点关�
     <img src="https://raw.githubusercontent.com/lilei644/LLSlideMenu/master/Preview/LLSlideMenuPreview.gif">
 </div>
 
-##Loading...
+#2015-12-03
+大体完成了Menu菜单，但是配色好丑，希望美工能早些把样品图给我。
+<div align="center">
+    <img src="http://i12.tietuku.com/90d02f2461683195.gif">
+</div>
+明后天做一下视图的跳转，整体的视图框架结构就差不多了。

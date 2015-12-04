@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+	{% include head.html %}
+
+	<body class="">
+		<!--
+        	作者：desgard.duan@gmail.com
+        	时间：2015-02-01
+        	描述：backtop
+        -->
+		{% include sidebar.html %}
+		
+		<!-- Wrap is the content to shift when toggling the sidebar. We wrap the
+         content to avoid any CSS collisions with our real content. -->
+		<div class="wrap">
+			<div class="masthead">
+				<div class="container">
+					<div class="masthead-title"  id="show" style="display: none;">
+						<a href="/" title="Home"><span data-hover="忠心 耿耿~">{{ site.title }}</span></a>
+						<small>{{ site.tagline }}</small>
+					</div>
+				</div>
+			</div>
+
+			
+			{{ content }}
+		</div>
+
+		<label for="sidebar-checkbox" class="sidebar-toggle"></label>
+		
+		<!-- right sidbar -->
+		
+		
+		
+		{% include footer.html %}
+
+		<!-- "The ending isn’t any more important than the moments leading to it." -Dr. Eva Rosalene, To The Moon -->
+	</body>
+	<script type="text/javascript">
+		$(function(){
+			// alert ("haha");
+			// $("#show").hide(1);
+			// $("#show2").fadeIn(2000);
+			$("#show").show(1000);
+			
+		})
+	</script>
+</html>

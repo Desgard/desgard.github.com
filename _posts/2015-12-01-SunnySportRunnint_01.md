@@ -1,7 +1,7 @@
 ---
 layout: post
 author: Desgard_Duan
-title: 阳光体育-跑步app（iOS端）开发日志（1）
+title: 阳光体育-跑步app（iOS端）开发日志
 category: learning
 tag: [iOS]
 ---
@@ -29,3 +29,12 @@ app类型是一款运动跑步软件，从类型上就能看出技术难点关�
     <img src="http://i12.tietuku.com/90d02f2461683195.gif">
 </div>
 明后天做一下视图的跳转，整体的视图框架结构就差不多了。
+
+#2015-12-05
+美工图今天完成了跑步状态时的UI样图，开始仿制阶段。以下是帅气的样图：
+![img](http://i12.tietuku.com/87ca8d310d259758.jpg)
+
+另外，自己收集了一些关于图标控件的开源库[ios-charts](https://github.com/danielgindi/ios-charts)，制作的时候要尝试着使用。
+
+#学习收获整理
+[CGContextRef图形库](http://www.desgard.com/learning/2015/12/04/CGContextRef/)

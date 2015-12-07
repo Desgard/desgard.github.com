@@ -1,6 +1,6 @@
 http://desgrad.com
 ============
-+ site: [http://desgrad.com](http://desgrad.com)
++ site: [http://desgrad.com](http://dgytdhy.github.io)
 + author: `Desgard_Duan`
 + version: `1.0.1`
 + from: `Desgard_Duan`

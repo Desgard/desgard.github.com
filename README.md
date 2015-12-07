@@ -7,7 +7,9 @@
 个人博客。
 
 用于发表个人技术博文以及对于实事的心得感想。
+
 ============
+
 ##Update 2015-12-07
 + 发表文章[Learning CGContextRef](http://www.desgard.com/learning/2015/12/04/CGContextRef/)
 + 完成介绍页面[大学生涯](http://www.desgard.com/road/)

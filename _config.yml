@@ -27,4 +27,11 @@ comments :
     provider : duoshuo
     duoshuo :
       short_name : desgard
+      
+
+# collection for knowledge
+collections:
+    knowledge:
+        output: true
+        path: /knowledge/
 

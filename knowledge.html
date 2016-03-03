@@ -5,4 +5,5 @@ title: knowledge
 
 {% for post in site.knowledge %}
 <li class="page-data-md"><a class="title" href="{{ post.url }}"><i class="fa fa-hand-o-right"></i> {{ post.title }} {{ post.content | split:"<!-- more -->" | first  }}</a></li>
+<hr />
 {% endfor %}

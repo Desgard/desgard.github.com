@@ -21,9 +21,9 @@ tag: [iOS]
 虽然在**ARC机制**下，系统自动帮我们管理内存，但是尽可能的少使用和及时的释放内存是十分有必要的，毕竟手机的内存还是很有限的。
 
 例如应用的登录界面通常是`UILabel`和`UITextField`相结合，我们自定义一个`LTView类`包含`titleLabel属性`和`textField属性`。
-<div>
-<pre class="brush: applescript">
-#import &ltUIKit/UIKit.h&gt
+
+~~~ruby
+#import <UIKit/UIKit.h>
 
 @interface LTView: UIView
 
@@ -33,12 +33,11 @@ tag: [iOS]
 @property (nonatomic, retain) UITextField *textField;
 
 @end
-</pre>
-</div>
+~~~
+
 然后我们通过重写属性的`getter`方法可以完成**Lazy Instantiation（懒加载）**（有些书上也称：*Lazy Loading*）模式，使用懒加载可以将代码按照模块封装，同时提高类的灵活度，也可以在一定时期内节省内存的使用，对于当前的`LTView`，使用懒加载表示我提供了两个子视图，如果需要使用，秩序调用`getter`方法既可以显示该子视图，如果不需要，`LTView`就是一个空的视图。
 
-<div>
-<pre class="brush: applescript">
+~~~ruby
 // LTView.m
 // 重写titleLable的getter方法
 - (UILabel *) titleLabel {
@@ -67,10 +66,9 @@ tag: [iOS]
     }
     return _textField;
 }
-</pre>
-</div>
+~~~
 
-** 注意以下两点：**
+### 注意以下两点：
 
 * 以上是Apple官方提倡的做法。其内部做的iOS系统中很多地方都用到了懒加载的方式，比如控制器的View的创建。
 * 在懒加载重写`getter`过程中，切记不要使用`self.titleLabel`这种方法。通过`self.xxx`是对属性的访问，而使用`_xxx`是对局部变量的访问。懒加载中实际上是访问其变量的`getter`方法，所以使用`self.xxx`写法会抛出警告。

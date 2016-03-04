@@ -1,6 +1,17 @@
 # Dependencies
-markdown:         rdiscount
+markdown:         kramdown
+kramdown:
+    input: GFM
+    extensions:
+        - autolink
+        - footnotes
+        - smart
+    use_coderay: true
+    syntax_highlighter: rouge
+    coderay:
+        coderay_line_numbers:  nil
 highlighter:      pygments
+gems:             [jekyll-paginate] 
 
 #
 encoding:         "utf-8"

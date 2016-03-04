@@ -7,8 +7,7 @@ tag: [iOS]
 ---
 记得大一的时候，**Java SE8**带着强大的**Lambda 表达式**横空出世，当时学习了之后觉得**Lambda**的方式其实与**C++**中的匿名类非常类似，但是其结构更轻量，更短小，略甜的语法糖。在一篇教程上如此给出 了一个**Lambda 表达式**的例子：
 
-<div>
-<pre class="brush:java">
+~~~ruby
 // 初学 Lambda 表达式
 public class FirstLambdaExpression {  
     public String variable = "Class Level Variable";  
@@ -26,17 +25,17 @@ public class FirstLambdaExpression {
        }).start();  
     }  
 } 
-</pre>
-</div>
+~~~
+
 <!-- more -->
-####输出
-<div>
-<pre class="brush:java">
+
+#### 输出
+
+~~~ruby
 // 输出
 ->Method Local Variable   
 ->Class Level Variable
-</pre>
-</div>
+~~~
 
 由此，我们可以看出**Lambda 表达式**来编写匿名类的时候，解决了变量的可见性问题。代码注释中也强调了**Lambda 表达式**不允许创建覆盖变量。
 
@@ -46,31 +45,29 @@ public class FirstLambdaExpression {
 
 **block**本质上是其他变量类似。不同的是，**block**存储的数据是一个函数体。使用**block**可以像调用其他标准函数一样，传入参数，并得到返回值。脱字符`^`是**block**的语法标记。下图是经典的**block**语法讲解：
 
-![img](http://i12.tietuku.com/2290a9c820fddf29.png)
+![gras](http://i12.tietuku.com/2290a9c820fddf29.png)
 
-###(1) 参数是NSString的block
-<div>
-<pre class="brush: applescript">
+### (1) 参数是NSString的block
+
+~~~ruby
 // (1)block块
 void (^printBlock)(NSString *x);  
 printBlock = ^(NSString* str) {
     NSLog(@"print:%@", str);  
 };  
 printBlock(@"hello world!"); 
-</pre>
-</div>
+~~~
 
-####输出
-<div>
-<pre class="brush: applescript">
+#### 输出
+
+~~~ruby
 // console 输出
 print:hello world!
-</pre>
-</div>
+~~~
 
-###(2)block中用在字符串数组排序
-<div>
-<pre class="brush: applescript">
+### (2)block中用在字符串数组排序
+
+~~~ruby
 // (2)block块
 NSArray *stringArray = [NSArray arrayWithObjects:@"abc 1", 
     @"abc 21", @"abc 12",@"abc 13",@"abc 05",nil];  
@@ -80,12 +77,11 @@ NSComparator sortBlock = ^(id string1, id string2) {
 NSArray *sortArray = [stringArray 
     sortedArrayUsingComparator: sortBlock];  
 NSLog(@"sortArray:%@", sortArray);  
-</pre>
-</div>
+~~~
 
-####输出
-<div>
-<pre class="brush: applescript">
+#### 输出
+
+~~~ruby
 // console 输出
 sortArray:(
     "abc 05",
@@ -94,12 +90,13 @@ sortArray:(
     "abc 13",
     "abc 21"
 )
-</pre>
-</div>
-###(3) 在block中使用局部变量和全局变量
+~~~
+
+### (3) 在block中使用局部变量和全局变量
+
 在代码块中可以使用和改变全局变量。
-<div>
-<pre class="brush: applescript">
+
+~~~ruby
 // (3)block块
 int global = 1000;
 int main(int argc, const char * argv[]) {
@@ -113,11 +110,11 @@ int main(int argc, const char * argv[]) {
     }
     return 0;
 }
-</pre>
-</div>
-####输出
-<div>
-<pre class="brush: applescript">
+~~~
+
+#### 输出
+
+~~~ruby
 // console输出
 global:1001
 global:1001
@@ -134,11 +131,11 @@ void(^block)(void) = ^(void) {
 };
 block();
 NSLog(@"local:%d", local);
-</pre>
-</div>
+~~~
+
 以上**block**中改变局部变量编译不通过。若想在**block**中改变局部变量，在局部变量前面加入关键字：`__block`
-<div>
-<pre class="brush: applescript">
+
+~~~ruby
 // (5)block
 __block int local = 500;
 void(^block)(void) = ^(void)
@@ -148,20 +145,21 @@ void(^block)(void) = ^(void)
 };
 block();
 NSLog(@"local:%d", local);
-</pre>
-</div>
-####输出
-<div>
-<pre class="brush: applescript">
+~~~
+
+#### 输出
+
+~~~ruby
 // console 输出
 local:501
 local:501
-</pre>
-</div>
+~~~
+
 ### (4)block的递归调用
+
 **block**想要递归调用，其变量必须是全局变量或者是静态变量，这样在程序启动的时候**block**变量就初始化了，可以递归调用。
-<div>
-<pre class="brush: applescript">
+
+~~~ruby
 // (6)block
 static void (^ const blocks)(int) = ^(int i) {
     if (i > 0) {
@@ -170,17 +168,17 @@ static void (^ const blocks)(int) = ^(int i) {
     }
 };
 blocks(3);
-</pre>
-</div>
-####输出
-<div>
-<pre class="brush: applescript">
+~~~
+
+#### 输出
+
+~~~ruby
 // console 输出
 num:3
 num:2
 num:1
-</pre> 
-</div>
+~~~
 
-##尾声
+## 尾声
+
 **block**在作用域、内存管理等方面具有自己独特的特性和需要留意的地方，在许多场景也很多实用的功能。虽然有时理解起来有点费劲，但是用好了，相信用好了可以大大提高代码可读性和效率等。

@@ -7,15 +7,20 @@ tag: [iOS]
 ---
 假期项目总结第一篇。想把假期在项目中学到的东西总结一番。
 
-##概述
+## 概述
+
 在**Objective-C**中，内容的引用计数让人恼火。尤其是涉及到**arc**、**blocks**等等的时候。当**ARC**机制开启后，只有对应用计数机制更加了解，才能避免**Cycle Retain**、**Crash**等问题的出现。
 
 但是由于使用**ARC**可以显著提高编码效率，所以建议尽量启用**ARC**，**Objective-C**中内存管理主要依赖引用计数，二队应用技术的影响又依赖修饰属性（即`@property`属性），我们先从此说起。
 
 <!-- more -->
-##属性
+
+## 属性
+
 ### （1）修饰属性
-####读写控制
+
+#### 读写控制
+
 * **readwrite**：可读科协，会自动生成`getter`和`setter`方法。
 * **readonly**：只读，只会生成`getter`方法，不会生成`setter`方法。
 
@@ -54,8 +59,7 @@ ARC，全称叫**Automatic Reference Counting**，该机制从**iOS 5**开始开
 ### （3）delegate使用strong还是weak
 * **delegate**主要涉及到互相引用和**crash(引用被释放)问题**，为了防止这两个问题发生，**delegate**一般使用`weak`。先看代码：
 
-<div>
-<pre class="brush: applescript">
+~~~ruby
 // MyClassDelegate协议
 @protocol MyClassDelegate &ltNSObject&gt
 - (void)myClassOnSomeEvent: (MyClass *)myClass;
@@ -79,25 +83,26 @@ ARC，全称叫**Automatic Reference Counting**，该机制从**iOS 5**开始开
     // ....
 }
 @end
-</pre>
-</div>
+~~~
 
 在**myViewController**中，执行**(2)**时，**myViewController**将会持有一个**MyClass的引用**。执行**(3)**时，**myClass**也会应用**myViewController**。
 
-##关于block和引用计数
+## 关于block和引用计数
+
 ### （1）修饰block
+
 如果需要**block**在它被声明的作用域被销毁后继续使用的话，你就需要做一份拷贝。拷贝会把**block**移到堆里面。所以，使用**@property**时设置通常如下：
-<div>
-<pre class="brush: applescript">
+
+~~~ruby
 // 声明方式
 @property(copy, nonatomic) void(^block)(void);
-</pre>
-</div>
+~~~
 
-###（2）retain cycle 的问题
+### （2）retain cycle 的问题
+
 **block**在实现时就会对它引用到的它所在方法中定义的栈变量进行一次只读拷贝，然后在**block**块内使用该只读拷贝。所以在使用**block**过程中，经常会遇到**retain cycle**的问题，例如：
-<div>
-<pre class="brush: applescript">
+
+~~~ruby
 - (void)dealloc {
    [[NSNotificationCenter defaultCenter]removeObserver:_observer];
 }
@@ -111,15 +116,15 @@ ARC，全称叫**Automatic Reference Counting**，该机制从**iOS 5**开始开
         [sselfdismissModalViewControllerAnimated:YES];
     }];
 }
-</pre>
-</div>
+~~~
+
 在**block**中使用**self**之前先用一个**__weak**变量引用**self**，导致**block**不会**retain self**，打破**retain cycle**，然后在**block**中使用**wself**之前先用**__strong**类型变量引用**wself**，以确保使用过程中不会**deallo**c。简而言之就是推迟对**self**的**retain**，在使用时才进行**retain**。
 
-###（3）return一个block
+### （3）return一个block
+
 返回一个**block**时，**ARC**会自动将**block**加上**autorelease**，所以需要注意，如果执行过程中不能接受在**runloop**接受后才释放**block**，就需要自己加入**@autoreleasepool**块，但是测试发现64位iOS/mac时，系统会自动在使用结束后立即释放，32位则要等到**runloop**结束。
 
-<div>
-<pre class="brush: applescript">
+~~~ruby
 - (void)test {
    //@autoreleasepool{
    AutoTest *a = [AutoTestsAutoTest];
@@ -134,18 +139,17 @@ ARC，全称叫**Automatic Reference Counting**，该机制从**iOS 5**开始开
    [self test];
    NSLog(@"4");
 }
-</pre>
-</div>
+~~~
 
-####执行结果
-<div>
-<pre class="brush: ps">
+#### 执行结果
+
+~~~ruby
 // console 输出
 1释放23释放4   64位
 123释放4释放   32位
 12释放释放34   32位＋@autoreleasepool
-</pre>
-</div>
+~~~
 
-###（4）block作为参数
+### （4）block作为参数
+
 **block**作为参数时，如果使用范围超过了**block**的作用域（比如异步时，或者将**block**传递给其他对象等等），则需要**copy**此**block**，**copy**建议在使用此**block**的方法内实现（谁使用，谁管理），而不是在传递参数时**copy**。注意，**block**过一个**strong**类型的指针时，会自动**copy**。经过**copy**过的**block**会从栈空间移动到堆上，并且，**copy**一个已经在堆上的**block**时，此**block**不会受影响。

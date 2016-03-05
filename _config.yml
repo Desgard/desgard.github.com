@@ -10,7 +10,6 @@ kramdown:
     syntax_highlighter: rouge
     coderay:
         coderay_line_numbers:  nil
-highlighter:      pygments
 gems:             [jekyll-paginate] 
 
 #

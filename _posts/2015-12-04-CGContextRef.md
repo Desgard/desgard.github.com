@@ -6,6 +6,7 @@ category: learning
 tag: [iOS]
 ---
 `CGContextRef`类库在官方文档是这么描述的：
+
 > An opaque type that represents a Quartz 2D drawing environment.
 
 `Quartz`是主要的绘画接口，支持基于路径的描画、抗锯齿渲染、渐变填充模式、图像、颜色、坐标控件变换、以及PDF文档的创建、显示和分析。`UIKit`为`Quartz`图像和颜色操作提供了`Objective-C`的封装。`CoreAnimation`为很多UIKit的视图属性生命的动画效果提供底层支持，也可以用于实现定制的动画。
@@ -24,9 +25,9 @@ tag: [iOS]
 
 路径轮廓可以用像`CGContextStrokePath`这样的函数来画，即用当前的笔划颜色画出以路径为中心位置的线。路径的填充则可以用`CGContextFillPath`函数来实现，它的功能是用当前的填充颜色或样式填充路径线段包围的区域。
 
-##Sample
-<div>
-<pre class="brush: applescript">
+## Sample
+
+~~~ruby
 //设置上下文
 CGContextRef context = UIGraphicsGetCurrentContext();
 
@@ -176,10 +177,12 @@ CGContextSetFillColorWithColor(context,
     [UIColor redColor].CGColor);
 CGContextFillPath(context);
 
-</pre>
-</div>
+~~~
 
-[XGRoundIcon.m](#)<br />
+---
+
+[XGRoundIcon.m](#)
+
 个人编写，利用CGContextRef类库编写，将方形图像处理为圆形。
 
 

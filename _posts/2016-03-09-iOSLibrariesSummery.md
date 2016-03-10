@@ -20,13 +20,14 @@ tag: [iOS]
 
 [源码地址](https://github.com/AFNetworking/AFNetworking)
 
+<!-- more -->
+
 ### 3.MKNetworkKit
 
 一个使用十分方便，功能又十分强大、完整的iOS网络编程代码库，完全基于 ARC。它只有两个类, 它的目标是使用像AFNetworking这么简单，而功能像ASIHTTPRequest(已经停止维护)那么强大。
 
 [源码地址](https://github.com/MugunthKumar/MKNetworkKit)
 
-<!-- more -->
 
 ## Socket
 
@@ -85,6 +86,7 @@ fmdb是数据库管理库，封装了sqlite相关的sql语句，简化了数据�
 ### 3.SDWebImage
 
 【写到这里停止更新，由于今天鹅厂面试的一系列问题由此展开，本文后面将会继续更新。】
+[源码地址](https://github.com/rs/SDWebImage)
 
 
 

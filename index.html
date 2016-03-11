@@ -9,7 +9,7 @@ title: Desgard_Duan|冬瓜
   {% for post in paginator.posts %}
   <div class="post">
     <div class="post-heading">
-      <img src="/public/img/{{ post.author }}.jpg">
+      <img src="/public/img/Desgard_Duan.jpg">
       <h1 class="post-title">
         <a class="post-title-home" href="{{ post.url }}">
           {{ post.title }}
@@ -19,7 +19,7 @@ title: Desgard_Duan|冬瓜
         {% if post.author == "Desgard_Duan" %}
           {{ post.author }}原创
         {% else %}
-          转载{{ post.author }}
+          转载自&nbsp; {{ post.author }}
         {% endif %}
         </p>
         <span class="post-info"><i class="fa fa-calendar"></i>&nbsp{{ post.date | date: "%Y" }}/{{ post.date | date: "%m" }}/{{ post.date | date: "%d" }}  </span>

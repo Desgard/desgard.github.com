@@ -22,7 +22,7 @@ Desgard_Duan，被大家称 冬瓜~
 
 --- 
 
-+ email:<a href="Mailto: desgard_duan@foxmail.com">desgard_duan@foxmail.com</a>
++ <a href="Mailto: desgard_duan@foxmail.com">desgard_duan@foxmail.com</a>
 + [github](https://github.com/dgytdhy)
 + [stackoverflow](http://stackoverflow.com/users/6119149/desgard-duan?tab=profile)
 + [segmentfault](https://segmentfault.com/u/desgard)

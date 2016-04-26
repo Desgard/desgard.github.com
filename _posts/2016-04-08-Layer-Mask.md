@@ -3,7 +3,7 @@ layout: post
 title: "To Use Layer Mask"
 date: 2016-04-08 09:21:35
 image: '/assets/img/'
-description: 'use layer mask to decorate your app'
+description: 'Use layer mask to decorate your app'
 tags:
 - iOS
 categories:
@@ -12,6 +12,7 @@ twitter_text: 'Put your twitter description here.'
 ---
 
 今天收到一个优化需求：具体内容是将音频波浪加上渐变显示的效果。原图如下。
+
 
 <div>
 <img src="http://cerkh.img47.wal8.com/img47/539039_20160308170255/14601058034.png" alt="6F4F715C-3B0B-40A1-9F63-12374BEE3EDF" border="0" width="50%"/>

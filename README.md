@@ -1,17 +1,30 @@
-[http://www.desgrad.com](http://dgytdhy.github.io)
-============
+## Gua Blog Use Will Jekyll Template - [Demo](http://willianjusten.com.br/will-jekyll-template)
 
-+ author: `Desgard_Duan`
-+ version: `1.0.1`
-+ from: `Desgard_Duan`
+![Screenshot](screenshot.png)
 
-The Blog made my Desgard_Duan.
 
-For posting some technology technical article and thought myself.
+The Theme features:
 
-============
+- Gulp
+- Stylus (Jeet, Rupture, Kouto Swiss)
+- Smoothscroll
+- Live Search
+- Offcanvas Menu
+- SVG icons
+- Very very small and fast!
+- Shell Script to create posts
+- Tags page
+- Series page
+- About Me page
+- Feed RSS
+- Sitemap.xml
+- Color Customization
+- Info Customization
 
-##Update 2015-12-07
-+ post article: [Learning CGContextRef](http://www.desgard.com/learning/2015/12/04/CGContextRef/)
-+ new page: [大学生涯](http://www.desgard.com/road/)
-+ delete page: [个人作品](http://www.desgard.com/works/)
+## Goals
+
+To write the learning iOS Developing Road, and the programming life.
+
+
+
+

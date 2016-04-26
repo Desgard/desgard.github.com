@@ -1,9 +1,0 @@
----
-layout: default
-title: knowledge
----
-
-{% for post in site.knowledge %}
-<li class="page-data-md"><a class="title" href="{{ post.url }}"><i class="fa fa-hand-o-right"></i> {{ post.title }} <font color="#7a7a7a">{{ post.content | split:"<!-- more -->" | first  }}</font></a></li>
-<hr />
-{% endfor %}

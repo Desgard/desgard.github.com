@@ -91,7 +91,7 @@ twitter_text: 'Put your twitter description here.'
 * 不进入`dealloc`我就不能调用`invalidate`方法；
 * ……似乎我也进入了循环。
 
-## 思路转换直至HWWeakTimer
+## 思路转换直至WeakTimer
 
 ### block的常客，weakSelf
 

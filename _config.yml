@@ -4,6 +4,7 @@ baseurl: "" # the subpath of your site, e.g. /blog
 url: "http://desgard.com" # the base hostname & protocol for your site e.g. http://willianjusten.com.br
 
 # User settings
+title: Guardia · 瓜地
 username: Gua
 user_description: A Geek, iOS Developer
 user_title: Desgard Duan

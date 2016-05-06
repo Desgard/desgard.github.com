@@ -9,6 +9,7 @@ tags:
 categories:
 - Programming Road
 twitter_text: 'Put your twitter description here.'
+weibo_text: '瓜的Glow面试之旅'
 ---
 
 ![](/assets/img/post_img/Glow.png)

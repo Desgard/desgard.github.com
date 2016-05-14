@@ -12,7 +12,7 @@ twitter_text: 'Learning Key Value Observing'
 weibo_text: 'Learning Key Value Observing'
 ---
 
-最近在忙于做各种项目，也就没有时间来动笔写一些知识性的总结。前几天在看《Pro Objective-C Design Patterns for iOS》时，看到了观察者模式中的KVO实现方式，于是自己又将旧知识回顾了一下，并且深入去学习一下。
+最近在忙于做各种项目，也就没有时间来动笔写一些知识性的总结。前几天在看《Pro Objective-C Design Patterns for iOS》时，看到了观察者模式中的KVO实现方式，于是自己又将旧知识回顾了一下，并且深入学习。
 
 ## 何为KVO？
 
@@ -24,7 +24,7 @@ KVO提供了一种机制，制定一个被观察对象，当对象某个属性�
 
 ## 实现原理
 
-在[Apple的API官方文档](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/KeyValueObserving/Articles/KVOImplementation.html)中，有一下对于KVO的介绍：
+在[Apple的API官方文档](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/KeyValueObserving/Articles/KVOImplementation.html)中，有以下对于KVO的介绍：
 
 > Automatic key-value observing is implemented using a technique called isa-swizzling… When an observer isregistered for an attribute of an object the isa pointer of the observed object is modified, pointing to an intermediate class rather than at the true class
 
@@ -129,9 +129,9 @@ KVO的实现依赖于Objc强大的`Runtime`，以上文档简易介绍了：KVO�
 
 ## 一些总结
 
-对比其他的回调方式，KVO机制的运用的实现，更多的由系统支持，相比Notification、Delegate等更加简洁一些，并且还能提供观察属性的最新值以及原始值。但相应的在创建子类、重写方法等等方面的内存消耗是很巨大的。所以对于两个类之间的通信，我们可以根据实际开发的环境采用不同的方法，是的开发的项目更加简洁实用。
+对比其他的回调方式，KVO机制的运用的实现，更多的由系统支持，相比Notification、Delegate等更加简洁一些，并且还能提供观察属性的最新值以及原始值。但相应的在创建子类、重写方法等等方面的内存消耗是很巨大的。所以对于两个类之间的通信，我们可以根据实际开发的环境采用不同的方法，使得开发的项目更加简洁实用。
 
-另外要注意的是，由于这种集成方式的注入是在运行时，而不是在编译时实现的，如果给定的实例没有观察者，那么KVO不会有任何开销。相比于Delegate和Notification，这一时KVO零开销观察的优势所在。
+另外要注意的是，由于这种集成方式的注入是在运行时，而不是在编译时实现的，如果给定的实例没有观察者，那么KVO不会有任何开销。相比于Delegate和Notification，这也是KVO零开销观察的优势所在。
 
 ---
 

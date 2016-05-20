@@ -38,6 +38,8 @@ KEYWORDS="TODO:|FIXME:|\?\?\?:|\!\!\!:"
 find "${SRCROOT}" \( -name "*.h" -or -name "*.m" \) -print0 | xargs -0 egrep --with-filename --line-number --only-matching "($KEYWORDS).*\$" | perl -p -e "s/($KEYWORDS)/ warning: \$1/"
 {% endhighlight %}
 
+[代码链接](https://github.com/dgytdhy/shell/blob/master/xcode_auto_warn.sh)
+
 插入`shell`脚本之后，就可以在项目中添加`// TODO:`类的注释，这样编译器就会将其自动跟踪添加为警告状态。你可以自行对齐增加事情状态含义，也可以自定义添加更具体的警告描述在注释中。`shell`脚本主要就是`正则表达式`的简单运用，不难理解。
 
 个人对以上warn的定义：

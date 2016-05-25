@@ -1,15 +1,13 @@
 ---
-layout: post
-title: "An iOS Launch Advertising View"
-date: 2016-05-23 01:01:00
-image: '/assets/img/'
-description: 'DGAdLaunchView'
+layout:     post
+title:      "An iOS Launch Advertising View - DGAdLaunchView"
+subtitle:   "启动页广告"
+date:       2016-05-23 01:01:00
+author:     "Desgard_Duan"
+header-img: "img/post-bg-miui-ux.jpg"
 tags:
-- iOS
-categories:
-- Happy time in iOS
-twitter_text: 'DGAdLaunchView'
-weibo_text: 'DGAdLaunchView'
+    - iOS
+    - swift
 ---
 
 在杭州云梯科技的实习到了最后一周了，自己也在做业务开发的同时整理了下这三个月以来的收获，并整理成一个个片段打包上传至[github](https://github.com/dgytdhy/)保留。在一周以前，由于公司应合作公司的要求，在[口袋题库](https://itunes.apple.com/us/app/kou-dai-ti-ku-kao-yan-kao/id927291424?mt=8)这个产品的Launch页面增加广告，虽然个人平时很反感启动页面的广告，因为这并不符合苹果对于app设计的审美（详见[《APP启动页的价值和审美》](http://www.huxiu.com/article/4235/1.html)一文）。但是商业需要，不能因自己的任性去反对。

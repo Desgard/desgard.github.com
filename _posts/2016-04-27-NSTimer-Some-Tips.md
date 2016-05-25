@@ -1,16 +1,14 @@
 ---
-layout: post
-title: "Some Tips About NSTimer"
-date: 2016-04-26 01:01:00
-image: '/assets/img/'
-description: 'You need to notice some tips about NSTimer'
+layout:     post
+title:      "Some Tips About NSTimer"
+subtitle:   "NSTimer其实不难"
+date:       2016-04-26 01:01:00
+author:     "Desgard_Duan"
+header-img: "img/post-bg-timer.jpg"
 tags:
-- iOS
-categories:
-- Happy time in iOS
-twitter_text: 'Put your twitter description here.'
+    - iOS
+    - Objective-C
 ---
-
 在制作之前的项目还有正在接手的跑步软件中，都使用到了`NSTimer`。今天深究后，发现之前写的代码在使用`NSTimer`时出现了内存泄露。于是查阅了相关文档，进行进一步的学习。
 
 ## NSTimer

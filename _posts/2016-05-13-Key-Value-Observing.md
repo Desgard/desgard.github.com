@@ -1,15 +1,13 @@
 ---
-layout: post
-title: "Learning Key-Value Observing"
-date: 2016-05-13 01:01:00
-image: '/assets/img/'
-description: 'KVO, I need to get it.'
+layout:     post
+title:      "Learning Key-Value Observing"
+subtitle:   "你应该学习的，键值观察"
+date:       2016-05-13 01:01:00
+author:     "Desgard_Duan"
+header-img: "img/post-bg-re-vs-ng2.jpg"
 tags:
-- iOS
-categories:
-- Happy time in iOS
-twitter_text: 'Learning Key Value Observing'
-weibo_text: 'Learning Key Value Observing'
+    - iOS
+    - Objective-C
 ---
 
 最近在忙于做各种项目，也就没有时间来动笔写一些知识性的总结。前几天在看《Pro Objective-C Design Patterns for iOS》时，看到了观察者模式中的KVO实现方式，于是自己又将旧知识回顾了一下，并且深入学习。

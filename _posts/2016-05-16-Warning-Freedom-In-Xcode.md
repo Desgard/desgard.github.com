@@ -1,15 +1,13 @@
 ---
-layout: post
-title: "Show TODO And FIXME As Warnings In Xcode"
-date: 2016-05-16 01:01:00
-image: '/assets/img/'
-description: 'If you want to flag somewhere in your code, warn it!'
+layout:     post
+title:      "Show TODO And FIXME As Warnings In Xcode"
+subtitle:   "利用xcode黑魔法，控制warn提示"
+date:       2016-05-16 01:01:00
+author:     "Desgard_Duan"
+header-img: "img/post-bg-rwd.jpg"
 tags:
-- iOS
-categories:
-- Happy time in iOS
-twitter_text: 'Show TODO And FIXME As Warnings In Xcode'
-weibo_text: 'Show TODO And FIXME As Warnings In Xcode'
+    - iOS
+    - shell
 ---
 
 很多时候我们遇到过这样的问题：

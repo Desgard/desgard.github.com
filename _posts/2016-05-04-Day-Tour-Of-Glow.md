@@ -1,15 +1,14 @@
 ---
-layout: post
-title: "Glow Glowed In Shanghai"
-date: 2016-05-04 01:01:00
-image: '/assets/img/'
-description: 'A Glow Tour...'
+layout:     post
+title:      "Glow Glowed In Shanghai"
+subtitle:   "瓜的Glow面试之旅"
+date:       2016-05-04 01:01:00
+author:     "Desgard_Duan"
+header-img: "img/post-bg-glow.jpg"
 tags:
-- life
-categories:
-- Programming Road
-twitter_text: 'Put your twitter description here.'
-weibo_text: '瓜的Glow面试之旅'
+    - iOS
+    - interview
+    - algorithm
 ---
 
 ![](/assets/img/post_img/Glow.png)

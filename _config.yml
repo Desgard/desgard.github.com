@@ -1,49 +1,96 @@
 # Site settings
-description: A blog about Desgard_Duan.
-baseurl: "" # the subpath of your site, e.g. /blog
-url: "http://desgard.com" # the base hostname & protocol for your site e.g. http://willianjusten.com.br
-
-# User settings
-title: Guardia · 瓜地
-username: Gua
-user_description: A Geek, iOS Developer
-user_title: Desgard Duan
+title: Gua Blog
+title-site: Desgard_Duan
+SEOTitle: Guardia · 瓜地
+header-img: img/home-bg.jpg
 email: gua@desgard.com
-twitter_username: Desgard_Duan
-github_username:  dgytdhy
-gplus_username:  Desgard_Duan
-disqus_username: Desgard_Duan
+description: "iOS developer, try to Full Stack!"
+keyword: ""
+url: "http://www.desgard.com/"              # your host, for absolute URL
+baseurl: ""                             # for example, '/blog' if your blog hosted on 'host/blog'
+
+
+
+# SNS settings
+RSS: false
+weibo_username:     desgard
+zhihu_username:     desgard-duan
+github_username:    dgytdhy
+#twitter_username:  huxpro
+facebook_username:  desgard.duan
+# linkedin_username:  firstname-lastname-idxxxx
+
+
 
 # Build settings
+# from 2016, 'pygments' is unsupported on GitHub Pages. Use 'rouge' for highlighting instead.
+highlighter: rouge
+permalink: pretty
+paginate: 10
+exclude: ["less","node_modules","Gruntfile.js","package.json","README.md","README.zh.md"]
+anchorjs: true                          # if you want to customize anchor. check out line:181 of `post.html`
+
+
+
+# Gems
+# from PR#40, to support local preview for Jekyll 3.0
+gems: [jekyll-paginate]
+
+
+
+# Markdown settings
+# replace redcarpet to kramdown,
+# although redcarpet can auto highlight code, the lack of header-id make the catalog impossible, so I switch to kramdown
+# document: http://jekyllrb.com/docs/configuration/#kramdown
 markdown: kramdown
-highlighter: pygments
-permalink: /:title/
+kramdown:
+  input: GFM                            # use Github Flavored Markdown !important
 
 
-# html minify
-compress_html:
-  clippings: all
-  comments: all
-  endings: []
-  profile: false
 
-# Links to include in menu navigation
-# For external links add external: true
-links:
-  - title: Home
-    url: /
-  - title: Series
-    url: /series
-  - title: Tags
-    url: /tags
-  - title: About Me
-    url: /about
+# Disqus settings
+disqus_username: desgard
 
-# exclude my node related stuff
-exclude: ['package.json', 'src', 'node_modules']
+# Duoshuo settings
+# duoshuo_username: desgard_duan
+# Share component is depend on Comment so we can NOT use share only.
+# duoshuo_share: true                     # set to false if you want to use Comment without Sharing
 
-# duoshuo comments
-comments :
-  provider : duoshuo
-  duoshuo :
-    short_name : desgardcoding
+
+
+
+# Analytics settings
+# Baidu Analytics
+# ba_track_id: 4cc1f2d8f3067386cc5cdb626a202900
+# Google Analytics
+# ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
+# ga_domain: huangxuan.me
+
+
+
+# Sidebar settings
+sidebar: true                           # whether or not using Sidebar.
+sidebar-about-description: "iOS developer, try to full stack."
+sidebar-avatar: /img/avatar-hux.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
+
+
+
+# Featured Tags
+featured-tags: true                     # whether or not using Feature-Tags
+featured-condition-size: 1              # A tag will be featured if the size of it is more than this condition value
+
+
+
+# Friends
+friends: [
+    {
+        title: "Phonzia",
+        href: "http://phonzia.com/"
+    },{
+        title: "MewX",
+        href: "http://www.mewx.org/"
+    },{
+        title: "志聪",
+        href: "http://www.zcmyworld.com/"
+    }
+]

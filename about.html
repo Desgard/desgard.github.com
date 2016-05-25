@@ -1,29 +1,55 @@
 ---
-layout: minimal
-title: "Gua"
-permalink: /about/index.html
-description: "Change the world by your life"
+layout: page
+title: "About"
+description: "Hey, this is Desgard_Duan."
+header-img: "img/about-bg.jpg"
 ---
 
-<img itemprop="image" class="img-rounded" src="../assets/img/blog-author.jpg" alt="Willian Justen">
+<div class="zh post-container">
+    <!--copied from markdown -->
+    <blockquote><p>代码与灵感</p></blockquote>
 
-<h2>Gua</h2>
+    <h2>Gua</h2>
+    
+    <p>Gua is a student of Southwest Jiaotong University, now. Gua likes computer science and algorithm, and now is interested in iOS Develop. And in the future, I want to be a full stack engineer. </p>
+    
+    <h2>Skills</h2>
+    <ul>
+        <li>Objective-C, Swift</li>
+        <li>HTML</li>
+        <li>css (Bootstrap, Foundation)</li>
+        <li>Javascript</li>
+        <li>Git</li>
+        <li>Golang</li>
+        <li>Python</li>
+        <li>MySQL - MongoDB</li>
+        <li>Vim</li>
+    </ul>
 
-<p>My network nickname is Desgard Duan, often referred to as DG. In Chinese, DG is the first letter of the abbreviation of melon and the melon's Pinyin is Gua.</p>
-
-<p>Gua is a student of Southwest Jiaotong University, now. Gua likes computer science and algorithm, and now is interested in iOS Develop.</p>
+</div>
 
 
-<h2>Skills</h2>
+{% if site.disqus_username %}
+<!-- disqus 评论框 start -->
+<div class="comment">
+    <div id="disqus_thread" class="disqus-thread">
 
-<ul class="skill-list">
-	<li>Objective-C, Swift</li>
-    <li>HTML</li>
-	<li>css (Bootstrap, Foundation)</li>
-	<li>Javascript</li>
-	<li>Git</li>
-	<li>Golang</li>
-	<li>Python</li>
-	<li>MySQL - MongoDB</li>
-	<li>Vim</li>
-</ul>
+    </div>
+</div>
+<!-- disqus 评论框 end -->
+
+<!-- disqus 公共JS代码 start (一个网页只需插入一次) -->
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES * * */
+    var disqus_shortname = "{{site.disqus_username}}";
+    var disqus_identifier = "{{site.disqus_username}}/{{page.url}}";
+    var disqus_url = "{{site.url}}{{page.url}}";
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<!-- disqus 公共JS代码 end -->
+{% endif %}

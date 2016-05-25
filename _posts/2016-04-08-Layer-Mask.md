@@ -1,14 +1,13 @@
 ---
-layout: post
-title: "To Use Layer Mask"
-date: 2016-04-08 09:21:35
-image: '/assets/img/'
-description: 'Use layer mask to decorate your app'
+layout:     post
+title:      "To Use Layer Mask"
+subtitle:   "渐变效果，利用layer遮蔽"
+date:       2016-04-08 09:21:35
+author:     "Desgard_Duan"
+header-img: "img/post-bg-mask.jpg"
 tags:
-- iOS
-categories:
-- Happy time in iOS
-twitter_text: 'Put your twitter description here.'
+    - iOS
+    - Objective-C
 ---
 
 今天收到一个优化需求：具体内容是将音频波浪加上渐变显示的效果。原图如下。
@@ -63,6 +62,7 @@ frequencyView?.layer.mask = mask
 {% endhighlight %}
 
 ## 最终效果：
+
 
 <center><div>
 <img src="http://cerkh.img47.wal8.com/img47/539039_20160308170255/s/146010580462_medium.png" alt="DE021518-5EAE-46A3-9E27-C1DFDDE2476E" border="0" width="50%"/>

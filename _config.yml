@@ -14,11 +14,10 @@ baseurl: ""                             # for example, '/blog' if your blog host
 # SNS settings
 RSS: false
 weibo_username:     desgard
-zhihu_username:     desgard-duan
+# zhihu_username:     desgard-duan
 github_username:    dgytdhy
-#twitter_username:  huxpro
 facebook_username:  desgard.duan
-# linkedin_username:  firstname-lastname-idxxxx
+stackoverflow_username: desgard-duan
 
 
 
@@ -61,7 +60,7 @@ disqus_username: desgard
 
 # Analytics settings
 # Baidu Analytics
-# ba_track_id: 4cc1f2d8f3067386cc5cdb626a202900
+ba_track_id: c5a8123bc51782a3083a631ed9ff50e4
 # Google Analytics
 # ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
 # ga_domain: huangxuan.me

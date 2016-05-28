@@ -49,4 +49,4 @@ find "${SRCROOT}" \( -name "*.h" -or -name "*.m" \) -print0 | xargs -0 egrep --w
 
 ---
 
-[谈谈Objective-C的警告·王巍](https://onevcat.com/2013/05/talk-about-warning/)
+[谈谈Objective-C的警告【王巍】](https://onevcat.com/2013/05/talk-about-warning/)

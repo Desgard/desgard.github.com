@@ -91,7 +91,7 @@ func application(application: UIApplication, didFinishLaunchingWithOptions launc
 
 [DGAdLaunchView](https://github.com/dgytdhy/DGAdLaunchView)
 
-[《iOS 源代码分析——SDWebImage》](http://draveness.me/ios-yuan-dai-ma-jie-xi-sdwebimage/)
+[iOS 源代码分析——SDWebImage【draveness】](http://draveness.me/ios-yuan-dai-ma-jie-xi-sdwebimage/)
 
 ![](https://github.com/dgytdhy/DGAdLaunchView/blob/master/demo.gif?raw=true)
 

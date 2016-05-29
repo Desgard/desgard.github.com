@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "QQ Message Bubble's Coppy - DGSlimeView"
+title:      "QQ Message Bubble's Copy - DGSlimeView"
 subtitle:   "模仿QQ消息气泡动画"
 date:       2016-05-28 01:01:00
 author:     "Desgard_Duan"

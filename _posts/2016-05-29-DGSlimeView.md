@@ -8,6 +8,7 @@ header-img: "img/post-bg-Tencent.jpg"
 tags:
     - iOS
     - Objective-C
+    - Bézier Curve
 ---
 
 <img src="/assets/img/post_img/2016-05-28-demo.gif" width="300px" />

@@ -4,7 +4,7 @@ title:      "Recreating Skype's Action Sheet Animation"
 subtitle:   "模仿Skype上滑菜单动画"
 date:       2016-06-05 01:01:00
 author:     "Desgard_Duan"
-header-img: "img/post-bg-Tencent.jpg"
+header-img: "img/post-bg-skype.jpg"
 tags:
     - iOS
     - Objective-C

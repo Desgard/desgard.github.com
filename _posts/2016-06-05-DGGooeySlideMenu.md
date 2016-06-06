@@ -13,7 +13,7 @@ tags:
 
 最近维持着平时学语言底层，周末做动效的学习节奏。学习到了很多。在制作动效的时候，尤其是在写贝塞尔曲线的代码，自己都会用纸笔计算坐标以及绘出大致的图形，是一个很有趣的过程。
 
-这次的作品是收到了skype的启发。在skype的iOS版本app中，点击照相按钮，会出现上滑菜单。查看效果的地址可以点[这里](http://capptivate.co/2015/02/01/skype-qik/)。这是类似于一种多弹簧的一个组合。
+这次的作品是受到skype的启发。在skype的iOS版本app中，点击照相按钮，会出现上滑菜单。查看效果的地址可以点[这里](http://capptivate.co/2015/02/01/skype-qik/)。这是类似于一种多弹簧的一个组合。
 
 ![](/assets/img/post_img/2016-06-05/demo0.gif)
 
@@ -40,7 +40,7 @@ tags:
 - 通过设置`contentMode`属性值为`UIViewContentModeRedraw`，将在每次设置或更高`frame`的时候自动调用。
 - 直接调用`setNeedsDisplay`或者`setNeedsDisplayInRect`后将会触发`drawRect`，前提是该`View`的`Rect`不能为0.
 
-在重构界面的最后，我们了解一下`CADisplayLink`。简单地理解，`CADisplayLink`就是一个定时器，每隔$$\frac{1}{60}$$秒（约16.667ms）刷新一次。使用的时候，我们要把它添加到一个runloop钟，并给他绑定`target`和`SEL`，在`SEL`的函数对象中，我们重新计算我们需要的数值，再根据`drawRect`自动调用的性质，主动调用函数`setNeedsDisplay`也就完成了界面的刷新。
+在重构界面的最后，我们了解一下`CADisplayLink`。简单地理解，`CADisplayLink`就是一个定时器，每隔$$\frac{1}{60}$$秒（约16.667ms）刷新一次。使用的时候，我们要把它添加到一个runloop中，并给他绑定`target`和`SEL`，在`SEL`的函数对象中，我们重新计算我们需要的数值，再根据`drawRect`自动调用的性质，主动调用函数`setNeedsDisplay`也就完成了界面的刷新。
 
 对于该示例，我们给出刷新的代码：
 

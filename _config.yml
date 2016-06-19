@@ -83,6 +83,9 @@ featured-condition-size: 1              # A tag will be featured if the size of 
 # Friends
 friends: [
     {
+        title: "半边冰霜",
+        href: "https://halfrost.github.io/"
+    },{
         title: "Phonzia",
         href: "http://phonzia.com/"
     },{

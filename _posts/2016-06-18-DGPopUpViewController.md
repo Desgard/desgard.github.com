@@ -268,3 +268,7 @@ Apple公司在WWDC 2016前后带来了10个重大更新，其中重中之重可�
 ## 结束语
 
 大体上，整个卡片登录界面的实现思路就是这样，最后再次感谢原型图作者。在进行动画制作之后，强烈建议读者去学习[《iOS Core Animation: Advanced Techniques》](https://www.gitbook.com/book/zsisme/ios-/details)这本书，之后会对Core Animation会有更深层的认识。
+
+---
+
+[Github【Desgard_Duan】](https://github.com/dgytdhy/DGPopUpViewController)

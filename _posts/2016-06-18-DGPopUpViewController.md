@@ -54,7 +54,7 @@ Apple公司在WWDC 2016前后带来了10个重大更新，其中重中之重可�
 结构一目了然，`ViewController`持有`PopUpView`，`PopUpView`中带有其他的自定义控件。我们写一个对外接口，来将这层`ViewController`的视图显示在当前视图上，但是其控制器还要保持原本的控制器。另外要注意的是，在添加背景色的时候，我们用到了`UIColor`的`colorWithAlphaComponent`方法，具体的作用是对当前颜色具有透明状态。当然我们使用更改`alpha`也可修改透明状态，但是对View的修改，会影响到该View的子视图。
 
 {% highlight ruby %}
-#pragma mark - Overrite
+#pragma mark - Override
 
 #define DGPopUpViewBackgroundColor [[UIColor colorWithRed: 245 / 255.f green: 245 / 255.f blue: 245 / 255.f alpha: 1] colorWithAlphaComponent: 0.8]
 

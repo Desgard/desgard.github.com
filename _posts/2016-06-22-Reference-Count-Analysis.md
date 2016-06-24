@@ -15,7 +15,7 @@ tags:
 
 ## Manual Reference Counting Introduce
 
-笔者学习iOS开发一年有余，对于我的iOS入门书籍，是*Objective-C Programming: The Big Nerd Ranch Guide*，在23.4部分，对Referrence Counting会有介绍。我们对MRC最初的认识就是，**retain计数加一，release计数减一，autorelease计数将来会减一，retainCount可以返回引用计数**。当引用计数减到0时，系统将会自动调用对象的`dealloc`方法，你可以把它类比成C#中的`dispose`方法，而原先的可发人员可以在`dealloc`中释放或清理资源。
+笔者学习iOS开发一年有余，对于我的iOS入门书籍，是*Objective-C Programming: The Big Nerd Ranch Guide*，在23.4部分，对Referrence Counting会有介绍。我们对MRC最初的认识就是，**retain计数加一，release计数减一，autorelease计数将来会减一，retainCount可以返回引用计数**。当引用计数减到0时，系统将会自动调用对象的`dealloc`方法，你可以把它类比成C#中的`dispose`方法，而原先的开发人员可以在`dealloc`中释放或清理资源。
 
 也许第一遍看这些知识你正处于一个入门开发学习状态而没有进行试验，当我们深入去学习这门语言之后，你会发现很多问题。接下来，我们一一提出并解决。
 

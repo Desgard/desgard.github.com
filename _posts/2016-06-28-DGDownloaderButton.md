@@ -4,7 +4,7 @@ title:      "Drip Into A River · Part I"
 subtitle:   "DGDownloaderButton-水滴汇集下载按钮特效"
 date:       2016-06-28 01:01:00
 author:     "Desgard_Duan"
-header-img: "img/home-bg-art.jpg"
+header-img: "img/post-bg-cal.jpg"
 tags:
     - iOS
     - Objective-C

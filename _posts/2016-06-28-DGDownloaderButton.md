@@ -19,7 +19,7 @@ tags:
 
 ## “水滴汇集”下载按钮概念图
 
-在dribbble上发现一个创意很好的下载按钮的创意，首先要感谢原型图作者[SamuraiChen](https://dribbble.com/SamuraiChen)分享原型图[Animation on a concept draft downloads](https://dribbble.com/shots/2785355-Animation-on-a-concept-draft-downloads)。我将这个特效起名为*Drip Into a River【水滴汇集】*。
+在dribbble上发现一个创意很好的下载按钮的创意，首先要感谢原型图作者[SamuraiChen](https://dribbble.com/SamuraiChen)分享原型图[Animation on a concept draft downloads](https://dribbble.com/shots/2785355-Animation-on-a-concept-draft-downloads)。我将这个特效起名为*Drip Into a River【水滴汇集】*。以下是原型图效果：
 
 <img src="/assets/img/post_img/2016-06-28/dribbble.gif" width="300px"/>
 

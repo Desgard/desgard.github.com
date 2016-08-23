@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html class="no-js" lang="pt-br">
+  <head>
+<meta charset="utf-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<link rel="alternate" href="http://desgard.com" hreflang="pt-BR">
+<link href="http://gmpg.org/xfn/11" rel="profile">
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="theme-color" content="#005344">
+<title> 浅谈 block（1） - clang 改写后的 block 结构 | Gua</title>
+<meta name="google-site-verification" content="zS1dSn20XtA4FJYEOQLXqI0boxZdMnJ2g3beje-cl20">
+<meta name="description" content="Desenvolvedor Front-end/Wordpress, Design Responsivo, HTML5, CSS3 e JavaScript">
+<meta name="keywords" content="site, website, loja virtual, lojas virtuais, e-commerce, wordpress, frontend, front-end, html5, css3, javascript, jquery, seo, otimizacao, performance">
+<!-- Social: Facebook / Open Graph -->
+<meta property="og:url" content="http://desgard.com/block1/">
+<meta property="og:title" content=" 浅谈 block（1） - clang 改写后的 block 结构 | Gua">
+<meta property="og:description" content="Desenvolvedor Front-end/Wordpress, Design Responsivo, HTML5, CSS3 e JavaScript">
+<meta property="og:site_name" content="Desgard_Duan">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:type" content="website">
+<meta property="og:author" content="https://www.facebook.com/desgard.duan">
+<meta property="og:image" content="http://desgard.com">
+<!-- Social: Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@nandomoreirame">
+<meta name="twitter:domain" content="http://desgard.com">
+<meta name="twitter:title" content=" 浅谈 block（1） - clang 改写后的 block 结构 | Gua">
+<meta name="twitter:description" content="Desenvolvedor Front-end/Wordpress, Design Responsivo, HTML5, CSS3 e JavaScript">
+<meta name="twitter:image:src" content="http://desgard.com">
+<!-- Favicons -->
+<link rel="apple-touch-icon" sizes="114x114" href="http://desgard.com/assets/ico/apple-touch-icon-114-516f4e19976b9e4dbb77ad9b576831fe.png">
+<link rel="apple-touch-icon" sizes="72x72" href="http://desgard.com/assets/ico/apple-touch-icon-72-5409b2df229305703caf583d86c845ab.png">
+<link rel="apple-touch-icon" href="http://desgard.com/assets/ico/apple-touch-icon-57-aa873e019cf659e0d4e6a0b5bb9f379d.png">
+<link rel="shortcut icon" href="http://desgard.com/assets/ico/favicon-4298be3d3fbe23e18d65bded9d930899.png">
+<!-- rel prev and next -->
+<!-- Canonical link tag -->
+<link rel="canonical" href="http://desgard.com/block1/">
+<link rel="alternate" type="application/rss+xml" title="Gua" href="http://desgard.com/feed.xml">
+<link rel="stylesheet" href="/assets/main-73c9bfa7b4c7a7550c34b0f7fa76375b.css">
+<script src="/assets/modernizr-custom-cb807611a3e262b2eac59444cbab74d6.js" data-cfasync="false"></script>
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Website",
+  "publisher": "desgard.com",
+  "url": "http://desgard.com/",
+  "description": "瓜地"
+}
+</script>
+<script type="text/javascript">
+  var disqus_shortname = 'desgard',
+      baseurl          = '';
+</script>
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-52446115-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+    <meta name="robots" content="noindex"> <!--=====  Please remove it ! ! !  ======-->
+    <meta name="googlebot" content="noindex"> <!--=====  Please remove it ! ! !  ======-->
+  </head>
+  <body class="post-template single">
+    <header class="header">
+  <div class="container">
+    <h1><a href="/"><strong>desgard</strong>.com</a></h1>
+    <nav class="navbar">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="#!" data-modal="modalSearch"><i class="fa fa-search"></i></a></li>
+        <li><a href="/feed.xml" target="_blank"><i class="fa fa-feed"></i></a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+    <main class="wrapper container" itemprop="mainContentOfPage" itemscope="itemscope" itemtype="http://schema.org/Blog">
+      <article class="post" itemscope="itemscope" itemtype="http://schema.org/BlogPosting" itemprop="blogPost">
+  <header class="post-header">
+    <h1>浅谈 block（1） - clang 改写后的 block 结构</h1>
+    <div class="post-meta">
+      <time datetime="2015-10-13">
+        <i class="fa fa-calendar-o"></i> <time datetime="2016-08-21"> 2016-08-21
+      </time>
+      <span>
+        <i class="fa fa-comments"></i> <a href="/block1/#disqus_thread" data-disqus-identifier="/block1">Leave a comment</a>
+      </span>
+      <span>
+      </span>
+    </div>
+  </header>
+  <p>这几天为了巩固知识，从 iOS 的各个知识点开始学习，希望自己对每一个知识理解的更加深入的了解。这次来分享一下 block 的学习笔记。</p>
+<h2 id="block-">block 简介</h2>
+<p>block 被当做扩展特性而被加入 GCC 编译器中的。自从 OS X 10.4 和 iOS 4.0 之后，这个特性被加入了 Clang 中。因此我们今天使用的 block 在 C、C++、Objective-C 和 Objective-C++ 中均可使用。</p>
+<p>对于 block 的语法，只放一张图即可。在之后的 block 系列文章中会详细说明其用法。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/208988-0e4c759180531b28.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img_1.jpg" /></p>
+<h2 id="c--block">C 中的 block</h2>
+<p>说起 Xcode 的默认编译器 clang ，不得不提及 clang 在整个 编译 - 链接 过程中所起到的作用。在编译期， clang 首先对 Objective-C 代码做分析检查，确保代码中没有任何明显的错误，然后将其转换成为低级的类汇编代码，即我们经常说的<strong>中间码</strong>。</p>
+<p>在学习 Objective-C 中的 block ，会经常使用的 clang 的 <code>-rewrite-objc</code> 命令来将 block 的语法转换成C语言的 struct 结构，从而供我们学习参考。</p>
+<p>先从最简单的C语言中的 block 看起：</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="c1">#include &lt;stdio.h&gt;</span>
+<span class="n">void</span> <span class="p">(</span><span class="o">^</span><span class="n">outside</span><span class="p">)(</span><span class="n">void</span><span class="p">)</span> <span class="o">=</span> <span class="o">^</span><span class="p">{</span>
+	<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Hello block!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+<span class="p">};</span>
+<span class="n">int</span> <span class="n">main</span> <span class="p">()</span> <span class="p">{</span>
+	<span class="n">outside</span><span class="p">();</span>
+	<span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></div>
+<p>然后使用 <code>clang -rewrite-objc</code> 命令对 <code>blockTest.c</code> 进行 block 语法转换，得到 blockTest.cpp 这个文件。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/208988-b590f135364802bb.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img_2.jpg" /></p>
+<p>在精简代码后，选取出主要关注的代码片段。</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">struct</span> <span class="n">__block_impl</span> <span class="p">{</span>
+	<span class="n">void</span> <span class="o">*</span><span class="n">isa</span><span class="p">;</span>
+	<span class="n">int</span> <span class="no">Flags</span><span class="p">;</span>
+	<span class="n">int</span> <span class="no">Reserved</span><span class="p">;</span>
+	<span class="n">void</span> <span class="o">*</span><span class="no">FuncPtr</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="n">struct</span> <span class="n">__outside_block_impl_0</span> <span class="p">{</span>
+    <span class="n">struct</span> <span class="n">__block_impl</span> <span class="n">impl</span><span class="p">;</span>
+    <span class="n">struct</span> <span class="n">__outside_block_desc_0</span><span class="o">*</span> <span class="no">Desc</span><span class="p">;</span>
+    <span class="n">__outside_block_impl_0</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">fp</span><span class="p">,</span> <span class="n">struct</span> <span class="n">__outside_block_desc_0</span> <span class="o">*</span><span class="n">desc</span><span class="p">,</span> <span class="n">int</span> <span class="n">flags</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">impl</span><span class="o">.</span><span class="n">isa</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">_NSConcreteGlobalBlock</span><span class="p">;</span>
+        <span class="n">impl</span><span class="o">.</span><span class="n">Flags</span> <span class="o">=</span> <span class="n">flags</span><span class="p">;</span>
+        <span class="n">impl</span><span class="o">.</span><span class="n">FuncPtr</span> <span class="o">=</span> <span class="n">fp</span><span class="p">;</span>
+        <span class="no">Desc</span> <span class="o">=</span> <span class="n">desc</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+<span class="n">static</span> <span class="n">void</span> <span class="n">__outside_block_func_0</span><span class="p">(</span><span class="n">struct</span> <span class="n">__outside_block_impl_0</span> <span class="o">*</span><span class="n">__cself</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Hello block!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="n">static</span> <span class="n">struct</span> <span class="n">__outside_block_desc_0</span> <span class="p">{</span>
+	<span class="n">size_t</span> <span class="n">reserved</span><span class="p">;</span>
+	<span class="n">size_t</span> <span class="no">Block_size</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">__outside_block_desc_0_DATA</span> <span class="o">=</span> <span class="p">{</span> 
+	<span class="mi">0</span><span class="p">,</span> 
+	<span class="n">sizeof</span><span class="p">(</span><span class="n">struct</span> <span class="n">__outside_block_impl_0</span><span class="p">)</span>
+<span class="p">};</span>
+<span class="n">int</span> <span class="n">main</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="p">((</span><span class="n">void</span> <span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="n">__block_impl</span> <span class="o">*</span><span class="p">))((</span><span class="n">__block_impl</span> <span class="o">*</span><span class="p">)</span><span class="n">outside</span><span class="p">)</span><span class="o">-&gt;</span><span class="no">FuncPtr</span><span class="p">)((</span><span class="n">__block_impl</span> <span class="o">*</span><span class="p">)</span><span class="n">outside</span><span class="p">);</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></div>
+<p>代码可能有些难懂，逐一来分析。</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">static</span> <span class="n">void</span> <span class="n">__outside_block_func_0</span><span class="p">(</span><span class="n">struct</span> <span class="n">__outside_block_impl_0</span> <span class="o">*</span><span class="n">__cself</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Hello block!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+<span class="p">}</span></code></pre></div>
+<p>这个函数应该是和源代码最相近的部分。并且，源代码中的 block 名被重新组合成一种新的字符串形式，而生成了这个函数的函数名。在参数上发现其实这个参数名又是一种新的字符串组合形式（<code>__xxx_block_impl_y</code>：这里的 xxx 是 <strong>block 名称</strong>，y 是<strong>该函数出现的顺序值</strong>）。</p>
+<p>继续来看看参数 <code>__cself</code> 的声明：</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">struct</span> <span class="n">__outside_block_impl_0</span> <span class="p">{</span>
+    <span class="n">struct</span> <span class="n">__block_impl</span> <span class="n">impl</span><span class="p">;</span>
+    <span class="n">struct</span> <span class="n">__outside_block_desc_0</span><span class="o">*</span> <span class="no">Desc</span><span class="p">;</span>
+    <span class="sr">//</span> <span class="err">构造函数</span>
+    <span class="n">__outside_block_impl_0</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">fp</span><span class="p">,</span> <span class="n">struct</span> <span class="n">__outside_block_desc_0</span> <span class="o">*</span><span class="n">desc</span><span class="p">,</span> <span class="n">int</span> <span class="n">flags</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">impl</span><span class="o">.</span><span class="n">isa</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">_NSConcreteGlobalBlock</span><span class="p">;</span>
+        <span class="n">impl</span><span class="o">.</span><span class="n">Flags</span> <span class="o">=</span> <span class="n">flags</span><span class="p">;</span>
+        <span class="n">impl</span><span class="o">.</span><span class="n">FuncPtr</span> <span class="o">=</span> <span class="n">fp</span><span class="p">;</span>
+        <span class="no">Desc</span> <span class="o">=</span> <span class="n">desc</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span></code></pre></div>
+<p>第一个成员<code>impl</code>，是 __block_impl 类型，结构体在生成文件中也是出现的：</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">struct</span> <span class="n">__block_impl</span> <span class="p">{</span>
+    <span class="n">void</span> <span class="o">*</span><span class="n">isa</span><span class="p">;</span>
+    <span class="n">int</span> <span class="no">Flags</span><span class="p">;</span>
+    <span class="n">int</span> <span class="no">Reserved</span><span class="p">;</span>
+    <span class="n">void</span> <span class="o">*</span><span class="no">FuncPtr</span><span class="p">;</span>
+<span class="p">};</span></code></pre></div>
+<ul>
+  <li>isa指针：指向一个类对象。在非 GC 模式下有三种类型：<code>_NSConcreteStackBlock</code>、<code>_NSConcreteGlobalBlock</code>、<code>_NSConcreteMallocBlock</code>。</li>
+  <li>Flags：block 的负载信息（引用计数和类型信息），按位存储。在下面有详细说明。</li>
+  <li>Reserved：保留变量。</li>
+  <li>FuncPtr：指向 block 函数地址的指针。</li>
+</ul>
+<p>在 runtime 的源码中，对于 Flags 的枚举要比文档中描述的更加详细，其定义如下。</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">enum</span> <span class="p">{</span>
+    <span class="no">BLOCK_DEALLOCATING</span> <span class="o">=</span>      <span class="p">(</span><span class="mh">0x0001</span><span class="p">),</span>  <span class="sr">//</span> <span class="n">runtime</span>
+    <span class="no">BLOCK_REFCOUNT_MASK</span> <span class="o">=</span>     <span class="p">(</span><span class="mh">0xfffe</span><span class="p">),</span>  <span class="sr">//</span> <span class="n">runtime</span>
+    <span class="no">BLOCK_NEEDS_FREE</span> <span class="o">=</span>        <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">24</span><span class="p">),</span> <span class="sr">//</span> <span class="n">runtime</span>
+    <span class="no">BLOCK_HAS_COPY_DISPOSE</span> <span class="o">=</span>  <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">25</span><span class="p">),</span> <span class="sr">//</span> <span class="n">compiler</span>
+    <span class="no">BLOCK_HAS_CTOR</span> <span class="o">=</span>          <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">26</span><span class="p">),</span> <span class="sr">//</span> <span class="ss">compiler</span><span class="p">:</span> <span class="n">helpers</span> <span class="n">have</span> <span class="n">C</span><span class="o">++</span> <span class="n">code</span>
+    <span class="no">BLOCK_IS_GC</span> <span class="o">=</span>             <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">27</span><span class="p">),</span> <span class="sr">//</span> <span class="n">runtime</span>
+    <span class="no">BLOCK_IS_GLOBAL</span> <span class="o">=</span>         <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">28</span><span class="p">),</span> <span class="sr">//</span> <span class="n">compiler</span>
+    <span class="no">BLOCK_USE_STRET</span> <span class="o">=</span>         <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">29</span><span class="p">),</span> <span class="sr">//</span> <span class="ss">compiler</span><span class="p">:</span> <span class="n">undefined</span> <span class="k">if</span> <span class="o">!</span><span class="no">BLOCK_HAS_SIGNATURE</span>
+    <span class="no">BLOCK_HAS_SIGNATURE</span>  <span class="o">=</span>    <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">30</span><span class="p">)</span>  <span class="sr">//</span> <span class="n">compiler</span>
+<span class="p">};</span></code></pre></div>
+<p>在 clang 的官方文档中，有这么一句话：</p>
+<blockquote>
+  <p>The flags field is set to zero unless there are variables imported into the Block that need helper functions for program level <code>Block_copy()</code> and <code>Block_release()</code> operations, in which case the (1«25) flags bit is set.</p>
+</blockquote>
+<p>也就是说，一般情况下，一个 block 的 flags 成员默认设置为 0。如果当 block 需要 <code>Block_copy()</code> 和 <code>Block_release</code> 这类拷贝辅助函数，则会设置成 <code>1 &lt;&lt; 25</code> ，也就是 <strong>BLOCK_HAS_COPY_DISPOSE</strong> 类型。可以搜索到大量讲述 <code>Block_copy</code> 方法的博文，其中涉及到了 <strong>BLOCK_HAS_COPY_DISPOSE</strong> 。</p>
+<p>总结一下枚举类的用法，前 16 位即起到标记作用，又可记录引用计数：</p>
+<ul>
+  <li><strong>BLOCK_DEALLOCATING</strong>：释放标记。一般常用 <strong>BLOCK_NEEDS_FREE</strong> 做 位与 操作，一同传入 Flags ，告知该 block 可释放。</li>
+  <li><strong>BLOCK_REFCOUNT_MASK</strong>：一般参与判断引用计数，是一个可选用参数。</li>
+  <li><strong>BLOCK_NEEDS_FREE</strong>：通过设置该枚举位，来告知该 block 可释放。意在说明 block 是 heap block ，即我们常说的 <strong>_NSConcreteMallocBlock</strong> 。</li>
+  <li><strong>BLOCK_HAS_COPY_DISPOSE</strong>：是否拥有拷贝辅助函数（a copy helper function）。</li>
+  <li><strong>BLOCK_HAS_CTOR</strong>：是否拥有 block 析构函数（dispose function）。</li>
+  <li><strong>BLOCK_IS_GC</strong>：是否启用 GC 机制（Garbage Collection）。</li>
+  <li><strong>BLOCK_HAS_SIGNATURE</strong>：与 <strong>BLOCK_USE_STRET</strong> 相对，判断是否当前 block 拥有一个签名。用于 runtime 时动态调用。</li>
+</ul>
+<p>我们返回结构体 <code>__outside_block_impl_0</code> 继续看第二个成员 Desc 指针。以下是 <code>__outside_block_desc_0</code> 结构体声明。</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">static</span> <span class="n">struct</span> <span class="n">__outside_block_desc_0</span> <span class="p">{</span>
+	<span class="n">size_t</span> <span class="n">reserved</span><span class="p">;</span>
+	<span class="n">size_t</span> <span class="no">Block_size</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">__outside_block_desc_0_DATA</span> <span class="o">=</span> <span class="p">{</span> 
+	<span class="mi">0</span><span class="p">,</span> 
+	<span class="n">sizeof</span><span class="p">(</span><span class="n">struct</span> <span class="n">__outside_block_impl_0</span><span class="p">)</span>
+<span class="p">};</span></code></pre></div>
+<p>其中两个成员也可以从名字看出，描述的是 block 的预留区空间和 block 的大小。其中<code>size_t</code>类型在64位环境下应为<code>long unsigned int</code>，该宏定义在 C标准库 的 <strong>stddef.h</strong> 中。<code>__outside_block_desc_0_DATA</code> 是该结构体类型的环境量，使用成员对齐方式进行快捷构造。</p>
+<p>再来看最重要的部分，即 <code>__outside_block_impl_0</code> 的构造函数。</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="sr">//</span> <span class="err">构造函数</span>
+<span class="n">__outside_block_impl_0</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">fp</span><span class="p">,</span> <span class="n">struct</span> <span class="n">__outside_block_desc_0</span> <span class="o">*</span><span class="n">desc</span><span class="p">,</span> <span class="n">int</span> <span class="n">flags</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+   <span class="n">impl</span><span class="o">.</span><span class="n">isa</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">_NSConcreteGlobalBlock</span><span class="p">;</span>
+   <span class="n">impl</span><span class="o">.</span><span class="n">Flags</span> <span class="o">=</span> <span class="n">flags</span><span class="p">;</span>
+   <span class="n">impl</span><span class="o">.</span><span class="n">FuncPtr</span> <span class="o">=</span> <span class="n">fp</span><span class="p">;</span>
+   <span class="no">Desc</span> <span class="o">=</span> <span class="n">desc</span><span class="p">;</span>
+<span class="p">}</span></code></pre></div>
+<p>这里的所有过程除了 &amp;_NSConcreteGlobalBlock 以外都比较好理解。先跳过这部分，放在文章最后进行分析。继续看一下入口函数 main()。</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">int</span> <span class="n">main</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="p">((</span><span class="n">void</span> <span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="n">__block_impl</span> <span class="o">*</span><span class="p">))((</span><span class="n">__block_impl</span> <span class="o">*</span><span class="p">)</span><span class="n">outside</span><span class="p">)</span><span class="o">-&gt;</span><span class="no">FuncPtr</span><span class="p">)((</span><span class="n">__block_impl</span> <span class="o">*</span><span class="p">)</span><span class="n">outside</span><span class="p">);</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></div>
+<p>去掉强制转换部分，增强可读性：</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">outside</span> <span class="o">-&gt;</span> <span class="no">FuncPtr</span><span class="p">(</span><span class="n">outside</span><span class="p">);</span></code></pre></div>
+<p>也就是说，在执行我们定义的 block 的时候，会访问 impl 的 FuncPrt 这个函数指针。而在初始化（析构）时，这个函数会被指向 block 的执行函数体，也就是一开始分析的 <code>__outside_block_func_0</code> 方法。并且传入自身为参数。所以上文所提及的 <code>__cself</code> 参数，其实可以理解为面向对象中的<strong>所属对象</strong>，在 C++ 中我们常用 this 指针描述；而在 Objective-C 中，常常使用 self 。</p>
+<p>写到这里，笔者有一些很有意思的联想。在 Objective-C 的设计中，为了突出对象与方法间的所属关系，经常会传递一个指针作为参数。例如在许多 Foundation 框架中的 Delegate 方法，第一个参数往往是委托方法的发起者本身。</p>
+<p>最后再来看一下之前略过的 _NSConcreteGlobalBlock 。</p>
+<p>对于任意一个对象的 isa 指针，其指向的对象是自身的类对象；而类对象的 isa 指针，指向的是元类（meta class）。而 block 虽然也是对象，但其结构是异于 NSObject 的。最新版本的 object 结构如下：</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">struct</span> <span class="n">objc_class</span> <span class="p">:</span> <span class="n">objc_object</span> <span class="p">{</span>
+    <span class="sr">//</span> <span class="no">Class</span> <span class="no">ISA</span><span class="p">;</span>
+    <span class="no">Class</span> <span class="n">superclass</span><span class="p">;</span>
+    <span class="n">cache_t</span> <span class="n">cache</span><span class="p">;</span>             <span class="sr">//</span> <span class="n">formerly</span> <span class="n">cache</span> <span class="n">pointer</span> <span class="ow">and</span> <span class="n">vtable</span>
+    <span class="n">class_data_bits_t</span> <span class="n">bits</span><span class="p">;</span>    <span class="sr">//</span> <span class="n">class_rw_t</span> <span class="o">*</span> <span class="n">plus</span> <span class="n">custom</span> <span class="n">rr</span><span class="o">/</span><span class="n">alloc</span> <span class="n">flags</span>
+<span class="p">}</span></code></pre></div>
+<p><img src="http://upload-images.jianshu.io/upload_images/208988-26fce38e44961829.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img_3.png" /></p>
+<p>其中 object 的 isa 指针是从 objc_objcet 中继承而来的。而 block 为了模拟 object 结构，也用到了 isa 对其进行了分类。其中 _NSConcreteGlobalBlock 就是其中之一。</p>
+<p>关于 block 类型将会在 block 系列其他文中介绍，这里由于我们的 block 是处在全局位置，所以其类型为 _NSConcreteGlobalBlock。</p>
+<p>在学习 C 中的 block ，通过 clang 的语义转换将 block 语法使用 C 语言描述，使得我们更进一步的深入学习 block 的内部实现。</p>
+<h2 id="clang--rewrite-objc-">对于 clang -rewrite-objc 一种误区</h2>
+<p>很多时候，会想当然的认为，在编译期，clang 对代码进行语义判断之后，会像 <code>-rewrite-objc</code> 一样对代码进行转译成 C 语言，进而转换成中间码。但是，该命令并<strong>不能代表编译后所执行的代码</strong>。</p>
+<p>在巧哥很久之前<a href="http://blog.devtang.com/2013/07/28/a-look-inside-blocks/">谈Objective-C Block的实现</a>的文中，有这么一个代码片段：</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="c1">#include &lt;stdio.h&gt; </span>
+<span class="n">int</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span> 
+    <span class="o">^</span><span class="p">{</span> <span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Hello, World!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span> <span class="p">}</span> <span class="p">();</span> 
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span> 
+<span class="p">}</span></code></pre></div>
+<p>在使用 <code>-rewrite-objc</code> 进行语法转换后，所显示的 block 类型为 _NSConcreteStackBlock 。而根据我们对于 block 的认知，当 block 没有引用外部的变量对象时，其类型应为 _NSConcreteGlobalBlock。难道，clang 对于 Objective-C 中的 block 和 C 中的 block 处理，会有差异吗？其实不是的，我们来做这个实验：</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="c1">#include &lt;stdio.h&gt;</span>
+<span class="n">void</span> <span class="p">(</span><span class="o">^</span><span class="n">outside</span><span class="p">)(</span><span class="n">void</span><span class="p">)</span> <span class="o">=</span> <span class="o">^</span><span class="p">(</span><span class="n">void</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Hello, block!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+<span class="p">};</span>
+<span class="n">int</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">void</span> <span class="p">(</span><span class="o">^</span><span class="n">inside</span><span class="p">)(</span><span class="n">void</span><span class="p">)</span> <span class="o">=</span> <span class="o">^</span><span class="p">(</span><span class="n">void</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Hello, block!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+    <span class="p">};</span>
+    <span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;outside: %p</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">outside</span><span class="p">);</span>
+    <span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;inside:  %p</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">inside</span><span class="p">);</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></div>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="ss">outside</span><span class="p">:</span> <span class="mh">0x10d48e040</span>
+<span class="ss">inside</span><span class="p">:</span>  <span class="mh">0x10d48e080</span></code></pre></div>
+<p>从输出结果上看，两个 block 被存储在同一区域，也就是 .data 常量区。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/208988-8deb7e7cc8475e58.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img_4.jpg" /></p>
+<p>可是在 main 函数内声明的 block 类型，通过 <code>clang -rewrite-objc</code> 工具转换后仍为 _NSConcreteStackBlock 栈存储 block 类型。从这个侧面，可以明白其实 clang 对语法的解释转换，<strong>不一定出现在编译过程中</strong>。而在编译期间转换成中间码的过程中，在新版本的 clang 编译器已经不需要解释成c的语法进行过度，从而翻译成中间码。而是，在语法检测后，直接转至中间码，提交至 llvm 进行链接处理。</p>
+<p>所以，通过 <code>clang -rewrite-objc</code> 命令，仅将扩展语法通过可读性更高的 C 语法进行改写，而不是编译期中的子编译过程。我们仅仅通过他来了解 block 真正的结构就已经足够了。</p>
+<h2 id="section">尾声</h2>
+<p>这篇文章讲述了 block 的结构以及指向 block 函数体的具体方式。在以后的 block 系列学习笔记中，还会继续记录 block 类型、 block 使用等相关知识。</p>
+<hr />
+<h2 id="section-1">参考资料</h2>
+<p><a href="http://www.galloway.me.uk/2013/05/a-look-inside-blocks-episode-3-block-copy/">A look inside blocks (Block_copy)</a></p>
+<p><a href="http://clang.llvm.org/docs/BlockLanguageSpec.html">clang官方文档：block 扩展语法</a></p>
+<blockquote>
+  <p>若想查看更多的iOS Source Probe文章，收录在这个<a href="https://github.com/Desgard/iOS-Source-Probe">Github仓库中</a>。</p>
+</blockquote>
+  <footer class="post-footer">
+    <section class="author">
+      <h4>Desgard_Duan</h4>
+      <p>iOS Dev and try to do everything.</p>
+    </section>
+<aside class="share">
+  <h4>Share this.</h4>
+  <a href="http://twitter.com/share?text=浅谈 block（1） - clang 改写后的 block 结构&amp;url=http://desgard.com/block1/&amp;hashtags=web,dev,blog,soudev&amp;via=nandomoreirame"
+  onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+    <i class="fa fa-twitter-square"></i>
+  </a>
+  <a href="https://www.facebook.com/sharer/sharer.php?u=http://desgard.com/block1/"
+  onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+    <i class="fa fa-facebook-square"></i>
+  </a>
+</aside>
+      <hr>
+<aside id="comments" class="disqus">
+  <h3 class="txt-center"><i class="fa fa-comments"></i> Comments</h3>
+  <hr>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_identifier = '/block1';
+    var disqus_title = '浅谈 block（1） - clang 改写后的 block 结构';
+    var disqus_url = 'http://desgard.com/block1/';
+    /*var disqus_developer = 1;*/
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>
+    Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a>
+  </noscript>
+</aside>
+  </footer>
+</article>
+    </main>
+<footer class="footer">
+  <div class="container">
+    <ul class="icons">
+      <li>
+        <a href="http://github.com/desgard" class="icon-github" target="_blank">
+          <i class="fa fa-github"></i>
+        </a>
+      </li>
+      <li>
+        <a href="https://www.facebook.com/desgard.duan" class="icon-facebook" target="_blank">
+          <i class="fa fa-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a href="https://twitter.com/Desgard_Duan" class="icon-twitter" target="_blank">
+          <i class="fa fa-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a href="http://stackoverflow.com/users/6119149/desgard-duan" class="icon-github" target="_blank">
+          <i class="fa fa-stack-overflow"></i>
+        </a>
+      </li>
+      <li>
+        <a href="http://weibo.com/desgard" class="icon-instagram" target="_blank">
+          <i class="fa fa-weibo"></i>
+        </a>
+      </li>
+    </ul>
+    <p>
+      <q>Have a beginner mind.</q>
+      <small>– Gua</small>
+    </p>
+    <small class="clearfix">
+      Made with <a href="http://jekyllrb.com" target="_blank">Jekyll</a> • <a href="https://github.com/desgard" target="_blank">Open source <i class="fa fa-heart"></i></a>
+    </small>
+  </div>
+</footer>
+<a class="scroll-up fa fa-chevron-up bounce" href="#" data-position="0"></a>
+<div id="modalSearch" class="modal">
+  <div class="modal__overlay"></div>
+  <div class="modal__content">
+    <a href="#!" class="modal-close" data-modal-close>&times;</a>
+    <div class="search-container">
+      <input type="text" id="search-input" placeholder="Search in 7 articles">
+      <ul id="results-container"></ul>
+    </div>
+  </div>
+</div>
+    <script src="/assets/main-52d417e8a6ff9f5b168386d37c96338a.js"></script>
+  </body>
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html class="no-js" lang="pt-br">
+  <head>
+<meta charset="utf-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<link rel="alternate" href="http://desgard.com" hreflang="pt-BR">
+<link href="http://gmpg.org/xfn/11" rel="profile">
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="theme-color" content="#005344">
+<title> 从经典问题来看 Copy 方法 | Gua</title>
+<meta name="google-site-verification" content="zS1dSn20XtA4FJYEOQLXqI0boxZdMnJ2g3beje-cl20">
+<meta name="description" content="Desenvolvedor Front-end/Wordpress, Design Responsivo, HTML5, CSS3 e JavaScript">
+<meta name="keywords" content="site, website, loja virtual, lojas virtuais, e-commerce, wordpress, frontend, front-end, html5, css3, javascript, jquery, seo, otimizacao, performance">
+<!-- Social: Facebook / Open Graph -->
+<meta property="og:url" content="http://desgard.com/copy/">
+<meta property="og:title" content=" 从经典问题来看 Copy 方法 | Gua">
+<meta property="og:description" content="Desenvolvedor Front-end/Wordpress, Design Responsivo, HTML5, CSS3 e JavaScript">
+<meta property="og:site_name" content="Desgard_Duan">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:type" content="website">
+<meta property="og:author" content="https://www.facebook.com/desgard.duan">
+<meta property="og:image" content="http://desgard.com">
+<!-- Social: Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@nandomoreirame">
+<meta name="twitter:domain" content="http://desgard.com">
+<meta name="twitter:title" content=" 从经典问题来看 Copy 方法 | Gua">
+<meta name="twitter:description" content="Desenvolvedor Front-end/Wordpress, Design Responsivo, HTML5, CSS3 e JavaScript">
+<meta name="twitter:image:src" content="http://desgard.com">
+<!-- Favicons -->
+<link rel="apple-touch-icon" sizes="114x114" href="http://desgard.com/assets/ico/apple-touch-icon-114-516f4e19976b9e4dbb77ad9b576831fe.png">
+<link rel="apple-touch-icon" sizes="72x72" href="http://desgard.com/assets/ico/apple-touch-icon-72-5409b2df229305703caf583d86c845ab.png">
+<link rel="apple-touch-icon" href="http://desgard.com/assets/ico/apple-touch-icon-57-aa873e019cf659e0d4e6a0b5bb9f379d.png">
+<link rel="shortcut icon" href="http://desgard.com/assets/ico/favicon-4298be3d3fbe23e18d65bded9d930899.png">
+<!-- rel prev and next -->
+<!-- Canonical link tag -->
+<link rel="canonical" href="http://desgard.com/copy/">
+<link rel="alternate" type="application/rss+xml" title="Gua" href="http://desgard.com/feed.xml">
+<link rel="stylesheet" href="/assets/main-73c9bfa7b4c7a7550c34b0f7fa76375b.css">
+<script src="/assets/modernizr-custom-cb807611a3e262b2eac59444cbab74d6.js" data-cfasync="false"></script>
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Website",
+  "publisher": "desgard.com",
+  "url": "http://desgard.com/",
+  "description": "瓜地"
+}
+</script>
+<script type="text/javascript">
+  var disqus_shortname = 'desgard',
+      baseurl          = '';
+</script>
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-52446115-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+    <meta name="robots" content="noindex"> <!--=====  Please remove it ! ! !  ======-->
+    <meta name="googlebot" content="noindex"> <!--=====  Please remove it ! ! !  ======-->
+  </head>
+  <body class="post-template single">
+    <header class="header">
+  <div class="container">
+    <h1><a href="/"><strong>desgard</strong>.com</a></h1>
+    <nav class="navbar">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="#!" data-modal="modalSearch"><i class="fa fa-search"></i></a></li>
+        <li><a href="/feed.xml" target="_blank"><i class="fa fa-feed"></i></a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+    <main class="wrapper container" itemprop="mainContentOfPage" itemscope="itemscope" itemtype="http://schema.org/Blog">
+      <article class="post" itemscope="itemscope" itemtype="http://schema.org/BlogPosting" itemprop="blogPost">
+  <header class="post-header">
+    <h1>从经典问题来看 Copy 方法</h1>
+    <div class="post-meta">
+      <time datetime="2015-10-13">
+        <i class="fa fa-calendar-o"></i> <time datetime="2016-08-11"> 2016-08-11
+      </time>
+      <span>
+        <i class="fa fa-comments"></i> <a href="/copy/#disqus_thread" data-disqus-identifier="/copy">Leave a comment</a>
+      </span>
+      <span>
+      </span>
+    </div>
+  </header>
+  <p>在初学 iOS 的时候，可能会被灌输这么一个常识，<strong>切记 NSString 的 property 的修饰变量要写作 copy ，而不是 strong</strong>，那么这是为什么？</p>
+<blockquote>
+  <p>经典面试题：为什么 NSString 类型成员变量的修饰属性用 copy 而不是 strong (或 retain ) ？</p>
+</blockquote>
+<h2 id="review-copy-operation">review Copy Operation</h2>
+<h3 id="test-1">Test 1</h3>
+<p>先来模拟一个程序设计错误的场景。有一个叫做 Person 的 Class，其中它拥有一个 NSString 类型的 s_name 属性（代表 name 是 strong），我们想给一个对象的 s_name 赋值，并且之前的赋值变量还想重复使用到其他场景。所以，我们在引入这个 Class 的 ViewController 进行如下操作：</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="o">-</span> <span class="p">(</span><span class="n">void</span><span class="p">)</span><span class="n">test1</span> <span class="p">{</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">one</span> <span class="o">=</span> <span class="o">[[</span><span class="no">Person</span> <span class="n">alloc</span><span class="o">]</span> <span class="n">init</span><span class="o">]</span><span class="p">;</span>
+    <span class="no">NSMutableString</span> <span class="o">*</span><span class="nb">name</span> <span class="o">=</span> <span class="o">[</span><span class="no">NSMutableString</span> <span class="ss">stringWithFormat</span><span class="p">:</span><span class="err">@</span><span class="s2">&quot;iOS&quot;</span><span class="o">]</span><span class="p">;</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">one</span><span class="o">.</span><span class="n">s_name</span> <span class="o">=</span> <span class="nb">name</span><span class="p">;</span>
+    <span class="no">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s2">&quot;%@&quot;</span><span class="p">,</span> <span class="nb">self</span><span class="o">.</span><span class="n">one</span><span class="o">.</span><span class="n">s_name</span><span class="p">);</span>
+    <span class="o">[</span><span class="nb">name</span> <span class="ss">appendString</span><span class="p">:</span><span class="err">@</span><span class="s2">&quot; Source Probe&quot;</span><span class="o">]</span><span class="p">;</span>
+    <span class="no">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s2">&quot;%@&quot;</span><span class="p">,</span> <span class="nb">self</span><span class="o">.</span><span class="n">one</span><span class="o">.</span><span class="n">s_name</span><span class="p">);</span>
+<span class="p">}</span></code></pre></div>
+<p>如果在 Person 这个 Class 中，我们的 s_name 的修饰属性是 <strong>strong</strong> 的话，会看到如下输出结果。</p>
+<p><code>c
+2016-08-12 05:51:21.262 TestCopy[64714:20449045] iOS
+2016-08-12 05:51:21.262 TestCopy[64714:20449045] iOS Source Probe
+</code></p>
+<p>可是，我们操作的仅仅是对 s_name 那个变量，为什么连属性当中的 s_name 也会被改变？对这段代码稍做修改，重新测试。</p>
+<h3 id="test-2">Test 2</h3>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="o">-</span> <span class="p">(</span><span class="n">void</span><span class="p">)</span><span class="n">test2</span> <span class="p">{</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">one</span> <span class="o">=</span> <span class="o">[[</span><span class="no">Person</span> <span class="n">alloc</span><span class="o">]</span> <span class="n">init</span><span class="o">]</span><span class="p">;</span>
+    <span class="no">NSString</span> <span class="o">*</span><span class="nb">name</span> <span class="o">=</span> <span class="o">[</span><span class="no">NSMutableString</span> <span class="ss">stringWithFormat</span><span class="p">:</span><span class="err">@</span><span class="s2">&quot;iOS&quot;</span><span class="o">]</span><span class="p">;</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">one</span><span class="o">.</span><span class="n">s_name</span> <span class="o">=</span> <span class="nb">name</span><span class="p">;</span>
+    <span class="no">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s2">&quot;%@&quot;</span><span class="p">,</span> <span class="nb">self</span><span class="o">.</span><span class="n">one</span><span class="o">.</span><span class="n">s_name</span><span class="p">);</span>
+    <span class="nb">name</span> <span class="o">=</span> <span class="err">@</span><span class="s2">&quot;iOS Source Probe&quot;</span><span class="p">;</span>
+    <span class="no">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s2">&quot;%@&quot;</span><span class="p">,</span> <span class="nb">self</span><span class="o">.</span><span class="n">one</span><span class="o">.</span><span class="n">s_name</span><span class="p">);</span>
+<span class="p">}</span></code></pre></div>
+<p>这一次我们看到了输出结果是正常的：</p>
+<p><code>c
+2016-08-12 05:56:57.162 TestCopy[64842:20459179] iOS
+2016-08-12 05:56:57.162 TestCopy[64842:20459179] iOS
+</code></p>
+<h3 id="test-3">Test 3</h3>
+<p>再来做第三个实验，我们换用 copy 类型的成员 c_name，来替换实验1中的 s_name ，查看一下输出结果。</p>
+<p>最后发现输出结果依旧是我们所需要的。</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="o">-</span> <span class="p">(</span><span class="n">void</span><span class="p">)</span><span class="n">test3</span> <span class="p">{</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">one</span> <span class="o">=</span> <span class="o">[[</span><span class="no">Person</span> <span class="n">alloc</span><span class="o">]</span> <span class="n">init</span><span class="o">]</span><span class="p">;</span>
+    <span class="no">NSMutableString</span> <span class="o">*</span><span class="nb">name</span> <span class="o">=</span> <span class="o">[</span><span class="no">NSMutableString</span> <span class="ss">stringWithFormat</span><span class="p">:</span><span class="err">@</span><span class="s2">&quot;iOS&quot;</span><span class="o">]</span><span class="p">;</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">one</span><span class="o">.</span><span class="n">c_name</span> <span class="o">=</span> <span class="nb">name</span><span class="p">;</span>
+    <span class="no">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s2">&quot;%@&quot;</span><span class="p">,</span> <span class="nb">self</span><span class="o">.</span><span class="n">one</span><span class="o">.</span><span class="n">c_name</span><span class="p">);</span>
+    <span class="o">[</span><span class="nb">name</span> <span class="ss">appendString</span><span class="p">:</span><span class="err">@</span><span class="s2">&quot; Source Probe&quot;</span><span class="o">]</span><span class="p">;</span>
+    <span class="no">NSLog</span><span class="p">(</span><span class="err">@</span><span class="s2">&quot;%@&quot;</span><span class="p">,</span> <span class="nb">self</span><span class="o">.</span><span class="n">one</span><span class="o">.</span><span class="n">c_name</span><span class="p">);</span>
+<span class="p">}</span></code></pre></div>
+<p><code>c
+2016-08-12 06:03:40.226 TestCopy[64922:20479646] iOS
+2016-08-12 06:03:40.227 TestCopy[64922:20479646] iOS
+</code></p>
+<p>做过如上三个实验，或许你会知道对 property 使用 copy 修饰属性的原因了。也就是在一个特定场景下：<strong>当我们通过一个 NSMutableString 对 NSString 变量进行赋值，如果 NSString 的 property 是 strong 类型的时候，就会随着 NSMutableString 类型的变量一起变化</strong>。</p>
+<p>这个猜测是正确的。在 <a href="http://stackoverflow.com/questions/11249656/should-an-nsstring-property-under-arc-be-strong-or-copy">stackoverflow</a> 上也对这个场景进行单独的描述。可是原因是什么？继续做下面的实验：</p>
+<h3 id="test-4">Test 4</h3>
+<p>```c
+- (void)test4 {
+    NSMutableString *str = [NSMutableString stringWithFormat:@”iOS”];</p>
+<pre><code>NSLog(@"%p", str);
+NSString *str_a = str;
+NSLog(@"%p", str_a);
+NSString *str_b = [str copy];
+NSLog(@"%p", str_b); } ```
+</code></pre>
+<p>输出地址后，我们发现以下结果：</p>
+<p><code>c
+2016-08-12 06:15:45.169 TestCopy[65230:20515110] 0x7faf28429e70
+2016-08-12 06:15:45.170 TestCopy[65230:20515110] 0x7faf28429e70
+2016-08-12 06:15:45.170 TestCopy[65230:20515110] 0xa00000000534f693
+</code></p>
+<p>发现当令 NSString 对象指针指向一个 NSMutableString 的时候，则会对一个对象进行<strong>深复制</strong>。这也就是我们一直所说的在一个 Class 的成员是 NSString 类型的时候，修饰属性应该使用 copy ，其实就是在使用 mutable 对象进行赋值的时候，防止 mutable 对象的改变从而影响成员变量。从 MRC 的角度来看待修饰属性，若一个属性的关键字为 retain （可等同于 strong ），则在进行指针的指向修改时，如上面的<code>self.one.name = str</code>，其实是执行了<code>self.one.name = [str retain]</code>，而 copy 类型的属性则会执行<code>self.one.name = [str copy]</code>。</p>
+<p>而在 Test 2 中，我们的实验是将一个 NSString 对象指向另外一个 NSString 对象，那么如果前者是 copy 的成员，还会进行<strong>深复制</strong>吗？进行下面的 Test 5，我们令 c_name 的修饰变量为 copy。</p>
+<h3 id="test-5">Test 5</h3>
+<p>```c
+- (void)test5 {
+    self.one = [[Person alloc] init];
+    NSString *name = [NSMutableString stringWithFormat:@”iOS”];</p>
+<pre><code>self.one.c_name = name;
+NSLog(@"%@", self.one.c_name);
+name = @"iOS Source Probe";
+NSLog(@"%@", self.one.c_name);
+NSString *str = [NSString stringWithFormat:@"iOS"];
+NSLog(@"%p", str);
+NSString *str_a = str;
+NSLog(@"%p", str_a);
+NSString *str_b = [str copy];
+NSLog(@"%p", str_b); } ```
+</code></pre>
+<p>发现结果符合猜测：</p>
+<p><code>c
+2016-08-12 08:09:28.125 TestCopy[66402:20671038] iOS
+2016-08-12 08:09:28.126 TestCopy[66402:20671038] iOS
+2016-08-12 08:09:28.126 TestCopy[66402:20671038] 0xa00000000534f693
+2016-08-12 08:09:28.126 TestCopy[66402:20671038] 0xa00000000534f693
+2016-08-12 08:09:28.126 TestCopy[66402:20671038] 0xa00000000534f693
+</code></p>
+<p>从一个 NSString 进行 copy 后赋值，copy 方法仍旧是<strong>浅拷贝</strong>。这个效果就等同于<code>str_b = [str retain]</code>，在 ARC 中即 <code>str_b = str</code>。</p>
+<p>那么，如何在这种情况下，让<code>str_b</code>指向一个<code>str</code>的深拷贝呢，答案就是<code>str_b = [str mutableCopy]</code>。这也就是 copy 和 mutableCopy 的区别。</p>
+<h2 id="copy--mutablecopy">copy &amp; mutableCopy</h2>
+<p>下面我们开始对 copy 和 mutableCopy 原理进行分析。以下也是我的源码学习笔记。</p>
+<p>在<a href="git@github.com:RetVal/objc-runtime.git">opensource.apple.com的git仓库中</a>的Runtime源码中有<code>NSObject.mm</code>这个文件，其中有如下方法是关于 copy 的：</p>
+<p>```c
+- (id)copy {
+    return [(id)self copyWithZone:nil];
+}</p>
+<ul>
+  <li>(id)mutableCopy {
+  return [(id)self mutableCopyWithZone:nil];
+}
+```</li>
+</ul>
+<p>发现<code>copy</code>和<code>mutableCopy</code>两个方法只是简单调用了<code>copyWithZone:</code>和<code>mutableCopyWithZone:</code>两个方法。所以有了以下猜想：对于 NSString 和 NSMutableString，Foundation 框架已经为我们实现了 copyWithZone 和 mutableCopyWithZone 的源码。我在<a href="https://searchcode.com">searchcode.com</a>找到了 Hack 版的 NSString 和 NSMutableString 的 Source Code。</p>
+<p>在<a href="https://searchcode.com/file/12532490/libFoundation/Foundation/NSString.m">NSString.m</a>中，看到了以下关于 copy 的方法。</p>
+<p>```c
+- (id)copyWithZone:(NSZone *)zone {
+    if (NSStringClass == Nil)
+        NSStringClass = [NSString class];
+    return RETAIN(self);
+}</p>
+<ul>
+  <li>(id)mutableCopyWithZone:(NSZone*)zone {
+  return [[NSMutableString allocWithZone:zone] initWithString:self];
+}
+```</li>
+</ul>
+<p>而在 <a href="https://searchcode.com/file/68838008/jni%20w:%20itoa%20runtime%20and%20allocator/Foundation/NSMutableString.m">NSMutableString.m</a> 中只发现了<code>copyWithZone:</code>和<code>copy:</code>方法，并且它调用了父类的<strong>全能初始化方法（designated initializer）</strong>，所以构造出来的对象是由 NSString 持有的：</p>
+<p>```c
+-(id)copy {
+    return [[NSString alloc] initWithString:self];
+}</p>
+<p>-(id)copyWithZone:(NSZone*)zone {
+    return [[NSString allocWithZone:zone] initWithString:self];
+}
+```</p>
+<p>也就是说， NSMutableString 进行 copy 的对象从源码上看也会变成深复制方法。我们做下试验。</p>
+<h3 id="test-6">Test 6</h3>
+<p><code>c
+- (void)test6 {
+    NSMutableString *str = [NSMutableString stringWithFormat:@"iOS"];
+    NSLog(@"%p", str);
+    NSMutableString *str2 = [str copy];
+    NSLog(@"%p", str2);
+}
+</code></p>
+<p><code>c
+2016-08-12 15:12:12.845 TestCopy[73658:21549553] 0x7f96f8410e10
+2016-08-12 15:12:12.846 TestCopy[73658:21549553] 0xa00000000534f693
+</code></p>
+<p>输出结果如我们所预料的，同样是 NSMutableString 之间的指针传递，即使类型相同，使用了该类型下的 copy 方法，也会变成深复制，因为返回的对象如源码所示，调用了 NSString 的全能初始化方法，并且由一个新的 NSString 持有。那么在 NSMutableString 中使用<code>mutableCopy</code>，可以做到单纯的 retain 操作吗。答案也是否定的，同样是源码中写道，在源码中并没有重写<code>mutableCopy</code>方法，也没有实现<code>mutableCopyWithZone:</code>方法，所以会调用父类的<code>mutableCopyWithZone</code>。而在父类中 <code>mutableCopyWithZone:</code>方法中调用了 NSMutableString 的全局初始化方法，所以依旧是深复制。</p>
+<p>以上原则试用于大多数 Foundation 框架中的常用类，如 NSArray 、 NSDictionary 等等。</p>
+<h2 id="class--copy-">关于自定义 Class 的 Copy 方法</h2>
+<p>对于以上所有试验，我们可以总结一个中关系：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/208988-5769dfa1eed5e9fd.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="14709874979001.jpg" /></p>
+<p>由此，我们可以总结一下。其实 Copy 对应的也就是类似于 <strong>immutableCopy</strong> 这种感觉，因为通过 copy 出的对象总是不可变的。所以对于一个 Class 中的 mutableCopy 和 copy 的方法命名而言，其实是否有 mutable ，是<strong>针对于返回值而言的</strong>。在 Foundation Framework 中，把拷贝方法称为 copy 而非 immutableCopy 的原因在于，NSCopying 这个基础协议不仅设计给那些具有可变和不可变版本的类来用，而且还要供其他一些没有“可变”和“不可变”之分的类来用。</p>
+<p>所以在实现自定义 Class 的 Copy 方法适合，我们需要确定一个问题，应该执行深复制还是浅复制。然后在去实现对应的 <code>copyWithZone:</code> 和 <code>mutableCopyWithZone:</code> 两个方法。这里我不再多论，可以查看 <em>Effective Objective-C 2.0 52 Specific Ways to Improve Your iOS and OS X Programes</em> 的 <em>Tips 22</em> 。</p>
+<h2 id="section">对于很多博文的一些疑问</h2>
+<p>在很多关于讨论自定义 Class 中的 Copy 方法，都会强调一句：<strong>我们一定要遵循 NSCopying 或 NSMutableCopying 这两个协议</strong>，并且在实例代码中也显式写出了自定义的 Class 是遵循这两个协议的，如下：</p>
+<p>```c
+@interface XXObject: NSObject&lt;NSCopying, NSMutableCopying&gt;</p>
+<p>@end
+```</p>
+<p>但是如果我们不显式的写出，我们发现不但没有 crash ，而且结果也是完全一样的。而在 <em><a href="http://zhangbuhuai.com/copy-in-objective-c/">Objective-C copy那些事儿</a></em> 此文中，作者写道：</p>
+<blockquote>
+  <p>正确的做法是让自定义类遵循NSCopying协议（<strong>NSObject并未遵循该协议</strong>）</p>
+</blockquote>
+<p>我的猜想是，某次苹果所用的 Foundation 框架升级，使得 NSObject 开始遵循 NSCopying 方法，但是没有去实现（这就好比 c++ 中的 virtual 虚函数）。这里有待考证，如果有朋友知道，欢迎补充这一部分知识，请大家多多指教。</p>
+<hr />
+<blockquote>
+  <p>以上是个人在学习 Foundation 框架的一些源码分析和猜想，如果想了解更多的 <em>iOS Source Probe</em> 系列文章，可以访问 github 仓库 <a href="https://github.com/Desgard/iOS-Source-Probe">iOS-Source-Probe</a>。</p>
+</blockquote>
+  <footer class="post-footer">
+    <section class="author">
+      <h4>Desgard_Duan</h4>
+      <p>iOS Dev and try to do everything.</p>
+    </section>
+<aside class="share">
+  <h4>Share this.</h4>
+  <a href="http://twitter.com/share?text=从经典问题来看 Copy 方法&amp;url=http://desgard.com/copy/&amp;hashtags=web,dev,blog,soudev&amp;via=nandomoreirame"
+  onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+    <i class="fa fa-twitter-square"></i>
+  </a>
+  <a href="https://www.facebook.com/sharer/sharer.php?u=http://desgard.com/copy/"
+  onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+    <i class="fa fa-facebook-square"></i>
+  </a>
+</aside>
+      <hr>
+<aside id="comments" class="disqus">
+  <h3 class="txt-center"><i class="fa fa-comments"></i> Comments</h3>
+  <hr>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_identifier = '/copy';
+    var disqus_title = '从经典问题来看 Copy 方法';
+    var disqus_url = 'http://desgard.com/copy/';
+    /*var disqus_developer = 1;*/
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>
+    Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a>
+  </noscript>
+</aside>
+  </footer>
+</article>
+    </main>
+<footer class="footer">
+  <div class="container">
+    <ul class="icons">
+      <li>
+        <a href="http://github.com/desgard" class="icon-github" target="_blank">
+          <i class="fa fa-github"></i>
+        </a>
+      </li>
+      <li>
+        <a href="https://www.facebook.com/desgard.duan" class="icon-facebook" target="_blank">
+          <i class="fa fa-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a href="https://twitter.com/Desgard_Duan" class="icon-twitter" target="_blank">
+          <i class="fa fa-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a href="http://stackoverflow.com/users/6119149/desgard-duan" class="icon-github" target="_blank">
+          <i class="fa fa-stack-overflow"></i>
+        </a>
+      </li>
+      <li>
+        <a href="http://weibo.com/desgard" class="icon-instagram" target="_blank">
+          <i class="fa fa-weibo"></i>
+        </a>
+      </li>
+    </ul>
+    <p>
+      <q>Have a beginner mind.</q>
+      <small>– Gua</small>
+    </p>
+    <small class="clearfix">
+      Made with <a href="http://jekyllrb.com" target="_blank">Jekyll</a> • <a href="https://github.com/desgard" target="_blank">Open source <i class="fa fa-heart"></i></a>
+    </small>
+  </div>
+</footer>
+<a class="scroll-up fa fa-chevron-up bounce" href="#" data-position="0"></a>
+<div id="modalSearch" class="modal">
+  <div class="modal__overlay"></div>
+  <div class="modal__content">
+    <a href="#!" class="modal-close" data-modal-close>&times;</a>
+    <div class="search-container">
+      <input type="text" id="search-input" placeholder="Search in 7 articles">
+      <ul id="results-container"></ul>
+    </div>
+  </div>
+</div>
+    <script src="/assets/main-52d417e8a6ff9f5b168386d37c96338a.js"></script>
+  </body>
+</html>

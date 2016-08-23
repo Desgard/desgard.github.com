@@ -1,113 +1,72 @@
-# Site settings
-title: Gua
-title-site: Desgard_Duan
-SEOTitle: Guardia · 瓜地
-header-img: img/home-bg.jpg
-email: gua@desgard.com
-description: "iOS developer, try to Full Stack!"
-keyword: ""
-url: "http://www.desgard.com/"              # your host, for absolute URL
-baseurl: ""                             # for example, '/blog' if your blog hosted on 'host/blog'
+permalink   : /:title/
+markdown    : kramdown
+highlighter : pygments
 
+paginate: 6
+comments: true
+paginate_path: "/page/:num"
 
+baseurl: ""
+domain_name: desgard.com
+google_analytics: UA-52446115-1
+baidu_toongji: 
+project_url: http://project.desgard.com
 
-# SNS settings
-RSS: false
-weibo_username:     desgard
-# zhihu_username:     desgard-duan
-github_username:    dgytdhy
-facebook_username:  desgard.duan
-stackoverflow_username: desgard-duan
+source:      source
+destination: _site
 
+# cover: /assets/images/header-cover.png
 
+# site title, description, meta_description, meta_keywords
+# Details for the RSS feed generator
+name: Gua
+title: Hah | haha
+description: "瓜地"
+meta_description: "Desenvolvedor Front-end/Wordpress, Design Responsivo, HTML5, CSS3 e JavaScript"
+meta_keywords: "site, website, loja virtual, lojas virtuais, e-commerce, wordpress, frontend, front-end, html5, css3, javascript, jquery, seo, otimizacao, performance"
+url: http://desgard.com
+production_url: http://desgard.com
+repo: https://github.com/desgard
+disqus_shortname: "desgard"
+rss_path: source/
+author:
+  name      : Desgard_Duan
+  image     : /assets/images/logo-new.png
+  email     : gua@desgard.com
+  url       : http://desgard.com
+  facebook  : https://www.facebook.com/desgard.duan
+  twitter   : https://twitter.com/Desgard_Duan
+  instagram : http://instagram.com/nandomoreira.me
+  github    : http://github.com/desgard
+  linkedin  : http://linkedin.com/in/nandomoreirame
+  sof       : http://stackoverflow.com/users/6119149/desgard-duan
+  weibo     : http://weibo.com/desgard
+  bio       : "iOS Dev and try to do everything."
 
-# Build settings
-# from 2016, 'pygments' is unsupported on GitHub Pages. Use 'rouge' for highlighting instead.
-highlighter: rouge
-permalink: pretty
-paginate: 10
-exclude: ["less","node_modules","Gruntfile.js","package.json","README.md","README.zh.md"]
-anchorjs: true                          # if you want to customize anchor. check out line:181 of `post.html`
+# thought
+thought:
+  text: Have a beginner mind.
+  author: Gua
 
+# Plugin: jekyll-assets
+assets:
+  dirname: /assets
+  baseurl: /assets/ # change to /assets/
+  sources:
+    - assets/images
+    - assets/fonts
+    - assets/css
+    - assets/js
+  cache: true
+  gzip: [ text/css, application/javascript ]
 
+# Compress HTML
+compress_html:
+  clippings: all
+  comments: all
+  endings: all
+  profile: false
+  ignore:
+    envs: all
 
-# Gems
-# from PR#40, to support local preview for Jekyll 3.0
-gems: [jekyll-paginate]
-
-
-
-# Markdown settings
-# replace redcarpet to kramdown,
-# although redcarpet can auto highlight code, the lack of header-id make the catalog impossible, so I switch to kramdown
-# document: http://jekyllrb.com/docs/configuration/#kramdown
-markdown: kramdown
-kramdown:
-  input: GFM                            # use Github Flavored Markdown !important
-
-
-
-# Disqus settings
-disqus_username: desgard
-
-# Duoshuo settings
-# duoshuo_username: desgard_duan
-# Share component is depend on Comment so we can NOT use share only.
-# duoshuo_share: true                     # set to false if you want to use Comment without Sharing
-
-
-
-
-# Analytics settings
-# Baidu Analytics
-ba_track_id: c5a8123bc51782a3083a631ed9ff50e4
-# Google Analytics
-# ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
-# ga_domain: huangxuan.me
-
-
-
-# Sidebar settings
-sidebar: true                           # whether or not using Sidebar.
-sidebar-about-description: "iOS developer, try to full stack."
-sidebar-avatar: /img/avatar-hux.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
-
-
-
-# Featured Tags
-featured-tags: true                     # whether or not using Feature-Tags
-featured-condition-size: 1              # A tag will be featured if the size of it is more than this condition value
-
-
-
-# Friends
-friends: [
-    {
-        title: "半边冰霜",
-        href: "https://halfrost.github.io/"
-    },{ 
-        title: "胡永浩",
-        href: "http://yonghaowu.github.io/"
-    },{
-        title: "Phonzia",
-        href: "http://phonzia.com/"
-    },{
-        title: "MewX",
-        href: "http://www.mewx.org/"
-    },{
-        title: "志聪",
-        href: "http://www.zcmyworld.com/"
-    },{
-        title: "bestswifter",
-        href: "https://bestswifter.com/"
-    },{
-        title: "六阿哥",
-        href: "https://blog.6ag.cn"
-    },{
-        title: "荏苒",
-        href: "https://www.eyrefree.org"
-    },{
-        title: "Danny",
-        href: "http://www.ch8888.cn/"
-    }
-]
+exclude: ["gulp", "node_modules", "bower", "bower_components", "config.rb", "src", "Gemfile", "Gemfile.lock", ".rvmrc", ".rbenv-version", "package.json", "gulpfile.js", "README.md", "Rakefile", "changelog.md"]

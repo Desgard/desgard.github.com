@@ -4,9 +4,8 @@ require "tmpdir"
 require "bundler/setup"
 require "jekyll"
 
-# Change your GitHub reponame
-GITHUB_REPONAME = "nandomoreirame/nandomoreira-jekyll-theme"
-GITHUB_REPO_BRANCH = "gh-pages"
+GITHUB_REPONAME = "Desgard/desgard.github.com"
+GITHUB_REPO_BRANCH = "master"
 
 SOURCE = "source/"
 DEST   = "_site"
@@ -29,7 +28,7 @@ task :generate do
   })).process
 end
 
-desc "Generate and publish blog to gh-pages"
+desc "Generate and publish blog to my repo."
 task :publish => [:generate] do
   Dir.mktmpdir do |tmp|
     cp_r "_site/.", tmp

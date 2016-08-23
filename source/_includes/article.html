@@ -4,11 +4,11 @@
     <h1 class="post-title"><a href="{{ post.url | prepend: site.baseurl }}" title="Permalink to {{ post.title }}">{{ post.title }}</a></h1>
   </header>
 
-  <p><a href="{{ post.url | prepend: site.baseurl }}" title="Permalink to {{ post.title }}" class="read-more">{{ post.content | strip_html | truncatewords: 50 }}</a></p>
+  <p><a href="{{ post.url | prepend: site.baseurl }}" title="Permalink to {{ post.title }}" class="read-more">{{ post.content | strip_html | truncatewords: 20 }}</a></p>
 
   <footer class="post-meta">
     <time datetime="{{ post.date | date:"%Y-%m-%d" }}">
-      <i class="fa fa-calendar-o"></i> {{ page.date | date:"%Y-%m-%d" }}
+      <i class="fa fa-calendar-o"></i> {{ post.date | date:"%Y-%m-%d" }}
     </time>
 
     <span>

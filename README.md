@@ -1,6 +1,6 @@
-# nandomoreira.me jekyll theme
+# Guardia Jekyll theme
 
-### [Preview](http://nandomoreira.me/nandomoreira-jekyll-theme/)
+### [Preview](http://desgard.com)
 
 ## Setup
 
@@ -27,7 +27,7 @@ $ rake tag title="Jekyll"
 ### Running the server:
 
 ```
-$ jekyll server
+$ bundle exec jekyll server
 ```
 
 Access, [localhost:4000](http://localhost:4000/)
@@ -45,19 +45,28 @@ $ gulp
 ## Deploy in Github pages in 2 steps
 
 1. Change the variables `GITHUB_REPONAME` and `GITHUB_REPO_BRANCH` in `Rakefile`
-2. Run `rake` or `rake publish` for build and publish on Github
-
----
-
-* [Jekyll](http://jekyllrb.com/);
-* [Jekyll Documentation](http://jekyllrb.com/docs/home/);
-* [Como definir URLs curtas no Jekyll](http://nandomoreira.me/urls-curtas-no-jekyll/);
-* [Adicionando Disqus ao seu projeto Jekyll](http://nandomoreira.me/adicionando-disqus-ao-seu-projeto-jekyll/);
-
----
+2. Run `bundle exec rake` or `bundle exec rake publish` for build and publish on Github
 
 ### Copyright and license
 
-It is under [the MIT license](/LICENSE).
+The MIT License (MIT)
 
-Enjoy! :yum:
+Copyright (c) 2015 Desgard_Duan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

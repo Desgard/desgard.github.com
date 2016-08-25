@@ -17,7 +17,7 @@
 
     <span>
         {% if post.categories.size > 0 %}
-          {% capture categories_content %}<i class="fa fa-folder-open-o"></i> {% endcapture %}
+          {% capture categories_content %} {% endcapture %}
           {% for post_category in post.categories %}
             {% for data_category in site.data.categories %}
               {% if data_category.slug == post_category %}

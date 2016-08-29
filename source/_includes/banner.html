@@ -1,6 +1,6 @@
 <section class="banner">
 
-  <img src="{{ site.author.image | prepend: site.baseurl  }}" alt="author thumb" class="dot animated hinge fadeInDown" width="120px">
+  <img src="{{ site.author.image | prepend: site.baseurl  }}" alt="author thumb" class="dot animated hinge fadeInDown" id="avartor" width="120px">
 
   <h2 class="animated hinge fadeInDown" itemscope itemtype="http://schema.org/Person"><strong itemprop="name">{{ site.name }}</strong><em itemprop="jobTitle">iOS Dev</em> and try everything!</h2>
 
@@ -10,3 +10,7 @@
   </nav>
 
 </section>
+
+<script>
+    $("#avartor").mouseover();
+</script>

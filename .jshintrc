@@ -20,7 +20,7 @@
     "fampe": false,
     "Modernizr": false,
     "console": false,
-    "jQuery": false,
+    "jQuery": true,
     "$": false,
     "wp": false
   }

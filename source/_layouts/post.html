@@ -19,6 +19,7 @@ comments: true
         <i class="fa fa-comments"></i> <a href="{{ page.url }}#disqus_thread" data-disqus-identifier="{{ page.id }}">Leave a comment</a>
       </span>
       <span>
+<!--
         {% assign post = page %}
         {% if post.categories.size > 0 %}
           {% capture categories_content %}<i class="fa fa-folder-open-o"></i> {% endcapture %}
@@ -38,6 +39,7 @@ comments: true
           {% assign categories_content = '' %}
         {% endif %}
         {{ categories_content }}
+-->
       </span>
     </div>
   </header>

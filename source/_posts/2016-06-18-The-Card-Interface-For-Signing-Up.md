@@ -4,6 +4,7 @@ title:      "The Card Interface For Signing Up"
 description:   "DGPopUpViewController---卡片式弹出窗口"
 date:       2016-06-18 00:00:00
 author:     "Desgard_Duan"
+comments: 	 true
 tags:
     - iOS
     - Objective-C
@@ -260,7 +261,7 @@ Apple公司在WWDC 2016前后带来了10个重大更新，其中重中之重可�
 }
 {% endhighlight %}
 
-这里我们不在对View层进行动画，而是改用`CABasicAnimation`。好处仍旧是硬件加速。这里我们特别要注意一个地方。刚开始接触`CABasicAnimation`的时候，可能不太理解`fromValue`和`toValue`。这两个数值既不反应屏幕坐标，也不表示像素数。它的意思是起始尺寸数值的整数倍数。也就是说，这里我们假设进度条的长度为$$x$$，则该动画的过程就是把进度条长度线性的从$$x$$增长到$$280x$$，这里也就反应了一个问题，我们在**设定进度条初值的时候不能设置成0**。
+这里我们不在对View层进行动画，而是改用`CABasicAnimation`。好处仍旧是硬件加速。这里我们特别要注意一个地方。刚开始接触`CABasicAnimation`的时候，可能不太理解`fromValue`和`toValue`。这两个数值既不反应屏幕坐标，也不表示像素数。它的意思是起始尺寸数值的整数倍数。也就是说，这里我们假设进度条的长度为x，则该动画的过程就是把进度条长度线性的从x增长到280x，这里也就反应了一个问题，我们在**设定进度条初值的时候不能设置成0**。
 
 <img src="http://7xwh85.com1.z0.glb.clouddn.com/2016-06-18-img_3.gif" width="240px"/>
 

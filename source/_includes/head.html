@@ -1,6 +1,6 @@
 {% assign page_title = '' %}
 
-{% if page.title == "Home" %}{% capture page_title %}{{ site.name }} | {{ site.description }}{%if paginator and paginator.page != 1 %} - Página {{ paginator.page }}{% endif %}{% endcapture %}{% else %}{% capture page_title %}{%if page.slug == 'category' %}Categoria: {% endif %}{%if page.slug == 'tag' %}Tag: {% endif %} {{ page.title }} | {{ site.name }}{% endcapture %}{% endif %}
+{% if page.title == "Home" %}{% capture page_title %}{{ site.name }} | {{ site.description }}{%if paginator and paginator.page != 1 %} - Page {{ paginator.page }}{% endif %}{% endcapture %}{% else %}{% capture page_title %}{%if page.slug == 'category' %}Categoria: {% endif %}{%if page.slug == 'tag' %}Tag: {% endif %} {{ page.title }} | {{ site.name }}{% endcapture %}{% endif %}
 
 {% capture page_title %}{{ page_title | strip | rstrip | lstrip | escape | strip_newlines }}{% endcapture %}
 

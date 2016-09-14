@@ -280,7 +280,7 @@ pre code {
     padding: 5em;
     display: block;
     transition: background-color .2s linear,color .2s linear,border-color .2s linear;
-    background-color: #f44066
+    background-color: wheat
 }
 
 .alert,.alert a {
@@ -293,7 +293,7 @@ pre code {
 }
 
 .alert:active,.alert:focus,.alert:hover {
-    background-color: #f32853
+    background-color: skyblue;
 }
 
 .dot {
@@ -577,7 +577,11 @@ dl {
 }
 
 .post .post-meta,.post img {
-    display: block
+/*    display: block*/
+}
+
+.post a img:hover{
+    filter: alpha(Opacity=100);
 }
 
 .navbar a:hover {
@@ -626,7 +630,9 @@ dl {
 .post img {
     max-width: 100%;
     height: auto;
-    margin-bottom: 1.6em
+/*    margin-bottom: 1.6em*/
+    margin-left: 1em;
+    margin-right: 1em;
 }
 
 .post h1 {

@@ -213,8 +213,9 @@ blockquote small,q small {
 }
 
 code,pre {
-    font-family: monaco,Consolas;
-    margin: 0
+    font-family: Courier,Consolas;
+    margin: 0;
+    font-size: medium;
 }
 
 q {

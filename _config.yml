@@ -11,6 +11,7 @@ domain_name: desgard.com
 google_analytics: UA-52446115-1
 baidu_toongji: 
 project_url: http://project.desgard.com
+life_url: http://life.desgard.com
 
 source:      source
 destination: _site
@@ -22,8 +23,7 @@ destination: _site
 name: Gua
 title: Guardia · 瓜地
 description: "瓜地"
-meta_description: "Desenvolvedor Front-end/Wordpress, Design Responsivo, HTML5, CSS3 e JavaScript"
-meta_keywords: "site, website, loja virtual, lojas virtuais, e-commerce, wordpress, frontend, front-end, html5, css3, javascript, jquery, seo, otimizacao, performance"
+meta_description: "iOS Dev. Blog by Desgard_Duan. "
 url: http://desgard.com
 production_url: http://desgard.com
 repo: https://github.com/desgard

@@ -24,8 +24,8 @@ name: Gua
 title: Guardia · 瓜地
 description: "瓜地"
 meta_description: "iOS Dev. Blog by Desgard_Duan. "
-url: http://desgard.com
-production_url: http://desgard.com
+url: http://www.desgard.com
+production_url: http://www.desgard.com
 repo: https://github.com/desgard
 disqus_shortname: "desgard"
 rss_path: source/
@@ -33,7 +33,7 @@ author:
   name      : Desgard_Duan
   image     : /assets/images/logo-new.png
   email     : gua@desgard.com
-  url       : http://desgard.com
+  url       : http://www.desgard.com
   facebook  : https://www.facebook.com/desgard.duan
   twitter   : https://twitter.com/Desgard_Duan
   instagram : http://instagram.com/nandomoreira.me

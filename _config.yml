@@ -7,7 +7,7 @@ comments: true
 paginate_path: "/page/:num"
 
 baseurl: ""
-domain_name: desgard.com
+domain_name: www.desgard.com
 google_analytics: UA-52446115-1
 baidu_toongji: 
 project_url: http://project.desgard.com

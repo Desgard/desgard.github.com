@@ -12,6 +12,7 @@ google_analytics: UA-52446115-1
 baidu_toongji: 
 project_url: http://project.desgard.com
 life_url: http://life.desgard.com
+learn_url: http://learn.desgard.com
 
 source:      source
 destination: _site

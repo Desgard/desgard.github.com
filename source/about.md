@@ -1,14 +1,14 @@
 ---
 layout: page
 title: About
-description: "This is a Jekyll theme. You can find out more info about customizing your Jekyll theme, as well as basic Jekyll usage documentation at jekyllrb.com"
+description: "Guardia"
 permalink: /about/
 slug: about
 ---
 
 ### Gua 
 
-Gua(or Desgard_Duan), iOS Develper and try full stack! 
+Gua(or Desgard_Duan), iOS Developer and try full stack! 
 
 I like something cool, just like Apple's product. And be interested in algorithm  in computer science, especially data structure. I'm a vimer!
 

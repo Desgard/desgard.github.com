@@ -12,7 +12,7 @@ google_analytics: UA-52446115-1
 baidu_toongji: 
 project_url: http://project.desgard.com
 life_url: http://life.desgard.com
-learn_url: http://learn.desgard.com
+learn_url: http://www.desgard.com/INoteBook/
 
 source:      source
 destination: _site
@@ -22,6 +22,7 @@ destination: _site
 # site title, description, meta_description, meta_keywords
 # Details for the RSS feed generator
 name: Gua
+blog_name: Guardia
 title: Guardia · 瓜地
 description: "瓜地"
 meta_description: "iOS Dev. Blog by Desgard_Duan. "

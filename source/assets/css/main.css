@@ -591,7 +591,7 @@ dl {
 
 .banner {
     padding: 8em 2.5em 4em;
-    background: url(images/banner.png) center top fixed #2B7369;
+    background: url(images/banner.png) center top fixed black;
     background-size: cover;
     line-height: 1.75;
     text-align: center

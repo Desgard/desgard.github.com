@@ -315,7 +315,7 @@ def run(self):
            self._last_time = now
 {% endhighlight %}
 
-`run` 方法是一个典型的 Event Loop 方法，通过 `poll` 来阻塞，等待事件繁盛，然后用事件对应的文件描述 `fd` 命中 `handler`，调用 `handler.handle_event(sock, fd, event)` 来讲事件交由 `handler` 处理，同时间隔 `TIMEOUT_PRECISION` 秒调用 `TCPRelay`、`UDPRelay`、`DNSResolver` 的 `handler_periodic` 函数处理超时情况或是清理缓存。
+`run` 方法是一个典型的 Event Loop 方法，通过 `poll` 来阻塞，等待事件发生，然后用事件对应的文件描述 `fd` 命中 `handler`，调用 `handler.handle_event(sock, fd, event)` 来将事件交由 `handler` 处理，同时间隔 `TIMEOUT_PRECISION` 秒调用 `TCPRelay`、`UDPRelay`、`DNSResolver` 的 `handler_periodic` 函数处理超时情况或是清理缓存。
 
 看到这里，你肯定对 `TCPRelay` 对于事件封装产生了兴趣，我们重新回到 `tcprelay.py` 文件，来查看一下 `handle_event` 方法。
 
@@ -362,7 +362,7 @@ def handle_event(self, sock, fd, event):
            logging.warn('poll removed fd')
 {% endhighlight %}
 
-读写事件由 `EventLoop` 协调后分发给 `TCPRelay`，再经 `TCPRelay` 将事件下发给对应的 `TCPRelayHandler` 处理。那么这个“对应”该如何区别？这是都是 *fd(File Descriptor)* 的功劳。文件描述符 - fd 是内核为了高效管理已被打开的文件所创建的索引，通常用一个非负正数数来区分，用于智代被打开的文件，所有执行的 I/O 操作的系统都会通过文件描述符。
+读写事件由 `EventLoop` 协调后分发给 `TCPRelay`，再经 `TCPRelay` 将事件下发给对应的 `TCPRelayHandler` 处理。那么这个“对应”该如何区别？这是都是 *fd(File Descriptor)* 的功劳。文件描述符 - fd 是内核为了高效管理已被打开的文件所创建的索引，通常用一个非负正数数来区分，用于指代被打开的文件，所有执行的 I/O 操作的系统都会通过文件描述符。
 
 扩展来说，每个 Event 可以当做一个服务处理程序的时间。使用 epoll、select 等等方法以及向指定的 `handler` 投递意在实现**解多路分配策略，并同步派发请求及相关请求来处理**，这是 *Reactor Pattern* (反应器模式)的完美实现。说到这里不得说下 Reactor Pattern。
 

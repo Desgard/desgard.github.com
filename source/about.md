@@ -12,7 +12,7 @@ Gua(or Desgard_Duan), iOS Developer and try full stack!
 
 I like something cool, just like Apple's product. And be interested in algorithm  in computer science, especially data structure. I'm a vimer!
 
-Now a student in Southwest Jiaotong University. And work in iQiYi, iOS Dev Intern in Shanghai.
+Now I work in iQiYi, iOS Dev in Shanghai. 
 
 ---
 

@@ -12,19 +12,21 @@ slug: comment
 <li><a href="https://github.com/guodongxiaren/README/blob/master/emoji.md">emoji support</a></li>
 <br />
 <aside id="comments" class="disqus">
-    <div id="container"></div>
-    <link rel="stylesheet" href="/assets/css/gitment.css">
-    <script src="https://imsun.github.io/gitment/dist/gitment.browser.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    
+    <div id='gitalk-container'></div>
     <script>
-    var gitment = new Gitment({
-        id: "{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}", 
-        owner: 'Desgard',
-        repo: 'desgard.github.com',
-        oauth: {
-            client_id: 'e2612df42f3f2a83e71c',
-            client_secret: 'b53e85b314bb24a6d06773e48bbb62a4de3b8b3a',
-        },
-    })
-    gitment.render('container')
+        const gitalk = new Gitalk({
+            id: "{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}", 
+            clientID: 'e2612df42f3f2a83e71c',
+            clientSecret: 'b53e85b314bb24a6d06773e48bbb62a4de3b8b3a',
+            repo: 'desgard.github.com',
+            owner: 'Desgard',
+            admin: ['Desgard'],
+            // facebook-like distraction free mode
+            distractionFreeMode: false
+        })
+        gitalk.render('gitalk-container')
     </script>
 </aside>

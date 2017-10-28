@@ -25,7 +25,7 @@ name: Gua
 blog_name: Guardia
 title: Guardia · 瓜地
 description: "瓜地"
-meta_description: "iOS Dev. Blog by Desgard_Duan. "
+meta_description: "I write many code to write less code.💻"
 url: http://www.desgard.com
 production_url: http://www.desgard.com
 repo: https://github.com/desgard
@@ -43,11 +43,11 @@ author:
   linkedin  : http://linkedin.com/in/nandomoreirame
   sof       : http://stackoverflow.com/users/6119149/desgard-duan
   weibo     : http://weibo.com/desgard
-  bio       : "iOS Dev and try to do everything."
+  bio       : "I write many code to write less code.💻"
 
 # thought
 thought:
-  text: Have a beginner mind.
+  text: "I write many code to write less code.💻"
   author: Gua
 
 # Plugin: jekyll-assets

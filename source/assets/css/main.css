@@ -2065,7 +2065,7 @@ html.swipebox-html.swipebox-touch {
 
 @media (min-width: 56em) {
     .container {
-        width:48em
+        width: 80%
     }
 
     .scroll-down {

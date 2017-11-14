@@ -9,7 +9,7 @@ tags:
 - Python
 ---
 
->（续 [Shadowsocks Probe I - Socks5 与 EventLoop 事件分发]()）
+>（续 [Shadowsocks Probe I - Socks5 与 EventLoop 事件分发](http://www.desgard.com/Shadowsocks-1/)）
 
 ## TCPRelay 及 Socket 监听事件
 
@@ -154,6 +154,7 @@ socket.getaddrinfo(host, port[, family[, socktype[, proto[, flags]]]])
 由此可以看出，这个方法可以获取到主机的全部信息，是 `TCPRelay` 成功监听的关键之一。
 
 ![TCPRelay.description](../assets/images/blog/15027549268791/TCPRelay.description.png)
+
 ## TCPRelayHandler
 
 将 `TCPRelay` 转发给 `TCPRelayHandler` 之后，`handle_event` 会对应选择处理的事件。它会再进一步，根据事件的种类，调用相应的函数来做处理，这也是一个转发的过程。注意，这里的 `handle_event` 是由 `TCPRelayHandler` 实例的方法属性，而不是上文中出现的 `TCPRelay` 中的属性。在这个方法中，会追踪 Socket 来决策调用方法。
@@ -622,7 +623,15 @@ def _write_to_sock(self, data, sock):
 
 ## 概括
 
+
+![ss-event-stage-relationship](media/15027549268791/ss-event-stage-relationship.svg)
+
+（该图摘自 [Shadowsocks 源码分析——TCP 代理](https://loggerhead.me/posts/shadowsocks-yuan-ma-fen-xi-tcp-dai-li.html) 但是感觉有一些问题）
+
 在 Shadowsocks 中最关键的无疑就是 `TCPRelayHandler`。事件循环驱动着整个工程的运行，而 `TCPRelayHandler` 保证每个事件的正常处理。这一部分内容在本篇文章中只能介绍最主要的部分，即数据、事件、状态的传递与转换。而涉及到的其他处理，例如 **Time out**、**TFO**、**One Time Auth** 等在之后的文章中会陆续加上这些。
 
 
+## 引文
+
+* [Shadowsocks 源码分析——TCP 代理](https://loggerhead.me/posts/shadowsocks-yuan-ma-fen-xi-tcp-dai-li.html)
 

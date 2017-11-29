@@ -624,7 +624,7 @@ def _write_to_sock(self, data, sock):
 ## 概括
 
 
-![ss-event-stage-relationship](media/15027549268791/ss-event-stage-relationship.svg)
+![ss-event-stage-relationship](http://www.desgard.com/iOS-Source-Probe/Python/Shadowsocks/media/15027549268791/ss-event-stage-relationship.svg)
 
 （该图摘自 [Shadowsocks 源码分析——TCP 代理](https://loggerhead.me/posts/shadowsocks-yuan-ma-fen-xi-tcp-dai-li.html) 但是感觉有一些问题）
 

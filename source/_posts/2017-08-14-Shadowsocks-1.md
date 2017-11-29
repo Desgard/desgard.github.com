@@ -107,6 +107,7 @@ Proxy 在收到客户端请求后，检查是否有认证方式，并返回一�
 在万事具备之后，Socks5 协议就完成了自身的主要实名，在握手和建立连接之后，Socks5 的 Proxy 服务器就只做简单的消息转发。我们以通过 Shadowsocks 代理来访问 `apple.com:80` 为例，整个过程如下图所示：
 
 ![visit-apple.com.re](../assets/images/blog/15024138759233/visit-apple.com.re.png)
+
 而信息的传输过程可能是这样的：
 
 {% highlight ruby %}

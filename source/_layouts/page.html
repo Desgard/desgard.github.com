@@ -3,24 +3,29 @@ layout: default
 post_class: page-template
 ---
 
-<div class="post" itemprop="mainContentOfPage">
+{% if page.slug == "cucumis" %}
+  <script src="/assets/js/cucumis-helper.js"></script>
+{% else %}
+  <!-- this temple for all part page -->
+  <div class="post" itemprop="mainContentOfPage">
 
-  <header class="post-header">
-      {% if page.slug == "error404" %}
-      <center><h1>{{ page.title }}</h1></center>
-      {% else %}
-      <h1>{{ page.title }}</h1>
-      {% endif %}
-  </header>
+    <header class="post-header">
+        {% if page.slug == "error404" %}
+        <center><h1>{{ page.title }}</h1></center>
+        {% else %}
+        <h1>{{ page.title }}</h1>
+        {% endif %}
+    </header>
 
-  {{content}}
+    {{content}}
 
-</div>
+  </div>
 
-{% if page.slug == "error404" %}
+  {% if page.slug == "error404" %}
 
-  {% for post in site.posts limit:6 %}
-    {% include article.html %}
-  {% endfor %}
+    {% for post in site.posts limit:6 %}
+      {% include article.html %}
+    {% endfor %}
 
+  {% endif %}
 {% endif %}

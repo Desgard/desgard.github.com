@@ -824,6 +824,7 @@
   width: 100%;
   height: auto;
   border-radius: 25px;
+  margin-left: 0;
 }
 .gt-container .gt-avatar-github {
   width: 3em;

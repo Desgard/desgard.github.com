@@ -5,29 +5,21 @@ description: "留言区"
 permalink: /comment/
 slug: comment
 ---
-<p>
-    Support Github Markdown!
-</p>
-<li><a href="https://github.com/guodongxiaren/README#diff%E8%AF%AD%E6%B3%95">Introductor</a></li>
-<li><a href="https://github.com/guodongxiaren/README/blob/master/emoji.md">emoji support</a></li>
-<br />
-<aside id="comments" class="disqus">
-    <link rel="stylesheet" href="/assets/css/gitalk.css">
-    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
-    
-    <div id='gitalk-container'></div>
-    <script>
-        const gitalk = new Gitalk({
-            id: "{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}", 
-            clientID: 'e2612df42f3f2a83e71c',
-            clientSecret: 'b53e85b314bb24a6d06773e48bbb62a4de3b8b3a',
-            repo: 'desgard.github.com',
-            owner: 'Desgard',
-            admin: ['Desgard'],
-            pagerDirection: 'last',
-            // facebook-like distraction free mode
-            distractionFreeMode: false
-        })
-        gitalk.render('gitalk-container')
-    </script>
-</aside>
+<link rel="stylesheet" href="/assets/css/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id='gitalk-container'></div>
+<script>
+    const gitalk = new Gitalk({
+        id: "{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}", 
+        clientID: 'e2612df42f3f2a83e71c',
+        clientSecret: 'b53e85b314bb24a6d06773e48bbb62a4de3b8b3a',
+        repo: 'desgard.github.com',
+        owner: 'Desgard',
+        admin: ['Desgard'],
+        pagerDirection: 'last',
+        // facebook-like distraction free mode
+        distractionFreeMode: false
+    })
+    gitalk.render('gitalk-container')
+</script>

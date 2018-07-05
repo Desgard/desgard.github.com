@@ -26,8 +26,8 @@ blog_name: Guardia
 title: Guardia · 瓜地
 description: "瓜地"
 meta_description: "I write many code to write less code.💻"
-url: http://www.desgard.com
-production_url: http://www.desgard.com
+url: https://www.desgard.com
+production_url: https://www.desgard.com
 repo: https://github.com/desgard
 disqus_shortname: "desgard"
 rss_path: source/
@@ -35,14 +35,14 @@ author:
   name      : Desgard_Duan
   image     : /assets/images/logo-new.png
   email     : gua@desgard.com
-  url       : http://www.desgard.com
+  url       : https://www.desgard.com
   facebook  : https://www.facebook.com/desgard.duan
   twitter   : https://twitter.com/Desgard_Duan
-  instagram : http://instagram.com/nandomoreira.me
-  github    : http://github.com/desgard
-  linkedin  : http://linkedin.com/in/nandomoreirame
-  sof       : http://stackoverflow.com/users/6119149/desgard-duan
-  weibo     : http://weibo.com/desgard
+  instagram : https://instagram.com/nandomoreira.me
+  github    : https://github.com/desgard
+  linkedin  : https://linkedin.com/in/nandomoreirame
+  sof       : https://stackoverflow.com/users/6119149/desgard-duan
+  weibo     : https://weibo.com/desgard
   bio       : "I write many code to write less code.💻"
 
 # thought

@@ -23,7 +23,7 @@
 <div id='gitalk-container'></div>
 <script>
     const gitalk = new Gitalk({
-        id: "{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}", 
+        id: "{{ page.url, prepend: site.baseurl | prepend: site.url }}", 
         clientID: 'e2612df42f3f2a83e71c',
         clientSecret: 'b53e85b314bb24a6d06773e48bbb62a4de3b8b3a',
         repo: 'desgard.github.com',

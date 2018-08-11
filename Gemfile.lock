@@ -1,5 +1,5 @@
 GEM
-  remote: http://rubygems.org/
+  remote: https://gems.ruby-china.org/
   specs:
     addressable (2.3.8)
     blankslate (2.1.2.4)
@@ -123,4 +123,4 @@ DEPENDENCIES
   sass (~> 3.4.10)
 
 BUNDLED WITH
-   1.12.5
+   1.16.2

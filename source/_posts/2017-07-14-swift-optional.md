@@ -109,7 +109,8 @@ extension Array where Element: Equatable {
 
 代码很简单，就是将当前数组做一次遍历来查找这个元素，如果找到则返回一个  `some` 类别代表这个 Optional 结果是存在的。如果没有则返回 `none`。我们来测试一下：
 
-![](http://i2.kiimg.com/600799/e68a22fe9728f410.jpg)
+![](../assets/images/blog/14996701635735/14998196038583.jpg)
+
 
 发现如果 `find` 方法在 `Array` 中无法找到对应元素，则会返回一个 `none` 的 Optional 对象。
 
@@ -132,7 +133,7 @@ extension Array where Element: Equatable {
 
 由于 Swift 通过 `?` 来对 Optional 类型做了简化，所以我们将返回值修改成 `Index?` 即可。其他地方也类似，如果有值直接返回，没有则返回 `nil`。我们使用 `if let` 范式来验证一下 Optional 的作用：
 
-![](http://i2.kiimg.com/600799/25548e1aecb79f8a.jpg)
+![](../assets/images/blog/14996701635735/14998277800625.jpg)
 
 ## Optional 中 map 和 flatMap 实现
 

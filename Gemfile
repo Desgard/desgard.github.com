@@ -1,6 +1,6 @@
 # If you have OpenSSL installed, we recommend updating
 # the following line to use "https"
-source 'https://gems.ruby-china.org'
+source 'https://gems.ruby-china.com'
 group :development do
   gem 'rake', '~> 10.4.2'
   gem 'font-awesome-less'

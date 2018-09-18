@@ -1,5 +1,5 @@
 GEM
-  remote: https://gems.ruby-china.org/
+  remote: https://gems.ruby-china.com/
   specs:
     addressable (2.3.8)
     blankslate (2.1.2.4)

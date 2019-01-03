@@ -8,4 +8,5 @@ group :development do
   gem 'sass', '~> 3.4.10'
   gem 'jekyll', '~> 2.5.3'
   gem 'jekyll-assets'
+  gem 'rouge'
 end

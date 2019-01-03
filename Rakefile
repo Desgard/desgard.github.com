@@ -35,10 +35,12 @@ task :publish => [:generate] do
 
     pwd = Dir.pwd
     Dir.chdir tmp
+    
 
     system "git init"
     system "git checkout --orphan #{GITHUB_REPO_BRANCH}"
     system "git add ."
+    system "git config user.email 'gua@desgard.com'"
     message = "Site updated at #{Time.now.utc}"
     system "git commit -am #{message.inspect}"
     system "git remote add origin git@github.com:#{GITHUB_REPONAME}.git"

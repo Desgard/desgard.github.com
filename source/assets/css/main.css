@@ -1217,7 +1217,7 @@ body.modal--open {
 .search-container a {
     text-decoration: none;
     color: #fff;
-    border-top: 1px solid transparent
+    border-bottom: 1px solid transparent
 }
 
 .search-container a:hover {

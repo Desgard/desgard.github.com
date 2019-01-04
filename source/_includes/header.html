@@ -4,7 +4,12 @@
     <nav class="navbar">
       <ul>
         <li><a href="{{ "/" | prepend: site.baseurl }}">Home</a></li>
-        <li><a href="#!" data-modal="modalSearch"><i class="fa fa-search"></i></a></li>
+        <li>
+          <a href="#!" data-modal="modalSearch" onclick="show_search_view(true)">
+            <i class="fa fa-search">
+            </i>
+          </a>
+        </li>
         <li><a href="{{ "/comment " | prepend: site.baseurl }}" target="_blank"><i class="fa fa-comments"></i></a></li>
         <li><a href="{{ "/feed.xml" | prepend: site.baseurl }}" target="_blank"><i class="fa fa-feed"></i></a></li>
       </ul>

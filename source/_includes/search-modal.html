@@ -2,7 +2,7 @@
 <div id="modalSearch" class="modal">
   <div class="modal__overlay"></div>
   <div class="modal__content">
-    <a href="#!" class="modal-close" data-modal-close>&times;</a>
+    <a href="#" class="modal-close" onclick="show_search_view(false)">&times;</a>
     <div class="search-container">
       <input type="text" id="search-input" placeholder="Search articles">
       <ul id="results-container"></ul>
@@ -17,4 +17,9 @@ SimpleJekyllSearch({
   resultsContainer: document.getElementById('results-container'),
   json: '/search.json'
 })
+
+function show_search_view(is_show) {
+  var search_view = document.getElementById("modalSearch");
+  search_view.className = is_show ? "modal modal--open" : "modal";
+}
 </script>

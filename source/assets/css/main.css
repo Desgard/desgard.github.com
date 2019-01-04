@@ -664,7 +664,7 @@ dl {
 
 .post .disqus,.post .highlight,.post blockquote {
     margin-left: -50px;
-    margin-right: -50px
+    margin-right: -50px;
 }
 
 .post .disqus {
@@ -673,14 +673,21 @@ dl {
     padding-top: 2em
 }
 
-.post .disqus,.post .highlight pre {
+.post .highlight pre {
     padding-left: 50px;
-    padding-right: 50px
+    padding-right: 50px;
 }
+
+.post .disqus {
+    padding-left: 50px;
+    padding-right: 50px;
+    margin-top: 60px; 
+}
+
 
 .post .highlight pre {
     padding-top: 40px;
-    padding-bottom: 40px
+    padding-bottom: 40px;
 }
 
 .post p:last-child {

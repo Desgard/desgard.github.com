@@ -61,10 +61,10 @@
 <meta name="twitter:image:src" content="{{ page_image }}">
 
 <!-- Favicons -->
-<link rel="apple-touch-icon" sizes="114x114" href="{{ 'ico/apple-touch-icon-114.png' | asset_path | prepend: site.baseurl | prepend: site.url }}">
-<link rel="apple-touch-icon" sizes="72x72" href="{{ 'ico/apple-touch-icon-72.png' | asset_path | prepend: site.baseurl | prepend: site.url }}">
-<link rel="apple-touch-icon" href="{{ 'ico/apple-touch-icon-57.png' | asset_path | prepend: site.baseurl | prepend: site.url }}">
-<link rel="shortcut icon" href="{{ 'ico/favicon.png' | asset_path | prepend: site.baseurl | prepend: site.url }}">
+<link rel="apple-touch-icon" sizes="114x114" href="{{ '/ico/apple-touch-icon-114.png' | asset_path | prepend: site.baseurl | prepend: site.url }}">
+<link rel="apple-touch-icon" sizes="72x72" href="{{ '/ico/apple-touch-icon-72.png' | asset_path | prepend: site.baseurl | prepend: site.url }}">
+<link rel="apple-touch-icon" href="{{ '/ico/apple-touch-icon-57.png' | asset_path | prepend: site.baseurl | prepend: site.url }}">
+<link rel="shortcut icon" href="{{ '/ico/favicon.png' | asset_path | prepend: site.baseurl | prepend: site.url }}">
 
 <!-- rel prev and next -->
 {% if paginator.previous_page %}
@@ -76,11 +76,10 @@
 
 <!-- Canonical link tag -->
 <link rel="canonical" href="{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}">
-<link rel="alternate" type="application/rss+xml" title="{{ site.name }}" href="{{ "/feed.xml" | prepend: site.baseurl | prepend: site.url }}">
-
-{% stylesheet main %}
-{% javascript modernizr-custom data-cfasync="false" %}
-
+<link rel="alternate" type="application/rss+xml" title="{{ site.name }}" href="{{ "feed.xml" | prepend: site.baseurl | prepend: site.url }}">
+<link href="/assets/css/main.css" rel="stylesheet" type="text/css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js"></script>
+<script src="/assets/js/main.js"></script>
 <script src="/assets/js/jquery-3.1.js"></script>
 <script src="/assets/js/jquery.rotate.js"></script>
 <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -117,18 +116,18 @@ _gaq.push(['_trackPageview']);
 var _hmt = _hmt || [];
 (function() {
   var hm = document.createElement("script");
-  hm.src = "//hm.baidu.com/hm.js?c5a8123bc51782a3083a631ed9ff50e4";
+  hm.src = "https://hm.baidu.com/hm.js?c5a8123bc51782a3083a631ed9ff50e4";
   var s = document.getElementsByTagName("script")[0]; 
   s.parentNode.insertBefore(hm, s);
 })();
 </script>
 
 <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'] ],
-        displayMath: [ ['$$','$$'] ],
-        processEscapes: true
-      }
-    });
-  </script>
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'] ],
+      displayMath: [ ['$$','$$'] ],
+      processEscapes: true
+    }
+  });
+</script>

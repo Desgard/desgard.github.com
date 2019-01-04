@@ -17,6 +17,14 @@ learn_url: http://www.desgard.com/INoteBook/
 source:      source
 destination: _site
 
+plugins: 
+  - jekyll-paginate
+  - jekyll-sitemap
+  - jekyll-gist
+  - jekyll-feed
+  - jemoji
+  - jekyll-include-cache
+
 # cover: /assets/images/header-cover.png
 
 # site title, description, meta_description, meta_keywords
@@ -60,6 +68,10 @@ assets:
     - assets/css
     - assets/js
   cache: true
+  image_path: assets/images
+  font_path: assets/fonts
+  css_path: assets/css
+  js_path: assets/js
   gzip: [ text/css, application/javascript ]
 
 # Compress HTML

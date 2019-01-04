@@ -1,4 +1,5 @@
-{% strip %}<!DOCTYPE html>
+{% strip %}
+<!DOCTYPE html>
 <html class="no-js" lang="zh">
   <head>
     {% include head.html %}
@@ -17,11 +18,6 @@
     {% include footer.html %}
 
     {% include search-modal.html %}
-
-    {% javascript main %}
-    {% if page.slug == 'projects' %}
-        {% javascript jquery.github %}
-    {% endif %}
   </body>
   <script>
     var link = "{{ page.mobile_link }}" ;

@@ -849,6 +849,7 @@
   color: #fff;
   outline: none;
   font-size: 0.75em;
+  margin-left: 20px;
 }
 .gt-container .gt-btn:hover {
   background-color: #81a6ed;

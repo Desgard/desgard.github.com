@@ -553,4 +553,4 @@ Simplex 算法再单次约束计算中是否十分高效呢，我们来讨论一
 
 * [Smoothed Analysis of Algorithms: Why the Simplex Algorithm Usually Takes Polynomial Time](http://www.di.ens.fr/~vergnaud/algo0910/Simplex.pdf)
 * [CS711008Z Algorithm Design and Analysis Lecture 8. Algorithm design technique: Linear programming](http://bioinfo.ict.ac.cn/~dbu/AlgorithmCourses/Lectures/Lec8.pdf)
-* [https://constraints.cs.washington.edu/solvers/uist97.pdf](Solving Linear Arithmetic Constraints for User Interface Applications)
+* [Solving Linear Arithmetic Constraints for User Interface Applications](https://constraints.cs.washington.edu/solvers/uist97.pdf)

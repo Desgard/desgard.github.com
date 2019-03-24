@@ -1,0 +1,46 @@
+---
+layout: comment
+title: "Leetcode 刷题记录"
+description: "刷题记录"
+permalink: /lc-contribution/
+slug: lc-contribution
+---
+
+<script>
+  function getJSON(url) {
+    var Callback = {};
+    Callback.Success = function () {
+      alert('success');
+    };
+    Callback.Error = function () {
+      alert('error');
+    };
+    Callback.Complete = function () {
+      alert('complete');
+    };
+
+
+    $.ajax({
+      url: url,
+      type: 'get',
+      cache: false,
+      jsonp: 'callback',
+      dataType: 'jsonp',  // 请求方式为jsonp
+      crossDomain: true,
+      contentType: "application/json; charset=utf-8",
+      jsonpCallback: 'Callback.Success',
+      error: Callback.Error,
+      complete: Callback.Complete
+    });
+
+    function onBack(obj) {
+      console.log(obj);
+    }
+  }
+
+  function onBack(obj) {
+    console.log(obj);
+  }
+
+  getJSON("http://app.sepicat.net/api/sepicat/v1/user_profile_state?login=desgard");
+</script>

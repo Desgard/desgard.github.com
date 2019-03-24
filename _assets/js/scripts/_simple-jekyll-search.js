@@ -1,4 +1,4 @@
-var SimpleJekyllSearch = SimpleJekyllSearch || [];
+// var SimpleJekyllSearch = SimpleJekyllSearch || [];
 
 SimpleJekyllSearch({
   searchInput: document.getElementById('search-input'),

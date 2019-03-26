@@ -5,8 +5,11 @@ post_class: page-template
 slug: home
 ---
 
+<article class="post" itemscope="itemscope" itemtype="http://schema.org/BlogPosting" itemprop="blogPost">
+</article>
+
 {% for post in paginator.posts %}
-  {% include article.html %}
+{% include article.html %}
 {% endfor %}
 
 {% include pagination.html %}

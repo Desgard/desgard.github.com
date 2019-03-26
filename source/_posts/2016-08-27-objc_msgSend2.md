@@ -19,7 +19,7 @@ Objective-C 在调用对象方法的时候，是通过消息传递机制来查�
 
 > 同上一篇文章一样，定义一个自定义 Class `DGObject` ，并且声明改 Class 中拥有方法 `- (void)test_no_exist` ，而在 `.m` 文件中不给予实现。在 `main.m` 入口中直接调用该类某实例的 `- (void)test_no_exist` 方法。
 
-![](http://7xwh85.com1.z0.glb.clouddn.com/14722248187304.jpg)
+![](../assets/images/blog/14720053753173/14722248187304.jpg)
 
 ## 动态方法解析
 
@@ -332,7 +332,7 @@ int __forwarding__(void *frameStackPointer, int isStret) {
 对于这篇文章记录的消息转发流程，大致如下图所示：
 
 
-![Desktop](http://7xwh85.com1.z0.glb.clouddn.com/Desktop.png)
+![Desktop](../assets/images/blog/14720053753173/Desktop.png)
 
 
 以上是对于 objc_msgSend 消息转发的源码学习笔记，请多指正。

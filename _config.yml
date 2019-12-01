@@ -1,23 +1,24 @@
-permalink   : /:title/
-markdown    : kramdown
-highlighter : rouge 
+permalink: /:title/
+markdown: kramdown
+highlighter: rouge
 
 paginate: 6
 comments: true
+wechat: true
 paginate_path: "/page/:num"
 
 baseurl: ""
 domain_name: www.desgard.com
 google_analytics: UA-52446115-1
-baidu_toongji: 
+baidu_toongji:
 project_url: http://project.desgard.com
 life_url: http://life.desgard.com
 learn_url: http://www.desgard.com/INoteBook/
 
-source:      source
+source: source
 destination: _site
 
-plugins: 
+plugins:
   - jekyll-paginate
   - jekyll-sitemap
   - jekyll-gist
@@ -40,18 +41,18 @@ repo: https://github.com/desgard
 disqus_shortname: "desgard"
 rss_path: source/
 author:
-  name      : Desgard_Duan
-  image     : /assets/images/logo-new.png
-  email     : gua@desgard.com
-  url       : https://www.desgard.com
-  facebook  : https://www.facebook.com/desgard.duan
-  twitter   : https://twitter.com/Desgard_Duan
-  instagram : https://instagram.com/nandomoreira.me
-  github    : https://github.com/desgard
-  linkedin  : https://linkedin.com/in/nandomoreirame
-  sof       : https://stackoverflow.com/users/6119149/desgard-duan
-  weibo     : https://weibo.com/desgard
-  bio       : "I write many code to write less code.💻"
+  name: Desgard_Duan
+  image: /assets/images/logo-new.png
+  email: gua@desgard.com
+  url: https://www.desgard.com
+  facebook: https://www.facebook.com/desgard.duan
+  twitter: https://twitter.com/Desgard_Duan
+  instagram: https://instagram.com/nandomoreira.me
+  github: https://github.com/desgard
+  linkedin: https://linkedin.com/in/nandomoreirame
+  sof: https://stackoverflow.com/users/6119149/desgard-duan
+  weibo: https://weibo.com/desgard
+  bio: "I write many code to write less code.💻"
 
 # thought
 thought:
@@ -72,7 +73,7 @@ assets:
   font_path: assets/fonts
   css_path: assets/css
   js_path: assets/js
-  gzip: [ text/css, application/javascript ]
+  gzip: [text/css, application/javascript]
 
 # Compress HTML
 compress_html:
@@ -83,4 +84,21 @@ compress_html:
   ignore:
     envs: all
 
-exclude: ["gulp", "node_modules", "bower", "bower_components", "config.rb", "src", "Gemfile", "Gemfile.lock", ".rvmrc", ".rbenv-version", "package.json", "gulpfile.js", "README.md", "Rakefile", "changelog.md"]
+exclude:
+  [
+    "gulp",
+    "node_modules",
+    "bower",
+    "bower_components",
+    "config.rb",
+    "src",
+    "Gemfile",
+    "Gemfile.lock",
+    ".rvmrc",
+    ".rbenv-version",
+    "package.json",
+    "gulpfile.js",
+    "README.md",
+    "Rakefile",
+    "changelog.md",
+  ]

@@ -1,6 +1,9 @@
 <header class="header{% if page.slug == 'home' %} alt{% endif %}">
   <div class="container">
-    <h1><a href="{{ "/" | prepend: site.baseurl }}"><strong>desgard</strong>.com</a></h1>
+    <h1>
+      <a href="{{ "/" | prepend: site.baseurl }}">
+        <strong>desgard</strong>.com</a>
+    </h1>
     <nav class="navbar">
       <ul>
         <!-- <li>
@@ -9,13 +12,20 @@
           </a>
         </li> -->
         <li>
-          <a href="#!" data-modal="modalSearch" onclick="show_search_view(true)">
-            <i class="fa fa-search">
-            </i>
+          <a data-modal="modalSearch" href="#!" onclick="show_search_view(true)">
+            <i class="fa fa-search"></i>
           </a>
         </li>
-        <li><a href="{{ "/comment " | prepend: site.baseurl }}" target="_blank"><i class="fa fa-comments"></i></a></li>
-        <li><a href="{{ "/feed.xml" | prepend: site.baseurl }}" target="_blank"><i class="fa fa-feed"></i></a></li>
+        <li>
+          <a href="{{ "/comment " | prepend: site.baseurl }}" target="_blank">
+            <i class="fa fa-comments"></i>
+          </a>
+        </li>
+        <li>
+          <a href="{{ "/feed.xml" | prepend: site.baseurl }}" target="_blank">
+            <i class="fa fa-feed"></i>
+          </a>
+        </li>
       </ul>
     </nav>
   </div>

@@ -51,8 +51,13 @@ comments: true
   {% endif %}
 
   {{content}}
+  {% if site.wechat %}
+    <br />
+    {% include wechat.html %}
+  {% endif %}
 
   <footer class="post-footer">
+    
     {% if site.author %}
     <section class="author">
       <h4>{{ site.author.name }}</h4>
@@ -61,6 +66,7 @@ comments: true
     {% endif %}
 
     {% include share.html %}
+
 
     {% if site.comments %}
       {% include comments.html %}

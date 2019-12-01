@@ -1,0 +1,23 @@
+{
+  // 保存自动化
+  "editor.formatOnSave": false,
+  // Tab Size setting
+  "editor.tabSize": 2,
+  // js 自动补全分号
+  "prettier.semi": true,
+  "vetur.format.defaultFormatterOptions": {
+    "prettyhtml": {
+      // https://github.com/Prettyhtml/prettyhtml
+      "printWidth": 100
+    },
+    "prettier": {
+      // https://prettier.io/docs/en/options.html
+      // js自动换行的限制
+      "printWidth": 150,
+      // 只准使用双引号
+      "singleQuote": false,
+      "wrapAttributes": false,
+      "sortAttributes": false
+    }
+  }
+}

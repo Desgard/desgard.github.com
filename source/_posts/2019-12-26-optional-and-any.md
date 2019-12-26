@@ -57,7 +57,7 @@ public struct _OptionalNilComparisonType: ExpressibleByNilLiteral {
 }
 {% endhighlight %}
 
-发现这个东西是继承于 `ExpressibleByNilLiteral` 这个协议的，这到底是一个什么东西？我们知道协议往往都是希望让某一类 `class` 或者 `struct` 具有某种功能（实现某组方法）。`**ExpressibleByNilLiteral` 协议的效果就是遵循其的类型可以使用 `nil` 字面量来初始化。\*\*在我们的代码，甚至是 Swift 官方源码中，其实也很少用到这个协议，因为有 `Optional` 的存在，往往就可以表示值可能会不存在。
+发现这个东西是继承于 `ExpressibleByNilLiteral` 这个协议的，这到底是一个什么东西？我们知道协议往往都是希望让某一类 `class` 或者 `struct` 具有某种功能（实现某组方法）。**`ExpressibleByNilLiteral` 协议**的效果就是遵循其的类型可以使用 `nil` 字面量来初始化。在我们的代码，甚至是 Swift 官方源码中，其实也很少用到这个协议，因为有 `Optional` 的存在，往往就可以表示值可能会不存在。
 
 > 这里延伸一些 `Attribute` 的知识，上述代码中的 `@frozen` 意思是对应的 `struct` 保证其实例不会更改，从而编译器在编译这个 `struct` 的时候会做消除冗余负载优化。而 `@_transparent` 是为了告诉编译器在需要的时候可以将声明的函数内联，即使在 `-Onone` 下也是如此。
 
@@ -125,17 +125,17 @@ var a: Int?? = b
 如果当 `b` 的类型是 `Optional<Int>` 的时候，此时 `a` 的类型 `Optional<Optional<Int>>` 与 `b` 的类型不相符，那么应该无法编译过才对。其实此处的原因也藏在 `Optional` 源码当中：
 
 {% highlight swift %}
-public enum Optional<Wrapped>: ExpressibleByNilLiteral { /
-  case none
-  case some(Wrapped)
+public enum Optional<Wrapped>: ExpressibleByNilLiteral { 
+    case none
+    case some(Wrapped)
 
-  @_transparent
-  public init(_ some: Wrapped) { self = .some(some) } // 重点二
+    @_transparent
+    public init(_ some: Wrapped) { self = .some(some) } // 重点二
 	...
-	@_transparent
-  public init(nilLiteral: ()) { // 重点一
-    self = .none
-  }
+    @_transparent
+    public init(nilLiteral: ()) { // 重点一
+        self = .none
+    }
 }
 {% endhighlight %}
 

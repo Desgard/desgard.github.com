@@ -219,7 +219,6 @@ blockquote small,q small {
 code,pre {
     font-family: Courier,Consolas;
     margin: 0;
-    font-size: medium;
 }
 
 q {
@@ -236,9 +235,12 @@ q:after {
 
 code {
     background: 0 0;
-    border-radius: 0;
+    border-radius: 3px;
     border: none;
-    padding: 0
+    padding: 0;
+    padding-left: 5px;
+    padding-right: 5px;
+    background-color: #eee;
 }
 
 pre {
@@ -251,7 +253,8 @@ pre {
 }
 
 pre code {
-    line-height: 1.75em
+    line-height: 1.75em;
+    background-color: transparent ;
 }
 
 .container {

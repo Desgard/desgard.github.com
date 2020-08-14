@@ -8,6 +8,11 @@ type: article
   source0=layout.sharing source1=page.sharing -%}
 {%- assign _sharing = __return -%}
 
+{%- include snippets/assign.html
+  target=site.data.variables.default.page.show_qrcode
+  source0=layout.show_qrcode source1=page.show_qrcode -%}
+{%- assign _show_qrcode = __return -%}
+
 <div class="layout--article">
   {%- include article/top/custom.html -%}
 
@@ -17,11 +22,18 @@ type: article
     <section class="article__sharing d-print-none">{%- include sharing.html -%}</section>
   {%- endif -%}
 
+
   <div class="d-print-none">
     {%- include article-footer.html -%}
+
+    {%- if _show_qrcode -%}
+      <img src="https://www.desgard.com/assets/images/qrcode.png" width="80%"/>
+    {%- endif -%}
+
     {%- include article-section-navigator.html -%}
   </div>
 
+  
 </div>
 
 <script>

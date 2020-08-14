@@ -13,7 +13,7 @@ en: &EN
   ARTICLE_DATE_FORMAT     : "%b %d, %Y"
   ARTICLE_LIST_DATE_FORMAT: "%b %d"
   STATISTICS              : "[POST_COUNT] post articles, [PAGE_COUNT] pages."
-  LICENSE_ANNOUNCE        : "This work is licensed under a [LICENSE] license."
+  LICENSE_ANNOUNCE        : "本作品采用 [LICENSE] 进行许可。"
   POST_ON_GITHUB          : "Edit on Github"
   FOLLOW_ME               : "Follow me on [NAME]."
   FOLLOW_US               : "Follow us on [NAME]."

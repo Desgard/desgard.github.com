@@ -9,6 +9,11 @@
 {%- assign _show_subscribe = __return -%}
 
 {%- include snippets/assign.html
+  target=site.data.variables.default.page.show_qrcode
+  source0=layout.show_qrcode source1=page.show_qrcode -%}
+{%- assign _show_qrcode = __return -%}
+
+{%- include snippets/assign.html
   target=site.data.variables.default.page.license
   source0=layout.license source1=page.license -%}
 {%- assign _license = __return -%}
@@ -36,11 +41,16 @@
       {%- assign _author = site.author -%}
     {%- endif -%}
     {%- include article/footer/author-profile.html author=_author -%}
+
+    {%- if _show_qrcode -%}
+      <img src="https://www.desgard.com/assets/images/qrcode.png" width="70%"/>
+    {%- endif -%}
   {%- endif -%}
 
   {%- if _show_subscribe -%}
     <div class="article__subscribe">{%- include article/footer/subscribe.html -%}</div>
   {%- endif -%}
+
 
   {%- if _license != false -%}
     {%- assign _data_license = site.data.licenses-%}
@@ -52,4 +62,6 @@
     {%- endif -%}
     <div class="article__license">{%- include article/footer/license.html license=_license_data -%}</div>
   {%- endif -%}
+
+  
 </footer>

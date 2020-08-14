@@ -3,9 +3,10 @@
 
 {%- if include.license -%}
 
-  {%-assign _license_name = '<a itemprop="license" rel="license" href="[URL]">[NAME]</a>' | replace: "[URL]", include.license.url | replace: "[NAME]", include.license.name -%}
+  {%-assign _license_name = '<a itemprop="license" rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a>' -%}
   <div class="license">
-    <p>{{ _license_announce | replace: "[LICENSE]", _license_name }}
+    <p style=" display: flex; align-items: center; ">
+     {{ _license_announce | replace: "[LICENSE]", _license_name }}
       <a rel="license" href="{{ include.license.url }}">
         <img alt="{{ include.license.name }}" src="{{ include.license.image }}" />
       </a>

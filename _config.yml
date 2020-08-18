@@ -36,20 +36,20 @@ timezone: "CN" # see https://en.wikipedia.org/wiki/List_of_tz_database_time_zone
 author:
   type      : "person" # "person" (default), "organization"
   name      : "冬瓜"
-  url       : https://www.desgard.com
-  avatar    : https://avatars2.githubusercontent.com/u/7804535?s=460&u=40e717623cb27fb1cd7f0ed22075f1cfcad51729&v=4
-  bio       : I write more code to write less.
-  email     : gua@desgard.com
-  facebook  : https://www.facebook.com/desgard.duan
-  twitter   : https://twitter.com/Desgard_Duan
-  weibo     : https://weibo.com/desgard
+  url       : "https://www.desgard.com"
+  avatar    : "https://avatars2.githubusercontent.com/u/7804535?s=460&u=40e717623cb27fb1cd7f0ed22075f1cfcad51729&v=4"
+  bio       : "I write more code to write less."
+  email     : "gua@desgard.com"
+  facebook  : "desgard.duan"
+  twitter   : "Desgard_Duan"
+  weibo     : "desgard"
   googleplus: # "user_id"   the last part of your profile url, e.g. https://plus.google.com/u/0/user_id
   telegram  : # "user_name" the last part of your profile url, e.g. https://t.me/user_name
   medium    : # "user_name" the last part of your profile url, e.g. https://medium.com/user_name
   zhihu     : # "user_name" the last part of your profile url, e.g. https://www.zhihu.com/people/user_name
   douban    : # "user_name" the last part of your profile url, e.g. https://www.douban.com/people/user_name
   linkedin  : # "user_name" the last part of your profile url, e.g. https://www.linkedin.com/in/user_name
-  github    : https://github.com/desgard
+  github    : "Desgard"
   npm       : # "user_name" the last part of your profile url, e.g. https://www.npmjs.com/~user_name
 
 
@@ -74,11 +74,11 @@ paths:
 excerpt_separator: <!--more-->
 
 ## license
-license: CC-BY-NC-4.0 # "CC-BY-4.0", "CC-BY-SA-4.0", "CC-BY-NC-4.0", "CC-BY-ND-4.0"
+license: "CC-BY-NC-4.0" # "CC-BY-4.0", "CC-BY-SA-4.0", "CC-BY-NC-4.0", "CC-BY-ND-4.0"
 
 ## TOC
 toc:
-  selectors: # "h1,h2,h3" (default)
+  selectors: "h1,h2,h3,h4" # "h1,h2,h3" (default)
 
 
 ## => Markdown Enhancements
@@ -118,7 +118,7 @@ sharing:
 ## => Comments
 ##############################
 comments:
-  provider: false # false (default), "disqus", "gitalk", "valine", "custom"
+  provider: true # false (default), "disqus", "gitalk", "valine", "custom"
 
   ## Disqus
   disqus:

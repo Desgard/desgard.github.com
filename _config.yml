@@ -28,7 +28,7 @@ description: > # this means to ignore newlines until "Language & timezone"
 ## => Language and Timezone
 ##############################
 lang: "zh_CN" # the language of your site, default as "en"
-timezone: "CN" # see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones for the available values
+timezone: "UTC+8" # see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones for the available values
 
 
 ## => Author and Social
@@ -56,7 +56,7 @@ author:
 ## => GitHub Repository (if the site is hosted by GitHub)
 ##############################
 repository: Desgard/desgard.github.com
-repository_tree: master
+repository_tree: guardia-v5.0
 
 
 ## => Paths
@@ -118,7 +118,7 @@ sharing:
 ## => Comments
 ##############################
 comments:
-  provider: true # false (default), "disqus", "gitalk", "valine", "custom"
+  provider: "gitalk" # false (default), "disqus", "gitalk", "valine", "custom"
 
   ## Disqus
   disqus:
@@ -131,7 +131,8 @@ comments:
     clientSecret: b53e85b314bb24a6d06773e48bbb62a4de3b8b3a # GitHub Application Client Secret
     repository  : desgard.github.com # GitHub repo
     owner       : Desgard # GitHub repo owner
-    admin: ['Desgard'] # GitHub repo owner and collaborators, only these guys can initialize GitHub issues, IT IS A LIST.
+    admin:  # GitHub repo owner and collaborators, only these guys can initialize GitHub issues, IT IS A LIST.
+      - 'Desgard'
       # - your GitHub Id
 
   ## Valine
@@ -169,7 +170,7 @@ search:
 ## => Analytics
 ##############################
 analytics:
-  provider: false # false (default), "google", "custom"
+  provider: "google" # false (default), "google", "custom"
 
   ## Google Analytics
   google:

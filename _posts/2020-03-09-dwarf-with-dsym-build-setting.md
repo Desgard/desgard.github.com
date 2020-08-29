@@ -1,6 +1,8 @@
 ---
-title: 为什么 Debug Information Format 改为 DWARF 可以提高编译速度？· EOW in iOS
-tags: iOS EOF
+title: "为什么 Debug Information Format 改为 DWARF 可以提高编译速度？"
+tags: "iOS 方案之本"
+comments: true
+key: "dwarf-with-dsym-build-setting"
 ---
 
 > **iOS 方案之本（Essence of Workaround in iOS）**是我新写的一个专题。在很多大厂的各路优化方案中，**只是告诉了我们为了达到目的怎么去做，但是并没有说这个方案的本质原因是什么**。这个专栏就是为了格物致知，从原理层面来讲述方案背后的原理。

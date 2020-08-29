@@ -91,10 +91,10 @@ a > .item__header, a.item__header, .item__header > a {
     &:not(:first-child) {
       padding-top: map-get($spacers, 4);
     }
-    &:not(:last-child) {
-      padding-bottom: map-get($spacers, 4);
-      @include split-line(bottom);
-    }
+    // &:not(:last-child) {
+    //   padding-bottom: map-get($spacers, 4);
+    //   @include split-line(bottom);
+    // }
     list-style-type: none;
   }
 }

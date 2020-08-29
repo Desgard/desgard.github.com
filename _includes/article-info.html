@@ -57,13 +57,14 @@
       {%- if _show_author or _show_date or _pageview -%}
         <ul class="right-col menu">
           {%- if _show_author  -%}
-            <li><i class="fas fa-user"></i> <span>{{ _author.name }}</span></li>
+            <!-- <li><i class="fas fa-user"></i> <span>{{ _author.name }}</span></li> -->
           {%- endif -%}
 
           {%- if _show_date -%}
             <li>
               {%- include snippets/get-locale-string.html key='ARTICLE_DATE_FORMAT' -%}
-              <i class="far fa-calendar-alt"></i> <span>{{ include.article.date | date: __return }}</span>
+              <!-- <i class="far fa-calendar-alt"></i>  -->
+              <span>{{ include.article.date | date: __return }}</span>
             </li>
           {%- endif -%}
 

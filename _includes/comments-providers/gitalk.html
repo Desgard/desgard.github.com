@@ -20,12 +20,24 @@
 		key = key.substring(0, key.length - 5);
 		console.log("key", key);
 
+		var repo = '{{ site.comments.gitalk.repository }}';
+
+		// 复用评论
+		var current_repo = '{{ page.repository }}';
+		var current_key = '{{ page.key }}';
+		if (current_repo && current_repo !== '') {
+			repo = current_repo;
+		}
+		if (current_key && current_key !== '') {
+			key = current_key;
+		}
+
 		if (key !== "") {
 			window.Lazyload.js('{{ _sources.gitalk.js }}', function() {
 				var gitalk = new Gitalk({
 					clientID: '{{ site.comments.gitalk.clientID }}',
 					clientSecret: '{{ site.comments.gitalk.clientSecret }}',
-					repo: '{{ site.comments.gitalk.repository }}',
+					repo: repo,
 					owner: '{{ site.comments.gitalk.owner }}',
 					admin: ['Desgard'],
 					id: key

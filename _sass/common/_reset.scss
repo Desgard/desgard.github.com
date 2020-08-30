@@ -74,9 +74,12 @@ h2,
 h3,
 h4,
 h5,
-h6,
-strong {
+h6 {
   font-weight: map-get($base, font-weight-bold);
+}
+
+strong {
+  font-weight: 900;
 }
 
 h1 {

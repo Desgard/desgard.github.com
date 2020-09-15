@@ -229,24 +229,24 @@ void bfs(int s, int t) {
 
 ```cpp
 int max_flow(int s, int t) {
-		// 最大流结果
+    // 最大流结果
     int ret = 0;
     while (1) {
-		// 从 S -> T 使用 bfs 查询一条增广路
+        // 从 S -> T 使用 bfs 查询一条增广路
         bfs(s, t);
-		// 如果发现容量最小是 0 ，说明查不到了
+        // 如果发现容量最小是 0 ，说明查不到了
         if (a[t] == 0) break;
         int u = t;
         while (u != s) {
-			// 使用 pre 来获取当前增广路中汇点 T 的入度边下标信息
+            // 使用 pre 来获取当前增广路中汇点 T 的入度边下标信息
             int p = pre[u].first, edge_index = pre[u].second;
-			// 获取正向边和反向边
+            // 获取正向边和反向边
             Edge& forward_edge = G[p][edge_index];
             Edge& reverse_edge = G[forward_edge.to][forward_edge.rev];
-			// 更新流量
+            // 更新流量
             forward_edge.cap -= a[t];
             reverse_edge.cap += a[t];
-			// 逆增广路方向移动游标继续更新
+            // 逆增广路方向移动游标继续更新
             u = reverse_edge.to;
         }
         ret += a[t];

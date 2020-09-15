@@ -32,7 +32,7 @@
 			key = current_key;
 		}
 
-		if (key !== "") {
+		if (key !== "" && '{{ page.ban_talk }}' !== 'ban') {
 			window.Lazyload.js('{{ _sources.gitalk.js }}', function() {
 				var gitalk = new Gitalk({
 					clientID: '{{ site.comments.gitalk.clientID }}',

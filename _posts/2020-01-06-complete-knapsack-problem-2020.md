@@ -8,7 +8,7 @@ comments: true
 
 上周大家都在玩一个梗，就是对 2020 有如下分解。
 
-![](https://mmbiz.qpic.cn/mmbiz_png/zOnpE47IbCWhO7ISqDx6oqsE0ibULVwXsvP8EadKsOBMSPHskZT5rnowDzueqibGdJgfPvHebUIg0iao6KwdN3H0w/640?wx_fmt=png)
+![](https://raw.githubusercontent.com/Desgard/img/master/img/guardia2020means.jpg)
 
 之后大家对 2020 的分解也纷纷作出了自己的各种各样的解释，例如：2020 毕竟是不平坦的一年，程序员要 996 之类的。当然其中还有一些朋友还作出了一种有趣的分解：
 

@@ -16,7 +16,7 @@ comments: true
 
 DAG 是图论中常见的一种描述问题的结构，全称是**有向无环图（Directed Acyclic Graph）**。所谓的有向无环图也很好解释，**边是有方向的、且图中没有环**。下面我给一个 DAG 图的示例：
 
-![DAG 图例子](https://mmbiz.qpic.cn/mmbiz_png/zOnpE47IbCUs3OEQQ1Y39KrADpxJjcnErT1hl4jPyM6RLaRRTMRiaIMiamXJ04yl84sgWJSSrlwccqU3evOOLyibg/640?wx_fmt=png)
+![](https://raw.githubusercontent.com/Desgard/img/master/img/guardiamax-flow-demo.png)
 
 图中你可能会有一个疑问，DAG 不是没有环吗？可是图中有好几个环呀。在有向图中，**环**即**回路**。如果对于回路你比较陌生，可以查看我之前的一篇文章 - 欧拉回路。
 

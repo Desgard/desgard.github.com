@@ -1,50 +1,97 @@
 header:
   - titles:
       # @start locale config
-      en      : &EN       Archive
+      en      : &EN       一瓜算法小册
       en-GB   : *EN
       en-US   : *EN
       en-CA   : *EN
       en-AU   : *EN
-      zh-Hans : &ZH_HANS  归档
+      zh-Hans : &ZH_HANS  一瓜算法小册
       zh      : *ZH_HANS
       zh-CN   : *ZH_HANS
       zh-SG   : *ZH_HANS
-      zh-Hant : &ZH_HANT  歸檔
+      zh-Hant : &ZH_HANT  一瓜算法小册
       zh-TW   : *ZH_HANT
       zh-HK   : *ZH_HANT
-      ko      : &KO       아카이브
+      ko      : &KO       一瓜算法小册
       ko-KR   : *KO
-      fr      : &FR       Archives
+      fr      : &FR       一瓜算法小册
       fr-BE   : *FR
       fr-CA   : *FR
       fr-CH   : *FR
       fr-FR   : *FR
       fr-LU   : *FR
       # @end locale config
-    url: /archive.html
+    url: "https://www.desgard.com/algo/index.html"
 
-  # - titles:
-  #     # @start locale config
-  #     en      : &EN       About
-  #     en-GB   : *EN
-  #     en-US   : *EN
-  #     en-CA   : *EN
-  #     en-AU   : *EN
-  #     zh-Hans : &ZH_HANS  关于
-  #     zh      : *ZH_HANS
-  #     zh-CN   : *ZH_HANS
-  #     zh-SG   : *ZH_HANS
-  #     zh-Hant : &ZH_HANT  關於
-  #     zh-TW   : *ZH_HANT
-  #     zh-HK   : *ZH_HANT
-  #     ko      : &KO       소개
-  #     ko-KR   : *KO
-  #     fr      : &FR       À propos
-  #     fr-BE   : *FR
-  #     fr-CA   : *FR
-  #     fr-CH   : *FR
-  #     fr-FR   : *FR
-  #     fr-LU   : *FR
-  #     # @end locale config
-  #   url: /about.html
+  - titles:
+      en      : &EN       Twitter
+      en-GB   : *EN
+      en-US   : *EN
+      en-CA   : *EN
+      en-AU   : *EN
+      zh-Hans : &ZH_HANS  Twitter
+      zh      : *ZH_HANS
+      zh-CN   : *ZH_HANS
+      zh-SG   : *ZH_HANS
+      zh-Hant : &ZH_HANT  Twitter
+      zh-TW   : *ZH_HANT
+      zh-HK   : *ZH_HANT
+      ko      : &KO       Twitter
+      ko-KR   : *KO
+      fr      : &FR       Twitter
+      fr-BE   : *FR
+      fr-CA   : *FR
+      fr-CH   : *FR
+      fr-FR   : *FR
+      fr-LU   : *FR
+      # @end locale config
+    url: "https://twitter.com/Desgard_Duan"
+
+  - titles:
+      en      : &EN       RSS
+      en-GB   : *EN
+      en-US   : *EN
+      en-CA   : *EN
+      en-AU   : *EN
+      zh-Hans : &ZH_HANS  RSS
+      zh      : *ZH_HANS
+      zh-CN   : *ZH_HANS
+      zh-SG   : *ZH_HANS
+      zh-Hant : &ZH_HANT  RSS
+      zh-TW   : *ZH_HANT
+      zh-HK   : *ZH_HANT
+      ko      : &KO       RSS
+      ko-KR   : *KO
+      fr      : &FR       RSSz
+      fr-BE   : *FR
+      fr-CA   : *FR
+      fr-CH   : *FR
+      fr-FR   : *FR
+      fr-LU   : *FR
+      # @end locale config
+    url: "/feed.xml"  
+
+  - titles:
+      en      : &EN       微信公众号
+      en-GB   : *EN
+      en-US   : *EN
+      en-CA   : *EN
+      en-AU   : *EN
+      zh-Hans : &ZH_HANS  微信公众号
+      zh      : *ZH_HANS
+      zh-CN   : *ZH_HANS
+      zh-SG   : *ZH_HANS
+      zh-Hant : &ZH_HANT  微信公众号
+      zh-TW   : *ZH_HANT
+      zh-HK   : *ZH_HANT
+      ko      : &KO       微信公众号
+      ko-KR   : *KO
+      fr      : &FR       微信公众号
+      fr-BE   : *FR
+      fr-CA   : *FR
+      fr-CH   : *FR
+      fr-FR   : *FR
+      fr-LU   : *FR
+      # @end locale config
+    url: "/qrcode"  

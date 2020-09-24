@@ -2,6 +2,7 @@
 title: "二手房增值税分析 - 首付与差额"
 tags: 
     - "冬瓜买房笔记"
+    - "数学建模"
 comments: true
 non_technical: true
 ---

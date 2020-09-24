@@ -1,21 +1,21 @@
 header:
   - titles:
       # @start locale config
-      en      : &EN       一瓜算法小册
+      en      : &EN       算法小册
       en-GB   : *EN
       en-US   : *EN
       en-CA   : *EN
       en-AU   : *EN
-      zh-Hans : &ZH_HANS  一瓜算法小册
+      zh-Hans : &ZH_HANS  算法小册
       zh      : *ZH_HANS
       zh-CN   : *ZH_HANS
       zh-SG   : *ZH_HANS
-      zh-Hant : &ZH_HANT  一瓜算法小册
+      zh-Hant : &ZH_HANT  算法小册
       zh-TW   : *ZH_HANT
       zh-HK   : *ZH_HANT
-      ko      : &KO       一瓜算法小册
+      ko      : &KO       算法小册
       ko-KR   : *KO
-      fr      : &FR       一瓜算法小册
+      fr      : &FR       算法小册
       fr-BE   : *FR
       fr-CA   : *FR
       fr-CH   : *FR

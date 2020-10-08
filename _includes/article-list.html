@@ -94,9 +94,9 @@
           <a itemprop="headline" class="item__header" href="{{ _article_url }}">{{ _article.title }}</a>
           
           <!-- tag -->
-          {%- if _article.non_technical -%}
+          {%- if _article.show_label -%}
             <span class="item__tag" style="background-color: #e6f7ff;vertical-align: top;">
-              非技术类
+              {{ _article.show_label }}
             </span>
           {%- endif -%}
         </div>

@@ -7,9 +7,8 @@ tags:
 comments: true
 ---
 
-# Ex2. Ruby 黑魔法 - eval 和 alias
-
 CocoaPods 是使用 Ruby 这门脚本语言实现的工具。Ruby 有很多优质的特性被 CocoaPods 所利用，为了在后续的源码阅读中不会被这些用法阻塞，所以在这个系列中，会给出一些 CocoaPods 的番外篇，来介绍 Ruby 及其当中的一些语言思想。
+
 今天这一篇我们来聊聊 Ruby 中的一些十分“动态”的特性：**eval 特性和 alias 特性**。
 
 # 说说 Eval 特性
@@ -45,7 +44,7 @@ Lisp 中的 `eval` 方法预期是：**将表达式作为参数传入到 `eval`
 
 当然，作为动态性十分强大的 Lisp 和 Ruby 也有对应的 REPL 工具。例如 Ruby 的 irb 和 pry 都是十分强大的 REPL。为什么这里要提及 REPL 呢？**因为在这个名字中，E 就是 eval 的意思。**
 
-REPL 对应的英文是**_ Read-Eval-Print Loop_**。
+REPL 对应的英文是 **Read-Eval-Print Loop**。
 
 ![](https://raw.githubusercontent.com/Desgard/img/master/img/guardia1602156287860-47a6a0d4-e12b-40bd-8a02-7f18a56acf4e.png)
 
@@ -275,7 +274,7 @@ foo.m1
 
 既然说到了 `alias` 别名，那么就顺便说一下**猴子补丁**这个特性。猴子补丁**区别于环绕别名的方式，它主要目的是在运行时动态替换并可以暂时性避免程序崩溃**。
 
-先聊聊背景，由于 Open Class 和环绕别名这两个特性，Ruby 在运行时改变属性已经十分容易了。但是如果我们现在有一个需求，就是**需要动态的进行 Patch **，而不是只要 `alias` 就全局替换，这要怎么做呢？
+先聊聊背景，由于 Open Class 和环绕别名这两个特性，Ruby 在运行时改变属性已经十分容易了。但是如果我们现在有一个需求，就是 **需要动态的进行 Patch ** ，而不是只要 `alias` 就全局替换，这要怎么做呢？
 
 这里我们引入 Ruby 中的另外两个关键字 `refine` 和 `using` ，通过它们我们可以动态实现 Patch。举个例子：
 

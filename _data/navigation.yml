@@ -1,97 +1,97 @@
 header:
   - titles:
       # @start locale config
-      en      : &EN       算法小册
-      en-GB   : *EN
-      en-US   : *EN
-      en-CA   : *EN
-      en-AU   : *EN
-      zh-Hans : &ZH_HANS  算法小册
-      zh      : *ZH_HANS
-      zh-CN   : *ZH_HANS
-      zh-SG   : *ZH_HANS
-      zh-Hant : &ZH_HANT  算法小册
-      zh-TW   : *ZH_HANT
-      zh-HK   : *ZH_HANT
-      ko      : &KO       算法小册
-      ko-KR   : *KO
-      fr      : &FR       算法小册
-      fr-BE   : *FR
-      fr-CA   : *FR
-      fr-CH   : *FR
-      fr-FR   : *FR
-      fr-LU   : *FR
+      en: &EN 《Alog》
+      en-GB: *EN
+      en-US: *EN
+      en-CA: *EN
+      en-AU: *EN
+      zh-Hans: &ZH_HANS 《Alog》
+      zh: *ZH_HANS
+      zh-CN: *ZH_HANS
+      zh-SG: *ZH_HANS
+      zh-Hant: &ZH_HANT 《Alog》
+      zh-TW: *ZH_HANT
+      zh-HK: *ZH_HANT
+      ko: &KO 《Alog》
+      ko-KR: *KO
+      fr: &FR 《Alog》
+      fr-BE: *FR
+      fr-CA: *FR
+      fr-CH: *FR
+      fr-FR: *FR
+      fr-LU: *FR
       # @end locale config
     url: "https://www.desgard.com/algo/index.html"
 
   - titles:
-      en      : &EN       Twitter
-      en-GB   : *EN
-      en-US   : *EN
-      en-CA   : *EN
-      en-AU   : *EN
-      zh-Hans : &ZH_HANS  Twitter
-      zh      : *ZH_HANS
-      zh-CN   : *ZH_HANS
-      zh-SG   : *ZH_HANS
-      zh-Hant : &ZH_HANT  Twitter
-      zh-TW   : *ZH_HANT
-      zh-HK   : *ZH_HANT
-      ko      : &KO       Twitter
-      ko-KR   : *KO
-      fr      : &FR       Twitter
-      fr-BE   : *FR
-      fr-CA   : *FR
-      fr-CH   : *FR
-      fr-FR   : *FR
-      fr-LU   : *FR
+      en: &EN DAPP
+      en-GB: *EN
+      en-US: *EN
+      en-CA: *EN
+      en-AU: *EN
+      zh-Hans: &ZH_HANS DAPP
+      zh: *ZH_HANS
+      zh-CN: *ZH_HANS
+      zh-SG: *ZH_HANS
+      zh-Hant: &ZH_HANT DAPP
+      zh-TW: *ZH_HANT
+      zh-HK: *ZH_HANT
+      ko: &KO DAPP
+      ko-KR: *KO
+      fr: &FR DAPP
+      fr-BE: *FR
+      fr-CA: *FR
+      fr-CH: *FR
+      fr-FR: *FR
+      fr-LU: *FR
       # @end locale config
-    url: "https://twitter.com/Desgard_Duan"
+    url: "https://cakebot.finance"
 
   - titles:
-      en      : &EN       RSS
-      en-GB   : *EN
-      en-US   : *EN
-      en-CA   : *EN
-      en-AU   : *EN
-      zh-Hans : &ZH_HANS  RSS
-      zh      : *ZH_HANS
-      zh-CN   : *ZH_HANS
-      zh-SG   : *ZH_HANS
-      zh-Hant : &ZH_HANT  RSS
-      zh-TW   : *ZH_HANT
-      zh-HK   : *ZH_HANT
-      ko      : &KO       RSS
-      ko-KR   : *KO
-      fr      : &FR       RSSz
-      fr-BE   : *FR
-      fr-CA   : *FR
-      fr-CH   : *FR
-      fr-FR   : *FR
-      fr-LU   : *FR
+      en: &EN RSS
+      en-GB: *EN
+      en-US: *EN
+      en-CA: *EN
+      en-AU: *EN
+      zh-Hans: &ZH_HANS RSS
+      zh: *ZH_HANS
+      zh-CN: *ZH_HANS
+      zh-SG: *ZH_HANS
+      zh-Hant: &ZH_HANT RSS
+      zh-TW: *ZH_HANT
+      zh-HK: *ZH_HANT
+      ko: &KO RSS
+      ko-KR: *KO
+      fr: &FR RSSz
+      fr-BE: *FR
+      fr-CA: *FR
+      fr-CH: *FR
+      fr-FR: *FR
+      fr-LU: *FR
       # @end locale config
-    url: "/feed.xml"  
+    url: "/feed.xml"
 
   - titles:
-      en      : &EN       微信公众号
-      en-GB   : *EN
-      en-US   : *EN
-      en-CA   : *EN
-      en-AU   : *EN
-      zh-Hans : &ZH_HANS  微信公众号
-      zh      : *ZH_HANS
-      zh-CN   : *ZH_HANS
-      zh-SG   : *ZH_HANS
-      zh-Hant : &ZH_HANT  微信公众号
-      zh-TW   : *ZH_HANT
-      zh-HK   : *ZH_HANT
-      ko      : &KO       微信公众号
-      ko-KR   : *KO
-      fr      : &FR       微信公众号
-      fr-BE   : *FR
-      fr-CA   : *FR
-      fr-CH   : *FR
-      fr-FR   : *FR
-      fr-LU   : *FR
+      en: &EN Wechat
+      en-GB: *EN
+      en-US: *EN
+      en-CA: *EN
+      en-AU: *EN
+      zh-Hans: &ZH_HANS Wechat
+      zh: *ZH_HANS
+      zh-CN: *ZH_HANS
+      zh-SG: *ZH_HANS
+      zh-Hant: &ZH_HANT Wechat
+      zh-TW: *ZH_HANT
+      zh-HK: *ZH_HANT
+      ko: &KO Wechat
+      ko-KR: *KO
+      fr: &FR Wechat
+      fr-BE: *FR
+      fr-CA: *FR
+      fr-CH: *FR
+      fr-FR: *FR
+      fr-LU: *FR
       # @end locale config
-    url: "/qrcode"  
+    url: "/qrcode"

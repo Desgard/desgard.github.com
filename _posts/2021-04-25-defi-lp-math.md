@@ -157,3 +157,5 @@ $$C_{BNB-BUSD\ LP} = \sqrt{C_{BNB}\times C_{BUSD}}$$
 # 写在最后
 
 DeFi 是一个金融游戏，如果你什么也不做研究并且什么也不去动手计算，那么永远都是韭菜。所以希望大家对于有趣的项目，先**做好研究**以及**风险评估**，在去玩耍。
+
+> 欢迎大家使用我个人研发的 [Cakebot Finance](https://cakebot.finance/) 来体验去中心化 DAPP 挖矿。

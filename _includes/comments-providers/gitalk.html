@@ -40,7 +40,8 @@
 					repo: repo,
 					owner: '{{ site.comments.gitalk.owner }}',
 					admin: ['Desgard'],
-					id: key
+					id: key,
+					distractionFreeMode: false
 				});
 				gitalk.render('js-gitalk-container');
 			});

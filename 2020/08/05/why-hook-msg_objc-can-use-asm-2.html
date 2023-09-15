@@ -1,0 +1,1644 @@
+<!DOCTYPE html><html lang="zh_CN">
+  <head><!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-TM7J1LHC1Z"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+		gtag('js', new Date());
+
+		gtag('config', 'G-TM7J1LHC1Z');
+		
+			gtag('config', 'G-TM7J1LHC1Z', { 'anonymize_ip': true });
+		
+	</script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><title>为什么使用汇编可以 Hook objc_msgSend（下）- 实现与分析 - 一片瓜田</title><meta name="description" content="背景在上一篇文章中，我们介绍了 ARM64 中的汇编基础，并且知道了在汇编当中，调用一个方法的前后在栈空间是怎样表现的，以及内存中的几个特殊寄存器是如何操作的。今天这篇文章，我们来详细详细分析一下使用汇编来 Hook objc_msgSend 方法的全部流程。Hook 思路梳理对于 objc_msgSend 这个...">
+<link rel="canonical" href="https://www.desgard.com/2020/08/05/why-hook-msg_objc-can-use-asm-2.html"><link rel="alternate" type="application/rss+xml" title="一片瓜田" href="/feed.xml"><!-- start favicons snippet, use https://realfavicongenerator.net/ --><link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png"><link rel="manifest" href="/assets/site.webmanifest"><link rel="mask-icon" href="/assets/safari-pinned-tab.svg" color="#fc4d50"><link rel="shortcut icon" href="/assets/favicon.ico">
+
+<meta name="msapplication-TileColor" content="#ffc40d"><meta name="msapplication-config" content="/assets/browserconfig.xml">
+
+<meta name="theme-color" content="#ffffff">
+<!-- end favicons snippet --><link rel="stylesheet" href="/assets/css/main.css"><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" ><!-- start custom head snippets -->
+
+<!-- end custom head snippets -->
+<script>(function() {
+  window.isArray = function(val) {
+    return Object.prototype.toString.call(val) === '[object Array]';
+  };
+  window.isString = function(val) {
+    return typeof val === 'string';
+  };
+
+  window.hasEvent = function(event) {
+    return 'on'.concat(event) in window.document;
+  };
+
+  window.isOverallScroller = function(node) {
+    return node === document.documentElement || node === document.body || node === window;
+  };
+
+  window.isFormElement = function(node) {
+    var tagName = node.tagName;
+    return tagName === 'INPUT' || tagName === 'SELECT' || tagName === 'TEXTAREA';
+  };
+
+  window.pageLoad = (function () {
+    var loaded = false, cbs = [];
+    window.addEventListener('load', function () {
+      var i;
+      loaded = true;
+      if (cbs.length > 0) {
+        for (i = 0; i < cbs.length; i++) {
+          cbs[i]();
+        }
+      }
+    });
+    return {
+      then: function(cb) {
+        cb && (loaded ? cb() : (cbs.push(cb)));
+      }
+    };
+  })();
+})();
+(function() {
+  window.throttle = function(func, wait) {
+    var args, result, thisArg, timeoutId, lastCalled = 0;
+
+    function trailingCall() {
+      lastCalled = new Date;
+      timeoutId = null;
+      result = func.apply(thisArg, args);
+    }
+    return function() {
+      var now = new Date,
+        remaining = wait - (now - lastCalled);
+
+      args = arguments;
+      thisArg = this;
+
+      if (remaining <= 0) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+        lastCalled = now;
+        result = func.apply(thisArg, args);
+      } else if (!timeoutId) {
+        timeoutId = setTimeout(trailingCall, remaining);
+      }
+      return result;
+    };
+  };
+})();
+(function() {
+  var Set = (function() {
+    var add = function(item) {
+      var i, data = this._data;
+      for (i = 0; i < data.length; i++) {
+        if (data[i] === item) {
+          return;
+        }
+      }
+      this.size ++;
+      data.push(item);
+      return data;
+    };
+
+    var Set = function(data) {
+      this.size = 0;
+      this._data = [];
+      var i;
+      if (data.length > 0) {
+        for (i = 0; i < data.length; i++) {
+          add.call(this, data[i]);
+        }
+      }
+    };
+    Set.prototype.add = add;
+    Set.prototype.get = function(index) { return this._data[index]; };
+    Set.prototype.has = function(item) {
+      var i, data = this._data;
+      for (i = 0; i < data.length; i++) {
+        if (this.get(i) === item) {
+          return true;
+        }
+      }
+      return false;
+    };
+    Set.prototype.is = function(map) {
+      if (map._data.length !== this._data.length) { return false; }
+      var i, j, flag, tData = this._data, mData = map._data;
+      for (i = 0; i < tData.length; i++) {
+        for (flag = false, j = 0; j < mData.length; j++) {
+          if (tData[i] === mData[j]) {
+            flag = true;
+            break;
+          }
+        }
+        if (!flag) { return false; }
+      }
+      return true;
+    };
+    Set.prototype.values = function() {
+      return this._data;
+    };
+    return Set;
+  })();
+
+  window.Lazyload = (function(doc) {
+    var queue = {js: [], css: []}, sources = {js: {}, css: {}}, context = this;
+    var createNode = function(name, attrs) {
+      var node = doc.createElement(name), attr;
+      for (attr in attrs) {
+        if (attrs.hasOwnProperty(attr)) {
+          node.setAttribute(attr, attrs[attr]);
+        }
+      }
+      return node;
+    };
+    var end = function(type, url) {
+      var s, q, qi, cbs, i, j, cur, val, flag;
+      if (type === 'js' || type ==='css') {
+        s = sources[type], q = queue[type];
+        s[url] = true;
+        for (i = 0; i < q.length; i++) {
+          cur = q[i];
+          if (cur.urls.has(url)) {
+            qi = cur, val = qi.urls.values();
+            qi && (cbs = qi.callbacks);
+            for (flag = true, j = 0; j < val.length; j++) {
+              cur = val[j];
+              if (!s[cur]) {
+                flag = false;
+              }
+            }
+            if (flag && cbs && cbs.length > 0) {
+              for (j = 0; j < cbs.length; j++) {
+                cbs[j].call(context);
+              }
+              qi.load = true;
+            }
+          }
+        }
+      }
+    };
+    var load = function(type, urls, callback) {
+      var s, q, qi, node, i, cur,
+        _urls = typeof urls === 'string' ? new Set([urls]) : new Set(urls), val, url;
+      if (type === 'js' || type ==='css') {
+        s = sources[type], q = queue[type];
+        for (i = 0; i < q.length; i++) {
+          cur = q[i];
+          if (_urls.is(cur.urls)) {
+            qi = cur;
+            break;
+          }
+        }
+        val = _urls.values();
+        if (qi) {
+          callback && (qi.load || qi.callbacks.push(callback));
+          callback && (qi.load && callback());
+        } else {
+          q.push({
+            urls: _urls,
+            callbacks: callback ? [callback] : [],
+            load: false
+          });
+          for (i = 0; i < val.length; i++) {
+            node = null, url = val[i];
+            if (s[url] === undefined) {
+              (type === 'js' ) && (node = createNode('script', { src: url }));
+              (type === 'css') && (node = createNode('link', { rel: 'stylesheet', href: url }));
+              if (node) {
+                node.onload = (function(type, url) {
+                  return function() {
+                    end(type, url);
+                  };
+                })(type, url);
+                (doc.head || doc.body).appendChild(node);
+                s[url] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+    return {
+      js: function(url, callback) {
+        load('js', url, callback);
+      },
+      css: function(url, callback) {
+        load('css', url, callback);
+      }
+    };
+  })(this.document);
+})();
+</script><script>
+  (function() {
+    var TEXT_VARIABLES = {
+      version: '2.2.6',
+      sources: {
+        font_awesome: 'https://use.fontawesome.com/releases/v5.0.13/css/all.css',
+        jquery: 'https://cdn.bootcss.com/jquery/3.1.1/jquery.min.js',
+        leancloud_js_sdk: '//cdn.jsdelivr.net/npm/leancloud-storage@3.13.2/dist/av-min.js',
+        chart: 'https://cdn.bootcss.com/Chart.js/2.7.2/Chart.bundle.min.js',
+        gitalk: {
+          js: 'https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js',
+          css: 'https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css'
+        },
+        valine: 'https://unpkg.com/valine/dist/Valine.min.js',
+        mathjax: 'https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML',
+        mermaid: 'https://cdn.bootcss.com/mermaid/8.0.0-rc.8/mermaid.min.js'
+      },
+      site: {
+        toc: {
+          selectors: 'h1,h2,h3'
+        }
+      },
+      paths: {
+        search_js: '/assets/search.js'
+      }
+    };
+    window.TEXT_VARIABLES = TEXT_VARIABLES;
+  })();
+</script>
+</head>
+  <body>
+    <div class="root" data-is-touch="false">
+      <div class="layout--page js-page-root"><div class="page__main js-page-main page__viewport has-aside cell cell--auto">
+
+      <div class="page__main-inner"><div class="page__header d-print-none"><header class="header"><div class="main">
+      <div class="header__title">
+        <div class="header__brand"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect y="5" width="24" height="13.8483" fill="url(#pattern0)"/>
+<defs>
+<pattern id="pattern0" patternContentUnits="objectBoundingBox" width="1" height="1">
+<use xlink:href="#image0" transform="scale(0.00229885 0.00398406)"/>
+</pattern>
+<image id="image0" width="435" height="251" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAbMAAAD7CAYAAADgkXoyAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAADQ6SURBVHgB7Z0LlBzleaa/6u656TojdL+gGYkFJFsgwNzsA8jCdmy8i4Rk47PrxCAbyMabrOXsHmOc2IicY2OzObbxJuusgCA7ITkxkWRwTGwvFiNhAwIjCQkjcRGa0f06M9JImktfav+3umtotaqqq7qru6uq34dTdHdVzUia7vnf//2+7/9+TQghpDRabc63WZxrzh2FtNic9/q9W1z8mYfUMZg7enOPhwoeSUjRhBBSSyo5yHu9360oRBVT5PrUsUeyAkeRCwkUMxIF/BKESroEp+9Dgg0E7rC8J3B7hAQOihkBXsXAr/sBHQIJG2ZYcqe8J3CkxlDMqoc5ELeJ9aDcVuTrrGjzeJ5iQIj/wLlB1LYKXVvNoJj5iylWU9UxLfd8mlBECKkX4NrekKxr2ymkalDMygM5kI7cMS13EFIv9Nmc77U4h0F+wOb8oMvvYXe/m++N39W2gufm5DP/tZ/QsVURipk38GGHYM1Tx3xhQp+Uj91gPiDeBnkvwmJ3v1fBiRqmqOF3vCP32q8JKt6H59Txrti/V6QMKGbFgYBBvK6U90KGJFj4JQheXYIXQbC7nwQbcwKbH4EpdwzYInRrvkMxswcf3Csk68CiLmBOM28vISPgxwBf7w6BBJuOgqNUTLe2RUjZUMzOBaL1wdxRCQHDwG26hUKRsBuoS5npe3UehJDSMPPmmPTOk9LA7+uLki0coXsvEYpZFnwgIWAIJZYrYvgwYt1Jb+4Riy0HhB9SQqKOmZIoVdjMgpENwvHCM/UuZphRLZbyQgVmRwBz8SQ/hIQQ07FhklxKEQlCjxQ1D9SrmJUjYuY6EojXTmHYjhDiDMQMoga35iXyA6eGQhEIG0WtCPUmZpgt3SzZwg4vmAKGDxYbjxJCSsEMQ2IM8rKsh4UiLqgXMSu1sMN0X/gQUcAIIX4BUcN45CU6RFFzoB7EDB+W5eJtJsR1IISQamCGIL1EizDB/rkw9HgOURYziNcnxX1VEZzXC7mDLowQUk1KSYGgQITjVY6oihlmOijwcBNSpIgRQoKCV1Fj6DFH1MQM4oWQols3BgHD7IYiRggJEgg/LhP3Zf11X8ofJTHzkhtDLmytMOZMCAk2cGhuqx/r2qVFRcxukWxosRh4s9cJCzsIIeECaRN0KHIjanXp0sIuZnhj4cbclLcyWUoICTNe8ml159LCLGaIJX9Wis9UsMh5Xe4xdKxa/3jrqGSyPS2yMN4QG59KS0dMk/HqUnvulnYhhFQNXZc+TVOHcj5pXbo1Xe/TNW0bHocSiW2rbltRaUeEmgBUart1ac9IHUziwypmCCne4uI+OLFnJCQ8uP6H7ZKML9JjsYVKsC5XpxYKNwAlJGx04dAz+kZD5OLJbffd9idd4j+Lc0cx4NIek4iHHcMoZm7ewFDkxh76yeqF0hC7Sc/IIl1kkVC4CIkqXeroVI6uM6MlN/oobhgz7hJ3Y8eG3BFJwiRmKLuHtS4WL4aAPSEBtNUIGTalUgvVbG2pcl53CMWLkLpEhSq3qQnsxkQms+Yrt9+zTcrHrUuLbNgxLGIGIfuCFF9zEciZx4NPPrJIi2kQr6VCASOEnEtXRpenfBA2ty4tkmHHMIiZmzcIswy4scCEFeHCmiXzJcnoK4UCRghxgXJsW2MxebiMUCQm/nBoxZYqYczEWtudEhGCLmZuhCxQs4ycC7tfsjkwQggplTWxdObhEt2a28XWkcmjBVnM3AgZyu0hZDWP/z64dvWdmsQQSlwkhBDiHygcWXPvsrt+JN5wG3YMVdW3HUEVMzdvArZowTYINRWynIjBibULIYRUjj1K1B4oQdTcdEiCMUCqJrR5tCCKmRshq7k1pogRQmpEKaLmZm1uqAtDgiZmgRcy5sQIIQHBq6i5rUH4Jwlhx6QgiVmghQzdObRMw+NCESOEBAp9jx5LLXZZ/YjxFW0AnZY5hbLSMShi5mYdWc2E7NvrH7ufJfaEkICzRo8lH3Aham7L99FFKTSNioMiZpgpOG2oWRMhy4UU4cbahRBCAo/epQb1h+9dfvf3XdzspmsIqhxfkBAQBDEr9gOtupBhwXOLZO7Xs26MEEJChuvQoxtBC8VatFqLWeCE7KH1qxdmMrH1QjdGCAk3usS0B7562xceKHIfFlij722zwz2BF7RaihnCip91uF71hXwPrX/0S5mMuLHnhBASEly5NNQroG4htIJWKzFDIcWfiv0PDj0WH5MqYfRRzKThxhYJIYREDzcuzc2Gx4EVtFqIWbESfKxz+FupUmcPhhUJIXXEc3os+XkHl+ZmiVQgqxxjUn2ctvs2V6BXScgQVoyhLVa7EEJI9PmwlmnYgEptm+vo/vGoOHcBWaaOKyVgVFvMUOzhVIKPledVaaXynfWPfY/5MUJIHdKhxbQNxvpZa9wIGlpjFdtfsqpUM8zYIdkEox1VWc/A/BghhGRRArB+4FT886tWrLASrmIhR0TQ/kYC0suxWmJW7IdSlaRiriXVc8KwIiGE5HCsdixWrBeY5sTVCjM6bRKHhpYVFzIUelDICCGkEK1DyyQ2PPST1QstLkKknOoY2qR4SX9VqIaYof/XFTbXoOpPSIXJVSxSyAghxBKtIxOPbfnO2kesuh6Ze53ZAUFzWjNcFSotZnBjTnvooMSzovb0O+sevSMnZGwSTAgh9mi6aN+1KQzB2t+1Dl+Lmohi+6VVlLhUFqdYK0KLW6WCQMh0XdZIACwwIYSEAE10uekj/3mJPPsvT28suHY499hh87WzJBuO3Cc1oJLODGX4TuvJKponyxMyQggh7tEko6/69trH/t7iGsZtp6rzT0iNSvYrVc0IEfufNtcqXs5JISOEkPJR4+jWof74YovSfRR92Dm0qnZxMqmUM7vL4RqUnUJGCCEBR9Pkiqax6Q2rHn+8MMqGghC7cbwmBSGVEDNUL9qFF5FErNjC6G/966NLKWSEEOIfNoIG1/Wo2LsvuLZi+6T5it9ihn+s3Vbc+Ec7VcOUBcrvY5o8LoQQQnzFRtDgzJzGdIhZh1QJv8XMaXF0xcKL6OyR63zP8ntCCKkANoK2U5yL+dCUuCrV5H6KGRoIOy2Orkh4kS2qCCGkOtgIGsRsj82XIH+2XKqAn2L2SYdrFdloE02DKWSEEFI9IGjN4zLfLTiNcKNd5A1Gxy795Bt+iRkcWdXDiy2ZNHJk7UIIIaSK6CsK1qG5yZ9VNA3kh5jhL3izzbWKhRfVD/J+XWSpEEIIqQH6nQWtr5yq1ZE3q2i40Q8xcyrFRwjQ94Vz2CFa/SBXCSGEkFqBTiH3FwgaInGHbO5HZWPFdqguV8ycSvHxD9oiPpOtXJRVQgghpNYYgoZmFbnXMC/rHO5HM+KKVDeWK2Y3O1zzfWuXvMpFluATQkgw0HRdvpe3H5rTHpUQsoospi5HzCAodqX4cGS+F33EMg3fExZ8EEJI0GjLxLV1MBy5107hRkTzfF9MXY6YObky3zvis+CDEEKCjNYh6YZ1eWvQnnG42Xd3VqqYVdWVoVUVCz4IISTYYA1ay7jMN3Ivnaob4cx8XXtWqphVzZXltaoihBAScHTRV35n7SMrcy+hB3YV7XBnvhWDlCJmTq7M/wXS6cQqYZ6MEELCgqaL9l0UhMycMwdC5lQM4ps7K0XMnBZI+1qK/+Da1XdqmnaHEEIICRNaJh5bd9c3vo7ejAg12vVuhJj54s68ipmTK8Nf1jdXZpThS+x+IYQQEkY6msem1/3Jt76qSRXcmVcxq14FI8OLhBASdm5qv2TulxZce2WXVNideREzuLJ5Ntd8rWBkeJEQQiKBkT/7o//xX7Gg2q5U3xd35kXMOsRePX1zZQwvEkJIpED+bO3XH3sUxSBbbe4p2515ETO7EKO/68oYXiSEkKjRMaZV+0YsHqtY7sytmCG8aNcPcav4BMOLhBASTXTRv/TNf/6/CDdWxJ25FTOnzvh7xCcYXiSEkMiiaTF5bP7VV9tpBoSs5C1i3IgZHJldU8gXxSfQe1EYXiSEkOiiaR133PvHfyT2JmielEjcxT1oOTLL4jwWSa8THzCKPvTYT4UQQki00eTaSTOmPv36S6+2WVzFuZLWLLtxZvNtzvsWXswVfRBCCIk+2uUfuvrrbZMmDdhcL8mdFRMzhBftCj98Kcd/8MlHFrHogxBC6ghNa7/1rs98zOYq8maeC0GKiZldMs631lVaTHtcCCGE1BX/4bL33Thj7uwpFpdKKgRJOFzDN7Trw+hLOT5K8SWkRR8b1/+7vPyLTuP55TdcIzfedos0j24RQkhpDJ45K5t/tXHk9+qSqxbIxz67nL9XESXR2CBXf/SGjx7Y3f2PFpcRanxBPOBUALJA7PNla9WRkjL56GeWYJ+yVgkZv3xinbzws2cllUwZh3oz5I2Xthi/fM2jRwkhxBuHu/fLk99/VH6vfo/M36sjew+o360uNVm8Vkg0GTV2TOvxQ4cHTxw6erDgEnQB1fKudcYpzGgnZOj4MShlEmZXtn3T5vPO9R3vkUf+8iF57fnNQghxz+Zfdso/fOt/y2ElXoV079qtHNuAkGgyYfJEmXnRnBubW5qbCi6h076nUKOdmCHEaFdRslN8IIoLpAfPDsjTq5+QX/3jWv4CElKEvmMn5Mff+oH6fVln/O6Q+mTWRe3NFy2Yd43FJU9VjXZhRrsQI9aWPS1lYrStEu1OCSlpFQLp3vWO7XWGHQlxBm5s/d/+SFR4yfE+hBjfd33JTSFICIgl4tJz9PiU3qM9bwwNDAzlXUKy9GVxGWq0EzM0FZ5kcX6n+ODMwporM5k97z/IkJpJIp5vB2aaL/9yo2GW29X9hJCsG/vJw4/Klg2/NfJiTlxy1WVyy4rPSKKhQUh0aVDvrzIAidHjRo8/uGfvG3mXUKD4trisnLcTsyViXemItWXHpQzC7spM5l42z6iy2r3dWdu7d76jEtn7Zcbcdro0Ute4dWPNo1rk5ttvlY/94TIKWR0Qi8fl+KEjkk5nJg4NDu093XfyZN5l1Ge87eb7WIkZFkpbxS/xTctuXxV2V5bPzIva5fIbr5W3tmx3jPnjl/etV3cY4jd19kwhpJ5ApeK6/7PGlRubfelF8l++8kVjskjqh9RwUgnaURk9Zsz4/bu7tudfEpdLwazEDCHGaRbnoY47pAyi4srywSwScf20UaLfZXsfxO5NJWgnj5+QKRfOoEsjkQfrxn795M/kZ6ufUJ/7Hsd7TTd2y+c/Yzwn9UVTS7N0v7lbGpoaWwvcmeu8mZWYfVKsW4k8L9ktX0omSq4sH4RCMJNsnTTBCCs6zT6xdoYujUSdrjfeln/+678rGoYHdGOkobFB9u7aLZlMptCdQaNeV8fpYt+jUMwgNItt7v25lLG+LIqurBCI0/uuv6po2JEujUQVs8Bj0/pfFC23pxsj+Zw80SNnTp0udGdYb4Y6jX3Fvr5QzDA1sirJhyN7Xsrgo7cv+Z76a7VLxMEv5bV/sMh4B5zK9wFdGokKCCn+9ufPGl08ioUUAd0YKQSNJ06e6DWeF7izfnFRRV8oZnYl+ciVuaooscLYr0zi35c6AuX7bopDTJe2/fnNXJdGQgmqFCFibkKKdGPEjkw6PdIFxiJ39kqxry8Usz8Q63zZr6SMLvkf+fTS72uatlDqDC8uzVyXxtAjCQtvvrpd/vl//XCkn2IxsG7sc3/x342JHiGFYPE0ikBM8twZ1mdsKvb1+WKGCsYbbe57RkpsLJxzZXW9zYtblwbM0OPgwAAXW5NA0rXzbXn6kSfkhX971lUbKhRG3b7ybvnQf/oI140RW1AEsnvHrvdev+fOUPxRtOlwvpjNUsdlFvdg77KiFs+Oj9y+ZKkm2lKpc7y6NFRFIvTIfBoJAsiJvfrcb2X9367JRRCK58Xwmf/Qf/yo3HrPH8rE6VOEkGIcfHevcvnJkdd57gwa5FiAmN/lo8PmnrLK8aPYULgcblz2CblMubR/+NYPpO+Y84CAhCgaF29a9+9yzccXySVXLlCz3AuEkGoBF/aWCie+9vzLnpoBI6SIDh6tEycIIW5pUemVATVxGnk9dvTs5pbm5sGBwTYpkurS8p5/QawF7QkpsR/jg08+skiLac8JsQTbxWxa/+9FRS0fFIlgoICwMa9GKoG5SSZyYke6D3j6WlQp3rTsFhVav0gI8cqOl1413Fk+x/Yd3PT6y1tXSpFOIJV1ZprcKcQWdA5BPg3Oy+0+aKh8xAEwYBjfQw0gdGykHCBgr/3mZUPAEOL2CvJit979hxQx4jsXTJ9y9YQpE5p7jjhP+k0xm2ZzHTHKkqsYNU27SYgjCMPces9njfAj9nXCYOIWDDrmwDP1whkyZfYMw7VB3OjaSDEgYJgYvfabzSUJGICI3XjbJ7gbNPGFFotxKxaPN8+/5sqbfvOzZ190+lozzIiVi5+1uI7ij8ekBLIdP2J1XcVYChhUnn7kHz2FHq2AuGGWDOeHUn86NwLyBQwhxFI3xcSECRW6FDHiJ+/s2HlORaPJlNnTOy+//poP3/fpu22/1nRmFSj+iC0R4hkI0J99d5UhahvXPVO08tEOLD7EsRl7qknWAcK5meLGsv/6wS8BQ3UiROzaj3+Y4URSVcaMG4co3yJ1dNrdYzozX4s/Vq1/vLU5k+4VUjaoaEROrXvX22W7tULM0OSU2TMpcBGj3BxYPhCwSz5wmeHC2LWDVBI7ZzZ3waUy5/3zHh7qj698YMUKy681nVmzzfcuKV/WlEkuVc5MSPmYOTWQLf7Ybhylzq7zMd2bPP/yyDkI3HiVBzEd3FR2IwkNfcdPjHxGyhUwc10kPgd0YSQIxDT5nHJfq8RGl4oVgJTorhhirATZsvwFgvQmBisMWlgHdGSvt/JpJ0yBMysmAQY2OLisk5vJPEmAwPuPUPRbv9s+0teuVMy9+YwiIgoYCR6tTWNSaIvYaXURYuYkZCVt+aLUs+47flSabHFHdsBBKLIbgxqqGysQjjQ7kpizffxZ6OpAqg/Ch4eNlmfeFzJbAQG7WE2QFt5wHQWMBB1Ni2nfuP/xxzutQo0QM19DjN/510eX6kKqCUKRrTe8V1kGcUOiH84NW9b76dwABtHL1J/FHFt1MAs43tySDR/6KWBw3MyDkaCQ3/0jn7yS/YWaZuy7eZ4+FXNmnsmIjl6MQmqHIW7qyIYks84K4pYNSe73ZUDE96CYVZ6+o8flHx78G2OCUg4MIZKI0No0NoPI35rCC747My6UDh5GSXVeWBKY7g3OrTuXd/MicFPVjJ5UGBXiePqRfypZyChgJGykh5OW5/N2W1DGTP+cCjWuKQw1QsxaxRrP+bJvrl+9UFmzdiGB51z39gnjXKGDQ+7NKkRpDpCksujqP6/rDPGemm3SKGAkbCRtxKyhsTH/5UJNzg81QszaxBrPYcZERlvEfFl4sXJwAAUHJ5WwwcW1c5CsKhCnYs7MXAeGCQa71JM6wLKqMeHwBZ6dma5rS5guix5Tc+vNzBwcqQ4qZG9so/KT7z96znljqQTeDy5kJhHDtgBkzDlrXTVdM/bI7Mw/6eTMvJfla7JQCCG+Abf1Z99bJS//onPkNSsQSVRJFc+ZGWAB9UM/Wb3yK7ff8949Yo+ncjfsXSb2+TdCSIkgdAiHRkjUSSbtcmYNhaegNTBP28wT6DllV83oyZnFYnRlhBBCSsPFGrNzUKHGRfmvfROzjLAknxBCSGkMnDljeb4wxJhD5c3kHM3xrRuwJnRmhBBCSiM15DrEmEXTbnpw/Q9HXvoiZtjyRT20CyGEEFICdmHGsW3j7b7kHN3xRcyaUim6MkIIISVjJ2YJO2cGMo2LzKe+iBmLPwghhJTDoJ0za7V1ZmhtNZI3g5jZFXrYFYacB4s/CCGElMPZ09ZiVtDK6hw0XS43n/siZqIzX0YIIaR0+vtOWp53yJmJrsnCh36y2niORdNYHG212BktBlx1ztfY+cOSmPrBNMcaJaHFJBGLS1w09TxuHNnrOM6P9KYyGTH+03XjSEpanUvLcCYlw3rKOEcIIVGhv9dayJAva3DKmWUxFk9DzOycGQTukBThwfU/bFfjLlE0aglpjjdIixKwxlhCCVhpKcns19l/bUpXwpZOy0BmWAbTSUPgCKkGmKA1xbMTtLiaoOG1MVFzOUHTcxM0TM7SuQlaMsMJWr2TTA5bnh9nny8bIR2Pj4gZuuN3WNzjLsyYSrT7t1otfDTHGmRUoknGxpssf4krgeHuEnEZJdlYMsQNotafGpTBTFII8YuGWHaC1pRoNJ5XbIKmhC2pjqFUdoIGgSP1Q3+PvTMrgiaZTLtxr9g7szZxg663S521ysdsdHxilIxLNFdNwJyAuI1J4Gg2hK03eVYNCMPqefUsMwQ9EY/LuKbR0qAeMfCNamjK/v1yrxPqwLVzvi53jxcw0CWVMy1kIDl03n2pvPvO5l3Pfz5g8fxs6tzvVU80Ibqg3s/RDVWcoCl3h6MlkZugQdiUqJ1JDhqPJNrYhRmd8mUmWkybjUeImV0o0V3TYE1rlzohaCJmBYRtUuNYQ9ROqwH5ZOqs7yEciNLUMW2GcF0wapyMaszO2qsF/iyrP68UYSyGKZw4Ujm3MCJ4eY+F14cz770OA/hsj20cJWMaAjJBy4nbaPX3gbCdGlYTNOXa0jpzGlFkwHtZ/ghmRaOTM5smLtA0rS465SOcCJHAL1gYgKi1NqjBSc2w4dROp7zv6FNIixKLjtZpMqt1YlXFq5aMCGfRaIc1+UJnOkXjnHp+dnh45PzZ5HBNxC9oImYFfucmNI81RA2OuX/4LHNsEaPn6HHL8y1jRksxdC1rvJycmaswo/pGs6MeZLygcYxyY+HcP8p0ag3qsTd5ptRvIxdfMFM6JkytGxHzC8MtehBCCN1ATuxODZ4deX1i4JT4DcKJEInQTNDU33OcEl6EtOHUEIIk4cepknGcizCjoh09GjEyofwen4rCgg+8bpUi5fnK4rVGOWU2qXGc4W7CDlwaKtCODfd7+jq4sQ9Mv0TGN48SUnkgfma4dOqYCSPnIW6H+3vlrRP7z8sNlkJb8xjlxkI6Qcs5NTyeHCp9gkaCwcBp6/fQTSVjHu3mNBsVjVZhRZxzFDNl9lujqmVtDaMjIWQm2QKRjGuHNkUNpgunzaEbCwB4D2aNn2Qcbx3fb4haqUxoHmcUd4QduLS4mqD1DHqboJFgYRdiHNvmScxGamXtQo0dUgRNi+bu0nAxcDNRA/8m5P+KMadtqlw942IKWQC5eOJMWTznCsM1ewVFO1EQMhMUiIxvKp5XIcHFLszYNnmiuCaVaDfF7LDNLW7yZpEUs9aG6P6CjE04LyGcNW6SzJ/cLiS4IBR5/az5ngQtHovJ+MboTdDg0JD/IyFEL6/4wyQRj483xWyPzT1FnZlEVMxGxxslqoyK2w+A41Ru7PJpc4UEH6+CNr4xuhM0ODQSPnqOHbM876H4wyCl6235YUar0iCzCKTuCGqZsh+gHNsKs9iDhAcvgmYuSI4iLRHKbdcTdp0/JngJMebIH7Ht8mbzpQ7JRHhxpt0anYVT51Zk4TGpLKNyk5BEkfxmPU7QSLA5ut9adiZMqYyYuQk1Ro4z6WGJKmfT55d2zxw/yejmQcIJlk5cPHGG4z31OEEjwca2jVWr94BgvpjttLmnLsXMj44ZQQUdQfJBiAqLokm4mdM2zXFCMpCK7gRtoI57aYaVnqPHJJk8v+8m8mV+ODO7vJmToLna8yxsoPt8OR0zggr+TejbmA+qFxlejAaXq1CxXbgxyh0zTg2dFRIu7PJlHhdLZ8lkuvLFDJ/0UkKNkRQz0KccTH+EHBr+LX0WrgwhRhINMCnBGkEr0H0+ih0zTg2dP0EjwccuXzZ5lqu2wOdRmBH2HGpUoerIihk4PtwfCYd2MjVg/FsKMbre05VFCvTQtHNnUetpiH/LyWG6srCRGkrad/5oLa2AvlDM3rC5D2Jm+SdoEXZmJnAzx4b6ja7dYQMz1kODfdIzfNryOnNl0QNdW+zcGUD7pyg4tP7hAbayCinIl1nRMnpUSfkySaS6CsWsT+zFybJEXxe9W+qA0+lBOTDUm805hUDUMrkejAcGe213n76gha4sqji5MwCHBiEI5QRN/Z2Pnu2TvqHTQsKJXYixrRQhUwz1NfdZLTzZYnP/PMuzunRJnYDyX7i0Q0MnA+vUTBHbN9hj/F2dSpaZK4suZmNiJxCiO3K213BpYZmg4e+KvzN3nw43diHGUhZLg1UrVvRZTd2cWludvyWMrndJlPeAscDYxTmdNtwamvaiG32LeqzVvlD4Je9PDxkbF9q5MCvGN3FblyiD3cD39B5yvAeTHbg0fHbQ3xB9DoO2v5nx+VYhxdPJAa4niwBYW2a3s/SEKd4n2Jou2/BoJ2YQLKsc2ZXq2JB/IhaL9dXzxwviMTicFZBGLSHNakCAwDWpmXGlBgX8cg+omSn+7OFMypOAmaCKcVwzu41HGbO456yL/c/gzHDArUHU0OsQj7WcoJ3BxqRKZOnCosWBd60zU3BlyJl5RdeyBssuqI5Q42KL81dIgZhl4sltWoYdq8GwnpLhVEpOyYDxGi12IHCNOWFLSMxoKRTTUHkTU6Eg64EimQv5YO8xuMCMiuUag416DuHyY3ZKV1YfYE+6Yu6sEIiHKSD47ELUcDTEKztBG0pl/1xM0Chg0cXvknxFF/5nJ2Yo0bcSM2wJg3DjSCjyvtv+pOvbax+1c3J1DURnUE+W5JwqzTjuAVUXuAk1OgFhwdGffG+ChnwcRC6OCZqWnaChNSIe7cTOzMmlM7kJmvrdSOcmaBAuhg/rA6cQ4+SZ06UU9Ey2CNFOzPDph2BZrS+bJwV5NfU57FIf5oVCQgPFrD7Alj5+AtHJd26EeMEuxDi2dXxJIUaFnojHbXNmJnBnVmJm5s3yVl7qr6k0HMUsRIxq8LYdyM6dO+WVV16R06dZDh1ULrnkElm8eLFySe8VZMFFjVMhZbZ7IkHALsQ4Y+6FUiqpdNroi+UkZmberHDXO7z+oOTlzlQOaJsKEtwhJDQk4gnX9z777LOycuVKIcFnyZIl8s1vfvOcc3DhFDNSa7BQ2u8QIxg6nTCcmdMGR3BedmvOrsh/kYrpnUJChZfF0g899JCQcPD0008bDjofLownQeDg7r2W58sIMYI+rDHDk2K79dn1ajQLQQz+4rZ7oIyRb2tVjxw4cEAOHjwoJBzoKqf1u9/97pxzFDNSc3T7hdKzL50rZbDNfFJMzPaI/SLqc6sd9fe+KQk+yUzK1X0zZsyQsWPHCgkHyJddfPHFQkiQOLBnr68LpU0yurxmPnezj7pTJ/0Rd6ZmhBuFhIaBYfebGd57773nFBWQYIL3CDmzm2+++ZzziXiwOnqQ+uOgTRXj5JnTygkx6g2xWKf5wk0VgF0hCEDuzHRuneq4X0goODHQ77oDyNKlS+Xqq6+Wp556SkgwgZB94AMfMN4nQoLEQP9Z2xAjxKwc9FRqRCXdiBkKQV4Q60XUZpl+31Aisa05k+bi6ZBw+HSPdDhsE1IIwo1f/OIXhYSPVJobV5Lasft16+AeHNmMObOlHL5y+z2uc2YmEDO7Hf0MkVt124o+5s3Cw4mzp4yDRB83vRkJqQgOhR+lbveSR2f+C7diZrozK7DPmRGC1DSdcagQUU6bIxIeTgxw0kJqg1Phx0UL5kk55Bd/ALdiBuzEDEJmuLNMLPVTIaHh8OleurM64OQgF0yT2rB7h3WIsdQO+XmcU/wBvIgZ3NlWm2voCNKKpsM6Q42h4q0T+4VEF0xWUi6XYRDiJ04dPy68pKy1ZQYpbahkZwZ+7XAtWyCiM9QYJjDY7ek9LCSa7Dt1TAipBXt37bY8D0c2ZVbp7asANuSEeco/51XMUK1o585Q2Yh1Z51CQsVbx/exSCCC4D3df5JiRqoPyvGP2DQVnrvgUikXXTs/AuhVzADcmW1l432fvrtTcpulkXCAzUBf3PeG664gJBzQcZNaUclyfIUe12Ln1WeUImZwZ3bFIEZXED2j/0hIqBhQs/g3jnYLiQZwZaxWJbUArgxVjFZML1/IDM6c1DYVnitFzIDTurNb9HhyjZDQsU+FpFgQEg34PpJaYefKwIw5pe9blken2Sk/n1LFzGnd2bSvLfvidNGZOwsjbx3fz4Ew5GBSwlwZqQXOruzCcsvxDVTkz7IPcKliBiBmdtu+LB44c/qXQkIJBS28ILzI947UCidXVu4i6Rx63KZivhwxgzv7uc215r/7xl9DnrnHWUihoIWT36u85wArU0kNGOg/U3FXpujK78eYTzliBiDDlvudHeneP//Qnn3cFibEUNDCBd6rI6d7hJBa8PrmLbbXfHJloNPuQrliBjbYXfjFP63rFxJqIGi/Z5Vj4IGQ4b0ipBYceHev/U7Sl1zklyvTVb7sx3YX/di1D6FE9GecVXjhxKGjJ2dc1D570vQp3BYmxPQNnpbDZ3pk0uhWaYi72TWIVBMKGakpusi251+SVDJ53iWI2PxrFkpDY4P4QNd9n7r7y3YX/XBmAO7MslT/+ad/tf1U70kh4ebU4FljYfU+VskFCgoZqTXdb75j24MR68p8cmWg0+miX2IGIVtrdeHd13dt3/HCK4NCQg8KC147vFu2qYPtr2oPhYzUGpTid79p34PxIh9aV+VwDDECP8KMJgiYogNIW+GFRENDYvT4sbMnTJkkJPycGjprbB+TyqSlpaGJoccqg7Zjrx/Zw3ZVpOa8uWW7ba7s0qsWyLg23zJMjiFG4JczM4E7O8+F7d6x65W3t/1+kOHG6ACXBleA0COcGrrvs7dj5elT4d5NXTsY7iU15+i+A7al+GPbxvvRg3GEjC5Fd2Pxe0qNYhDkz27JPzk0MDB47OCRl7dteunG6z+x2K9kIAkAA7nO7GbHiUQsIaMaG6VBPTbE4tLSqJybljDON8bjhpMDWUcXN+4j7kBY8d2ew9yfjNQeXWTXltdtL19x43Xi55+mxZMPF7upEiMJOoNgUUFH/km4s0nTp1yze8fO5kuvukxINMFAe2rQ+2A7SolbIk/cTNEblcg+mmIIAUwU3pN7jCrHlet941iXUYRDSBBApw+7og8fS/FNOgv3LrOiUtNihBv/VLIl+wamO4vF4zcidzZ55jQhxMQoKElKWZiCB0yhgztM5HJ6hcKYf985XxMQx4jQLdwYHgkJCuj08c6OXZbXIGJzL/Ot6APomiZr3NyoSeW4Qh3L8080tbQ0X/cHN/23xpbm5g9+fLG0jPFVvQnxHTvhsxJJ47mFOFq9thLMpOFqzxpr+vb1HWc4kQSO5FBSXvzFBltX9v7rrvQ1V6bY89Xld81xc2Mlp5/YkRr264PmCdOdTZk1/catz78kH1T5M0KCDATFFBUuRyD1jlN4Ef0XfRYy5ba0n7q91+9qxkJQDHJOs2HkzjLp9GB/70nZ9ep2IYQQEnzQssp5TZlv/RdN9Exs+Adub660mKFM/4n8E6Y7w3P8YLB6nBBCSHBBnmz3DvvtXeYuuNTvog+wxk3hh0mlxQxg7/Zn8k+Y7gzPkUjk+jNCCAkousgrG35T1fAi/lQ9lvwrL19QDTEDKNcfkfV8d5YaTsq2TS/JwGmWHRNCSNDYtWW7rZChiK9CS606vbgyUC0xAyjXH8mfwZ2lksPGa/ygUBCSHC6zNpsQQohvdO96xzZPBq6++QZpaPC9CQb6MHpyZcDP3ozFQEnYG+q4Uh2JdCqltCx1dOK0KYasDw8OyfDAoEyeNV0IIYTUlv4TfbL1N5ttr89dME+mVGa9cOd9n7r7AfFINZ0ZgBP7ufni0J693SqxOLLzI/p8OSUZCSGEVB4UfDgJGfJkPnbEz6ckVwaq6cxMzFbfRrurUz193dM7LrzGvIgOzOjd2DpxghBCCKkuEDKngg/kydB7MR6viHyU5MpAtZ2ZCdafYVG1nOrtO3lk38FN+Rd3vbpDDrzbLYQQQqqHGyGrUJ4MoILx81IitRIzgHAjyvbPKQYx2bVlB0v2CSGkSgwPDRuhRTshA1fccF0l1pOZrPFawZhPLcXMXFDdh1L9d3a8+W/5F1Gy/8qvn6egEUJIhYGQ/U45sn6H8RYl+NinrEJ4XldWSC1yZvlA0IwKx9N9J89MnD51alNz0wXmxUw6IycOHZHJM6dzDzRCCKkAboQMlYtz5l8sFULXRX/gvmV/XHQDTidq6cxMEF58TB2DO1743c/MziAmsLxwaFxUTQgh/uJWyCpUuWjSNRRLFN18sxi1dmYmp9VxLJ1KzW8a3ZIe1zp+bv7FVDIpR/cfokMjhBCfQLHHy/9vk5w5ddr2Hmy0efHC90kFwX5lK/9y2Rc2S5kERczAcXX0njh0dHxhuBFQ0AghxB+KVS2C6R2z5X3XLJRKouny03uX3/U18YEghBnzQbn+M1bhRsCQIyGElAc6e7z4i+eKCtmC66+UCqNn4sk/F58IkjMz2YdWVyojOH7C5InzCy/CoaFTyMRpU6SppVkIIYS44+Dubnl144uSyWRs76mWkPlR9JFPEMUM7Dl5oufE2Alt80aNGT2j8CKqHA/v3S8qFCnj2lqFEEKIA3p2l2is33UCxR7zrlogVfgL7blv+d3LxEeCKmZgz+Dpswcnz5xySywebym8CEFDDk1TzydMmSSEEELOBxWLWzpfMCJaTlShatGkV4+lPvTrf/l5n/hIkMVMhgYH3040Ne4d1zr+Fi0Ws6z6QC9HChohhJwP8mNG6X2fc/MJLIiu4DqyfHQto9/31eV//EvxmUCLGeg9cvz1+R+88kxqKPlxu3sgaOgYMn7ihEo1vySEkFCBvche37xFmYIh23tQGX7Vhz8k02bPlCqggp2y5qufutuX6sVCQjHyv7P19y/d/Jlb20/3nlxol7g8eaJXDnfvZ+k+IaSuGR5KyvbfviLdb+12LPRA0+BrP7ZIxlWuRVUB+p7BWGJ55788NSgVIDQ2ZsmX7tk4afIFn+k5fKwNFY1WmGvR2lTIkZWOhJB6o+fwUdmy8UVjcu/EhMkT5eqP3CBNzVUbJ4082ddvu/uwVAhNQsSD63/YPnhqeMsrv/5Nm9MaCYBEJhKahBASdZLKjaFasfvN3UXvRVePS6tSsTgC8mRfvvfTd5fdssqJUIkZePDJRxYNDgw8t3XjS0WTmjM6LpRLVGKTYUdCSFSBG3t981YpNsHHHmQYD2fMuVCqSHY92fLSNtz0QujEDChBW6XFtPt3vbq96EwEe+9gMznEhwkhJCp4cWPYugW7Q1dwLzJLlMCsv3f5Xb6uJ7MjlKV/v37yZ50fuf3W1onTp1yHH1fv0eO29yKPhjeb5fuEkKhwdP9B2fb8Zjl+6GjRexFWfP/1V1UzP5ZDf3cwlvhkpQo+CgmlMzP59r8+ukH9Cz58dN8h2bVle1GbbcxOsFMqXRohJISgQTDK7XscJvAmGOfef91VRrFH9dH36LHU4nJ2jvZKqMVs1frHW5szqS3qn9FhNCF+9vmigpZQ+TMUh2C2QgghYQAhxb1vvSPv7Njl6v7JM6cZbgx5shrQo8eSV1VTyECoxQygwlHLJDZA0PDaTR4NMJdGCAk8uZ6K3bt2S9JmSVI+KHaDG4OY1Qg9Fstc+ZXb7tkmVSb0YgYeWr96YSYTU4ImbXh94N29snvHzqIuDbCEnxASRLyMYwDRprmXXVorNwZ0XTIr7lt+z4+kBkRCzEChoOED8PqLr7qLLSuXNleJ2ow5s4UQQmpJz5FjSsR2uRq7QG1zYyPUVMhAZMQMPLh29Z2axP5e8v5diDFjduMGfBjwoWDokRBSbY7uO2ikSNyKGBzYhZdeVK1O905UZVF0MSIlZsBK0NwWh5hgsTVCjxQ1QkglQWHHwT3dhoi5HZ/A9DkXKhGbV/V1YxYEQshA5MQMWAkawAdm9/adrhKpgKJGCKkEyeGk7H3zHdeFHSaIHs29bF6tQ4omNQ8t5hNJMQN2gobZzzsq7Hjw3b2uvxdFjRDiB8iHYVLde+S4JxHDGlnsORYQEQOBEjIQWTEDdoIGvFYKAYga7D07iRBC3AIXdvDdbmNHD7f5MJOAFqf16hl92X2fvrtTAkSkxQw4CRooRdRY/UgIKYZZldjfe9KTCwPBHWP0PbGYvqwW68iKEXkxAzlB+67kyvYLgZBhV1Y3i63zQTURFifSrRFCAAQMDgxpDK8CBhBGxHgSzIly9VtUeaEuxAwUrkOzopR8mglmUthaYXrHbObWCKkTEELs7+0rS8BAwAo7CtFVgmybxJPLgipkoG7EDBS2vrKjHFEDEDY4Nhx0bIREi1NKvFDAAQErJYRogsjO9LkXqnFielBFDCgh0380FE98edVtK/okwNSVmIGsoDXAoXUUu9cUNXxwveTU8sEHtm3KREPYUJE0rq1VCCHhwRQvbAaMHTpKFS8TjAMQsNmXzq1l6yk3VG1jTT+oOzEDRrf9dHodto9xcz+ErEd9mL0WiliBDy8+zBC4cepxbGsrw5KEBACEDAfOnDHcVv5RrniBkLiwfHozuqz42qfuekpCQl2KmUlux+pviIefA0prD7zbXXII0gpT4LA9DR4RpsSB1+iC3TJ6tBBCygNilUoOy8Dps8akNGWIV/Y5RKvciaoV2YKO2TJ51rSguzCTUOTHrKhrMQPfWvvIyphoqHT09LMw3RqqIBF+qAYBaF1DSCiphFDZAQEzqpznzg6LgJnoyo09PByPPxD0/JgVdS9mIFvpqK0rVhhiB35R0CQUa9aqJWyEkGBgLNFRzqtt8qQwObBCerWM/kAQeiyWCsUsBwpDRG9Yp+lyhZSB6diw4t/ran9CSDiA+2qbMkkmqNx3SHJgdiCsuFWFFZeHLaxYCMWsgFLyaE5A0I7uPyj9PScpboSEkPeKtrLihechdV+FGGHFr33qri9LBKCYWaAEbZEWk78vNezoBAStv6dPTqlwJASOYUlCggPy0kYR1phRRqUxxCuCuWpdHV1KyT4ftP6K5UAxs8EIO6YT92uadodU+Odklv9C5AbOnjWqrVBpheqrQRW29KM0mJB6B24KFcIJ9QixMo5RqBpuNJbJNKvXEXFcToS6yMMJilkRivV1rCbVrMgiJGoYS12iL1Z2ZEvudf3Po+TG8qGYuaCaLo0QQnwm9JWKbuDA7IGsS0NxiP+5NEII8RldDfA/zcSSfx72SkU3UMw8QpdGCAk4uvqvU8UV/yqqIUUrOBiXSF7D4nbhz5EQUnuMKkVNk1X3Lrvrx1JncBAuk1yBCNalMfRICKkFELE+PaM/PJRIPBy1KkW3UMx8AF34m1KplVpMPsd8GiGkSlDE8qCY+QjzaYSQKkARs4ADbgXIE7UlEoD1aYSQSEARc4BiVkEMUUsl7tRimgo/slCEEFISRnWiSmOsqcfCDrdwcK0SeYUi7cKfOyHEGcOFaUrEMrr+g3oqsS8VDqpVBk2M1U/9jlxeDfA9IISYGC4sFpefnpX4jxlKdA8H0hphVEBmkks1PfY59S4syp3m+0FI/WG4sIwuP9J0/Sm6sNLg4BkAjNxaJr6IwkZI3UAB8xkOmAHDFLaYxG5Vn/ZF6lRr7hLfK0LCi577P9pMbVLPOilg/sIBMuAgxxZPaJdn0rJEvVsLheJGSNDRR57osk292BhXx0A83skcWOXggBgyHlq/eqGejrWnRW6KiVxeIHCA7ykh1UEveN2ljs5YTF5Lp/TXhhKJbRSv6sGBLwLk2mktjGlaa0bXF2ox7UL1a9ZuXNSMx1Y5V/AIId7pU06rK6ZJV1qX7kRcuvS0dGfiyW1D0txH4aotFLM6w8jJEUI8Uw97goWZ/w9QLWsrhrvn0AAAAABJRU5ErkJggg=="/>
+</defs>
+</svg>
+<a title="I write more code to write less.
+" href="/">一片瓜田</a></div><button class="button button--secondary button--circle search-button js-search-toggle"><i class="fas fa-search"></i></button></div><nav class="navigation">
+        <ul><li class="navigation__item"><a href="https://www.desgard.com/algo/index.html">《Alog》</a></li><li class="navigation__item"><a href="/feed.xml">RSS</a></li><li class="navigation__item"><a href="/qrcode">Wechat</a></li><li><button class="button button--secondary button--circle search-button js-search-toggle"><i class="fas fa-search"></i></button></li></ul>
+      </nav></div>
+  </header>
+</div><div class="page__content"><div class ="main"><div class="grid grid--reverse">
+
+              <!-- 不需要 -->
+              <!-- <div class="col-aside d-print-none js-col-aside"><aside class="page__aside js-page-aside"><div class="toc-aside js-toc-root"></div>
+</aside></div> -->
+
+              <div class="col-main cell cell--auto"><!-- start custom main top snippet -->
+
+<!-- end custom main top snippet -->
+<article itemscope itemtype="http://schema.org/Article"><div class="article__header"><header><h1>为什么使用汇编可以 Hook objc_msgSend（下）- 实现与分析</h1></header><span class="split-space">&nbsp;</span>
+          <!-- <a class="edit-on-github"
+            title="Edit on Github"
+            href="https://github.com/Desgard/desgard.github.com/tree/guardia-v5.0/_posts/2020-08-05-why-hook-msg_objc-can-use-asm-2.md">
+            <i class="far fa-edit"></i></a> --></div><meta itemprop="headline" content="为什么使用汇编可以 Hook objc_msgSend（下）- 实现与分析"><div class="article__info clearfix"><ul class="left-col menu"><li>
+              <a class="button button--secondary button--pill button--sm"
+                href="/archive.html?tag=iOS+%E6%96%B9%E6%A1%88%E4%B9%8B%E6%9C%AC">iOS 方案之本</a>
+            </li></ul><ul class="right-col menu"><li><!-- <i class="far fa-calendar-alt"></i>  -->
+              <span>Aug 05, 2020</span>
+            </li></ul></div><meta itemprop="author" content="冬瓜"/><meta itemprop="datePublished" content="2020-08-05T00:00:00-08:00">
+    <meta itemprop="keywords" content="iOS 方案之本"><div class="js-article-content"><div class="layout--article"><!-- start custom article top snippet -->
+
+<!-- end custom article top snippet -->
+<div class="article__content" itemprop="articleBody"><h1 id="背景">背景</h1>
+
+<p>在上一篇文章中，我们介绍了 ARM64 中的汇编基础，并且知道了在汇编当中，调用一个方法的前后在栈空间是怎样表现的，以及内存中的几个特殊寄存器是如何操作的。</p>
+
+<p>今天这篇文章，我们来详细详细分析一下使用汇编来 Hook <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 方法的全部流程。</p>
+
+<h1 id="hook-思路梳理">Hook 思路梳理</h1>
+
+<p>对于 <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 这个我们要 Hook 的方法，我们首先要搞清楚，这是一个什么样的方法？我需要用什么方案才能 Hook 到它的入口。首先我们来整理以下我们拥有的 Hook 方案：</p>
+
+<ul>
+  <li><strong>基于 Objective-C Runtime 的 Method Swizzling</strong>：也就是我们经常使用的 <code class="language-plaintext highlighter-rouge">class_replaceMethod</code> 方法；</li>
+  <li><strong>基于 fishhook 的 Hook</strong>：由于在 Mach-O 当中，有 Bind 和 Lazy Bind 的两个概念，所以 Facebook 通过修改 <code class="language-plaintext highlighter-rouge">__la_symbol</code> 和 <code class="language-plaintext highlighter-rouge">__nl_symbol</code> 两个表的指针，在二次调用的时候，直接通过 <code class="language-plaintext highlighter-rouge">__la_symbol_ptr</code> 找到函数地址直接调用，从而不用多次繁琐的进行函数寻址；</li>
+  <li><strong>基于 Dobby 的 Inline Hook</strong>：<strong>Dobby 是通过插入 <code class="language-plaintext highlighter-rouge">__zDATA</code> 段和 <code class="language-plaintext highlighter-rouge">__zTEXT</code> 段到 Mach-O 中</strong>。<code class="language-plaintext highlighter-rouge">__zDATA</code> 用来记录 Hook 信息（Hook 数量、每个 Hook 方法的地址）、每个 Hook 方法的信息（函数地址、跳转指令地址、写 Hook 函数的接口地址）、每个 Hook 的接口（指针）。<code class="language-plaintext highlighter-rouge">__zText</code> 用来记录每个 Hook 函数的跳转指令。Dobby 通过 mmap 把整个 Mach-O 文件映射到用户的内存空间，写入完成保存本地。<strong>所以 Dobby 并不是在原 Mach-O 上进行操作，而是重新生成并替换。</strong>关于 Dobby 中的奇技淫巧还有很多，如果有可能后续会出一个分析文章（插旗子）。</li>
+</ul>
+
+<p>当然，成熟的 Hook 方案还有很多，并且这些经常出现在逆向工程中，我这里只是列举了最常用的三个。</p>
+
+<h2 id="什么是-inline-hook">什么是 Inline Hook</h2>
+
+<p>首先给个定义：<strong>Inline Hook 就是在运行的流程中插入跳转指令来抢夺运行流程的一个方法</strong>。</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardiaInline_Hook_.png" alt="" /></p>
+
+<p>上图展示了 Inline Hook 大致的思路：</p>
+
+<ol>
+  <li>将原函数的前  N 个字节搬运到 Hook 函数的前 N 个字节；</li>
+  <li>然后将原函数的前 N 个字节填充跳转到 Hook 函数的跳转指令；</li>
+  <li>在 Hook 函数末尾几个字节填充跳转回原函数 +N 的跳转指令；</li>
+</ol>
+
+<p>以上的 N 有多大，取决于你的跳转指令写得有多大（占用了多少指令）。</p>
+
+<p>相较与 Inline Hook， fishhook 使用的是很 Trick 的方式，<strong>通过劫持 stub 从而达到替换的目的</strong>。</p>
+
+<blockquote>
+  <p>在罗巍的「iOS 应用逆向与安全之道」中将 fishhook 归类成 Inline Hook。从广义的定义上来说，只要完成重定向到我们自己的方法，并在远方法前后可定制处理就可以算作 Inline Hook。但是我和页面仔讨论的结果是，<strong>这里的 Inline 应该要理解为 Inline Modification</strong>，这种技术通常如上图所示，覆盖方法开头指令中的前几个字节，完成 Hook 方法的重定向工作。</p>
+</blockquote>
+
+<h1 id="fishhook-完成跳转">fishhook 完成跳转</h1>
+
+<h3 id="汇编实现的-objc_msgsend-为什么可以当作-c-方法">汇编实现的 <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 为什么可以当作 C 方法？</h3>
+
+<p>通过查看 <code class="language-plaintext highlighter-rouge">objc_msgSend</code> ，我们知道 Runtime 的 Method Swizzling 并不适用，因为它并不是 Objective-C 方法，调用时并不会有我们经常说的“消息转发”；通过查看 Runtime 源码，我们发现 <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 是使用纯汇编实现函数，通过<a href="https://github.com/RetVal/objc-runtime/blob/57c4bc7b95efb6ef5b903ab7844c859a9faef3ad/runtime/Messengers.subproj/objc-msg-arm64.s#L334-L573">汇编文件</a>我们可以看到以下定义：</p>
+
+<pre><code class="language-wasm">ENTRY _objc_msgSend
+</code></pre>
+
+<p>这里的 <code class="language-plaintext highlighter-rouge">ENTRY</code> 是什么意思呢？在文件中继续搜索 <code class="language-plaintext highlighter-rouge">ENTRY</code> 我们找到了这么一个宏：</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">.</span><span class="n">macro</span> <span class="n">ENTRY</span> <span class="cm">/* name */</span>
+	<span class="p">.</span><span class="n">text</span>
+	<span class="p">.</span><span class="n">align</span> <span class="mi">5</span>
+	<span class="p">.</span><span class="n">globl</span>    <span class="err">$</span><span class="mi">0</span>
+<span class="err">$</span><span class="mi">0</span><span class="o">:</span>
+<span class="p">.</span><span class="n">endmacro</span>
+</code></pre></div></div>
+
+<p>这里定义了一个汇编宏，表示在 text 段定义一个 global 的 <code class="language-plaintext highlighter-rouge">_objc_msgSend</code> ，<code class="language-plaintext highlighter-rouge">$0</code> 其实就是这个宏传入的参数，也就是一个方法入口。我们可以手动将这个宏来展开：</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">.</span><span class="n">text</span>
+<span class="p">.</span><span class="n">align</span> <span class="mi">5</span>
+<span class="p">.</span><span class="n">globl</span> <span class="n">_objc_msgSend</span>
+
+<span class="p">;</span> <span class="p">...</span>
+</code></pre></div></div>
+
+<p>这里我们发现，<strong>在第三行的位置通过 C 的 name mangling 命名规则，将符号 <code class="language-plaintext highlighter-rouge">_objc_msgSend</code> 映射为 C 的全局方法符号</strong>。也就是说，这段汇编可以通过头文件声明，<strong>便已完成了 C 的函数定义。我们在后续处理的时候可以将其视为 C 方法。</strong></p>
+
+<p>当然我们也可以使用 MachOView 来验证这个符号名。</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardiaUntitled.png" alt="" /></p>
+
+<p>这里如果不太明白如何使用纯汇编实现 C 方法，可以看高级页面仔的这篇文章「在Xcode工程中嵌入汇编代码」。</p>
+
+<h2 id="fishhook-实现的基础">fishhook 实现的基础</h2>
+
+<p>既然我们将 <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 已经视作 C 方法，那么我就可以使用 fishhook 来完成 <strong>Inline Hook 的第一步：跳到 Hook 方法</strong>。fishhook 是如何做的呢？它是在什么阶段完成这个动作的？来看下图：</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardiaApp_.png" alt="" /></p>
+
+<p>我们知道，Apple 自身的共享缓存库其实不会编译进我们自己的 Mach-O 中的，而是在 App 启动后的动态链接才会去做重绑定操作。这里我们要如何去验证呢？首先我们写一个 fishhook 的 demo：</p>
+
+<div class="language-objectivec highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#import "ViewController.h"
+#import "fishhook.h"
+</span>
+<span class="k">@implementation</span> <span class="nc">ViewController</span>
+
+<span class="k">static</span> <span class="nf">void</span> <span class="p">(</span><span class="o">*</span><span class="n">ori_nslog</span><span class="p">)(</span><span class="n">NSString</span> <span class="o">*</span> <span class="n">format</span><span class="p">,</span> <span class="p">...);</span>
+
+<span class="kt">void</span> <span class="nf">new_nslog</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span> <span class="n">format</span><span class="p">,</span> <span class="p">...)</span> <span class="p">{</span>
+    <span class="c1">//自定义的替换函数</span>
+    <span class="n">format</span> <span class="o">=</span> <span class="p">[</span><span class="n">format</span> <span class="nf">stringByAppendingFormat</span><span class="p">:</span><span class="s">@" Gua "</span><span class="p">];</span>
+    <span class="n">ori_nslog</span><span class="p">(</span><span class="n">format</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">viewDidLoad</span> <span class="p">{</span>
+    <span class="p">[</span><span class="n">super</span> <span class="nf">viewDidLoad</span><span class="p">];</span>
+    
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@"hello world"</span><span class="p">);</span>
+    
+    <span class="k">struct</span> <span class="n">rebinding</span> <span class="n">nslog</span><span class="p">;</span>
+    
+    <span class="n">nslog</span><span class="p">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">"NSLog"</span><span class="p">;</span>
+    <span class="n">nslog</span><span class="p">.</span><span class="n">replacement</span> <span class="o">=</span> <span class="n">new_nslog</span><span class="p">;</span>
+    <span class="n">nslog</span><span class="p">.</span><span class="n">replaced</span> <span class="o">=</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">ori_nslog</span><span class="p">;</span>
+    <span class="n">rebind_symbols</span><span class="p">((</span><span class="k">struct</span> <span class="n">rebinding</span><span class="p">[</span><span class="mi">1</span><span class="p">]){</span><span class="n">nslog</span><span class="p">},</span> <span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">touchesBegan</span><span class="p">:(</span><span class="n">NSSet</span><span class="o">&lt;</span><span class="n">UITouch</span> <span class="o">*&gt;</span> <span class="o">*</span><span class="p">)</span><span class="nv">touches</span> <span class="nf">withEvent</span><span class="p">:(</span><span class="n">UIEvent</span> <span class="o">*</span><span class="p">)</span><span class="nv">event</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@"hello world"</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">@end</span>
+</code></pre></div></div>
+
+<p>编译运行之后发现输出 <code class="language-plaintext highlighter-rouge">hello world</code> ，点击屏幕后，成功 Hook <code class="language-plaintext highlighter-rouge">NSLog</code> 方法，输出 <code class="language-plaintext highlighter-rouge">hello world Gua</code> 。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">2020</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mo">02</span> <span class="mi">23</span><span class="o">:</span><span class="mi">41</span><span class="o">:</span><span class="mi">50</span><span class="p">.</span><span class="mi">846939</span><span class="o">+</span><span class="mi">0800</span> <span class="n">TestHook</span><span class="p">[</span><span class="mi">13516</span><span class="o">:</span><span class="mi">519138</span><span class="p">]</span> <span class="n">hello</span> <span class="n">world</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mo">02</span> <span class="mi">23</span><span class="o">:</span><span class="mi">41</span><span class="o">:</span><span class="mi">53</span><span class="p">.</span><span class="mi">681944</span><span class="o">+</span><span class="mi">0800</span> <span class="n">TestHook</span><span class="p">[</span><span class="mi">13516</span><span class="o">:</span><span class="mi">519138</span><span class="p">]</span> <span class="n">hello</span> <span class="n">world</span> <span class="n">Gua</span>
+</code></pre></div></div>
+
+<p>为什么可以 Hook？函数地址不是在编译之后就确定了吗？</p>
+
+<p>其实并不是，我们可以使用 <code class="language-plaintext highlighter-rouge">nm -n</code> 命令来查看一下所有的方法符合及其对应地址：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">$</span> <span class="n">nm</span> <span class="o">-</span><span class="n">n</span> <span class="n">TestHook</span><span class="p">.</span><span class="n">app</span><span class="o">/</span><span class="n">TestHook</span>
+								 <span class="n">U</span> <span class="n">_NSLog</span>
+                 <span class="n">U</span> <span class="n">_NSStringFromClass</span>
+                 <span class="n">U</span> <span class="n">_OBJC_CLASS_</span><span class="err">$</span><span class="n">_UIResponder</span>
+                 <span class="n">U</span> <span class="n">_OBJC_CLASS_</span><span class="err">$</span><span class="n">_UISceneConfiguration</span>
+                 <span class="n">U</span> <span class="n">_OBJC_CLASS_</span><span class="err">$</span><span class="n">_UIViewController</span>
+                 <span class="p">...</span>
+								 <span class="n">U</span> <span class="n">_objc_msgSend</span>
+                 <span class="n">U</span> <span class="n">_objc_msgSendSuper2</span>
+                 <span class="n">U</span> <span class="n">_objc_opt_class</span>
+								 <span class="p">...</span>
+<span class="mo">00000001000066</span><span class="mi">90</span> <span class="n">b</span> <span class="n">_ori_nslog</span>
+<span class="mo">00000001000066</span><span class="mi">98</span> <span class="n">b</span> <span class="n">__rebindings_head</span>
+</code></pre></div></div>
+
+<p>在这里我们就可以发现，其实 <code class="language-plaintext highlighter-rouge">NSLog</code>  方法其实并没有地址，这些系统库函数并不会打入到我们的 App 包中；当我们使用它们时，<strong>dyld 就要从共享的动态库中查找对应方法，然后将具体的函数地址绑定到之前声明的地方</strong>，从而实现系统库方法的调用。</p>
+
+<p>另外说句题外话作为了解，<strong>对于这种可在主存中任意位置正确地执行，并且不受其绝对地址影响的技术</strong>，在计算机领域称之为 <strong>PIC（Position Independent Code）技术</strong>。</p>
+
+<h2 id="fishhook-对于-mach-o-利用">fishhook 对于 Mach-O 利用</h2>
+
+<p>首先我们要知道 Mach-O 中 <code class="language-plaintext highlighter-rouge">__DATA</code> 段有两个 Section 与动态符号绑定有关系：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">__nl_symbol_ptr</code> ：存储了 <code class="language-plaintext highlighter-rouge">non-lazily</code> 绑定的符号，这些符号在 Mach-O 加载的时候绑定完成；</li>
+  <li><code class="language-plaintext highlighter-rouge">__la_symbol_ptr</code> ：存储了 <code class="language-plaintext highlighter-rouge">lazy</code> 绑定的方法，这些方法在第一次调用时，由 <code class="language-plaintext highlighter-rouge">dyld_stub_binder</code> 进行绑定；</li>
+</ul>
+
+<p>既然 <code class="language-plaintext highlighter-rouge">__la_symbol_ptr</code> 存储了所有 <code class="language-plaintext highlighter-rouge">lazy</code> 绑定的方法，<strong>那也就是说在这些位置应该存储了对应方法的地址。</strong>我们通过 lldb 来验证一下。</p>
+
+<p>我们在第一个 <code class="language-plaintext highlighter-rouge">hello world</code> 的位置增加断点，并使用 <code class="language-plaintext highlighter-rouge">image list</code> 命令来获取 App 的基地址：</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardiaUntitled%201.png" alt="" /></p>
+
+<p>在这个例子中，我们的 App 基地址为 <code class="language-plaintext highlighter-rouge">0x00000001063b6000</code> 。当然你做实验的时候可能基地址会有所改变，因为 ASLR（Address Spce Layout Randomizatio） 的缘故。</p>
+
+<p>然后我们使用 MachOView 来查看在 <code class="language-plaintext highlighter-rouge">__la_symbol_str</code> 中的偏移量。</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia20200830151333.png" alt="" /></p>
+
+<p>发现是 <code class="language-plaintext highlighter-rouge">0x5000</code> ，所以我们在 <code class="language-plaintext highlighter-rouge">lldb</code> 中使用 <code class="language-plaintext highlighter-rouge">x</code> 命令来查看 <code class="language-plaintext highlighter-rouge">0x00000001063b6000 + 0x5000</code> 的数据是什么：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">(</span><span class="n">lldb</span><span class="p">)</span>  <span class="n">x</span> <span class="mh">0x00000001063b6000</span><span class="o">+</span><span class="mh">0x5000</span>
+<span class="mh">0x1063bb000</span><span class="o">:</span> <span class="n">f0</span> <span class="mi">83</span> <span class="mi">3</span><span class="n">b</span> <span class="mo">06</span> <span class="mo">01</span> <span class="mo">00</span> <span class="mo">00</span> <span class="mo">00</span> <span class="mi">69</span> <span class="mi">98</span> <span class="mi">93</span> <span class="mi">25</span> <span class="n">ff</span> <span class="mi">7</span><span class="n">f</span> <span class="mo">00</span> <span class="mo">00</span>  <span class="p">..;.....</span><span class="n">i</span><span class="p">..</span><span class="o">%</span><span class="p">....</span>
+<span class="mh">0x1063bb010</span><span class="o">:</span> <span class="mi">23</span> <span class="mi">53</span> <span class="mi">32</span> <span class="mi">49</span> <span class="n">ff</span> <span class="mi">7</span><span class="n">f</span> <span class="mo">00</span> <span class="mo">00</span> <span class="mi">54</span> <span class="mi">84</span> <span class="mi">3</span><span class="n">b</span> <span class="mo">06</span> <span class="mo">01</span> <span class="mo">00</span> <span class="mo">00</span> <span class="mo">00</span>  <span class="err">#</span><span class="n">S2I</span><span class="p">....</span><span class="n">T</span><span class="p">.;.....</span>
+</code></pre></div></div>
+
+<p>发现在此位置的数据是 <code class="language-plaintext highlighter-rouge">0x01063b83f0</code> 。使用反汇编 <code class="language-plaintext highlighter-rouge">dis</code> 命令， 来看对应地址所指向的代码段：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">(</span><span class="n">lldb</span><span class="p">)</span> <span class="n">dis</span> <span class="o">-</span><span class="n">s</span> <span class="mh">0x01063b83f0</span>
+    <span class="mh">0x1063b83f0</span><span class="o">:</span> <span class="n">pushq</span>  <span class="err">$</span><span class="mh">0x0</span>
+    <span class="mh">0x1063b83f5</span><span class="o">:</span> <span class="n">jmp</span>    <span class="mh">0x1063b83e0</span>
+    <span class="mh">0x1063b83fa</span><span class="o">:</span> <span class="n">pushq</span>  <span class="err">$</span><span class="mh">0xd</span>
+    <span class="mh">0x1063b83ff</span><span class="o">:</span> <span class="n">jmp</span>    <span class="mh">0x1063b83e0</span>
+    <span class="mh">0x1063b8404</span><span class="o">:</span> <span class="n">pushq</span>  <span class="err">$</span><span class="mh">0x127</span>                    <span class="p">;</span> <span class="n">imm</span> <span class="o">=</span> <span class="mh">0x127</span> 
+    <span class="mh">0x1063b8409</span><span class="o">:</span> <span class="n">jmp</span>    <span class="mh">0x1063b83e0</span>
+</code></pre></div></div>
+
+<p>那么这段代码到底是我们的 <code class="language-plaintext highlighter-rouge">NSLog</code> 的代码吗？我们可以直接对当前断点对栈顶进行一次反汇编来确定一下结果。在 <code class="language-plaintext highlighter-rouge">lldb</code> 中直接输入 <code class="language-plaintext highlighter-rouge">dis</code> 命令：</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia20200830151401.png" alt="" /></p>
+
+<p>可以看到汇编中 <code class="language-plaintext highlighter-rouge">callq</code>  命令对应对地址是 <code class="language-plaintext highlighter-rouge">0x1063b8354</code> 。对这个地址再次进行 <code class="language-plaintext highlighter-rouge">dis -s</code> 反汇编来查看：</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia20200830151426.png" alt="" /></p>
+
+<p>我们发现其中 <code class="language-plaintext highlighter-rouge">0x00000001063b83f0</code> 这个待跳转的地址，就是上面 <code class="language-plaintext highlighter-rouge">0x00000001063b6000 + 0x5000</code> 这个位置存储的地址。</p>
+
+<p>再这之后，我们再对点击事件中的 <code class="language-plaintext highlighter-rouge">NSLog</code> 方法下一个断点，并且点击一下模拟器屏幕来触发一下。我们再使用 <code class="language-plaintext highlighter-rouge">x</code> 和 <code class="language-plaintext highlighter-rouge">dis -s</code> 两个命令来查看一下 <code class="language-plaintext highlighter-rouge">0x00000001063b6000 + 0x5000</code> 中的新数据：</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia20200830151447.png" alt="" /></p>
+
+<p>我们发现，其指向地址已经变成了 <code class="language-plaintext highlighter-rouge">0x01063b7380</code> ，使用反汇编 <code class="language-plaintext highlighter-rouge">dis</code> 命令来查看的时候，也给出了相应的函数符号 <code class="language-plaintext highlighter-rouge">new_nslog</code> 。至此，fishhook Hook C 方法已经完成。</p>
+
+<h2 id="fishhook-思路总结">fishhook 思路总结</h2>
+
+<p>其实 fishhook 的 Hook 思路，也就是我们上述所描述的，当第一次调用系统动态库中 C 方法时，去替换掉 <code class="language-plaintext highlighter-rouge">__la_symbol_str</code> 的指针。但是它的逻辑要比这个思路还是要复杂一些，比如 fishhook 要解决以下问题：</p>
+
+<ul>
+  <li>使用数据结构来描述所有 Hook 方法？</li>
+  <li>如何通过方法名来找到对应的 Lazy 指针？</li>
+  <li>如何计算对应方法的地址？</li>
+  <li>如果是非 Lazy 表中要如何处理？</li>
+  <li>如何查找到对应符号名称？</li>
+</ul>
+
+<p>诸如此类的问题还有很多。如果想看具体的实现，推荐去阅读源码。当然我们归纳 fishhook 来修改 C 方法的本质，那就是：<strong>dyld 更新 Mach-O 二进制的 __DATA segment 的 <code class="language-plaintext highlighter-rouge">__la_symbol_str</code> 中的指针，使用 <code class="language-plaintext highlighter-rouge">rebind_symbol</code> 方法更新两个符号位置来进行符号的重新绑定。</strong></p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardiaAug-05-2020_08-52-49.gif" alt="" /></p>
+
+<h1 id="内联汇编实现-hook">内联汇编实现 Hook</h1>
+
+<p>上文讲述了使用 fishhook 来 Hook 系统库中的 C 方法，那么我们已经完成了以下这两个阶段（绿色位置）：</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia20200830151609.png" alt="" /></p>
+
+<p>换句话说也就是我们通过 fishhook 已经完成了入口的重定向。但是 <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 这个原方法我们又是不能不去调用的，<strong>因为我们只是希望在 Hook 的前后，增加自定义的事件，并不想去完整替换原先的消息转发逻辑。</strong></p>
+
+<p>所以，<strong>我们只要在 Hook 方法中调用原函数就可以解决问题了。</strong></p>
+
+<p>但是新的问题又出现了！<code class="language-plaintext highlighter-rouge">objc_msgSend</code> 到底应该如何传参呢？</p>
+
+<h2 id="objc_msgsend-方法定义"><code class="language-plaintext highlighter-rouge">objc_msgSend</code> 方法定义</h2>
+
+<p>在 <code class="language-plaintext highlighter-rouge">message.h</code> 文件中，<code class="language-plaintext highlighter-rouge">objc_msgSend</code> 有如下定义：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">objc_msgSend</span><span class="p">(</span><span class="n">id</span> <span class="n">_Nullable</span> <span class="n">self</span><span class="p">,</span> <span class="n">SEL</span> <span class="n">_Nonnull</span> <span class="n">op</span><span class="p">,</span> <span class="p">...)</span>
+		<span class="n">OBJC_AVAILABLE</span><span class="p">(</span><span class="mi">10</span><span class="p">.</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">.</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">.</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">.</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">.</span><span class="mi">0</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>看了函数定义，难点其实就是不定参数。既然是不定参数，其实我们可以根据不定参数的原理，在 <code class="language-plaintext highlighter-rouge">va_list</code> 来解析数组，就可以获取到所有参数了。虽然使用 <code class="language-plaintext highlighter-rouge">va_list</code> 是行的通的，但是我们需要考虑 <code class="language-plaintext highlighter-rouge">va_list</code> 在不同平台上的数据结构差异。这一点可以参看前辈 <em>bang</em> 在开发 <code class="language-plaintext highlighter-rouge">JSPatch</code> 的时候所做的笔记<a href="https://github.com/bang590/JSPatch/wiki/JSPatch-%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3">「JSPatch 实现原理详解」</a>。</p>
+
+<blockquote>
+  <p>这个其实我也和页面仔讨论了一番。页面仔说其实使用 <code class="language-plaintext highlighter-rouge">va_list</code> 可变参数应该会有很大的坑，因为在 <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 方法中不是传统意义上的可变参数。可以参考这篇文章「Apple 为什么要修改 objc_msgSend 的原型」。</p>
+</blockquote>
+
+<p>但既然都已经对不同平台做差异化处理了，<strong>那么干脆就直接使用内联汇编来实现传参逻辑就可以了</strong>？在目前的 Hook 方案中，也就是直接使用 ARM 汇编来处理的。</p>
+
+<h2 id="记录上下文">记录上下文</h2>
+
+<p>通过上一篇文章「为什么使用汇编可以 Hook objc_msgSend（上）- 汇编基础」，我们了解到 <code class="language-plaintext highlighter-rouge">X0 - X7</code> 用来存储传递参数，我们仅从一个方法体的角度上来讲，可能参数已经是上下文的全部内容了。但是，我们从寄存器的角度上来看问题，上下文内容还有其他的东西，比如 <code class="language-plaintext highlighter-rouge">Q0 - Q7</code> 这八个浮点数寄存器。</p>
+
+<p>所以为了保存方法的上下文，我们<strong>通过将 <code class="language-plaintext highlighter-rouge">X0 - X9</code>、<code class="language-plaintext highlighter-rouge">Q0 - Q7</code> 这些寄存器的值压栈，从而记录下调用 <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 方法的所有上下文</strong>，其压栈方法直接模仿上文中调用函数时的压栈方法即可：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">;</span> <span class="n">sp</span> <span class="err">指向栈顶</span>
+<span class="p">;</span> <span class="err">保存</span> <span class="p">{</span><span class="n">q0</span> <span class="o">-</span> <span class="n">q7</span><span class="p">}</span> <span class="err">，偏移地址到</span> <span class="n">sp</span> <span class="err">寄存器</span>
+<span class="n">stp</span> <span class="n">q6</span><span class="p">,</span> <span class="n">q7</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">,</span> <span class="err">#</span><span class="o">-</span><span class="mi">32</span><span class="p">]</span><span class="o">!</span>
+<span class="n">stp</span> <span class="n">q4</span><span class="p">,</span> <span class="n">q5</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">,</span> <span class="err">#</span><span class="o">-</span><span class="mi">32</span><span class="p">]</span><span class="o">!</span>
+<span class="n">stp</span> <span class="n">q2</span><span class="p">,</span> <span class="n">q3</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">,</span> <span class="err">#</span><span class="o">-</span><span class="mi">32</span><span class="p">]</span><span class="o">!</span>
+<span class="n">stp</span> <span class="n">q0</span><span class="p">,</span> <span class="n">q1</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">,</span> <span class="err">#</span><span class="o">-</span><span class="mi">32</span><span class="p">]</span><span class="o">!</span>
+
+<span class="p">;</span> <span class="err">保存</span> <span class="p">{</span><span class="n">x0</span> <span class="o">-</span> <span class="n">x8</span><span class="p">,</span> <span class="n">lr</span><span class="p">}</span> 
+<span class="n">stp</span> <span class="n">x8</span><span class="p">,</span> <span class="n">x9</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">,</span> <span class="err">#</span><span class="o">-</span><span class="mi">16</span><span class="p">]</span><span class="o">!</span>
+<span class="n">stp</span> <span class="n">x6</span><span class="p">,</span> <span class="n">x7</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">,</span> <span class="err">#</span><span class="o">-</span><span class="mi">16</span><span class="p">]</span><span class="o">!</span>
+<span class="n">stp</span> <span class="n">x4</span><span class="p">,</span> <span class="n">x5</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">,</span> <span class="err">#</span><span class="o">-</span><span class="mi">16</span><span class="p">]</span><span class="o">!</span>
+<span class="n">stp</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">,</span> <span class="err">#</span><span class="o">-</span><span class="mi">16</span><span class="p">]</span><span class="o">!</span>
+<span class="n">stp</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">,</span> <span class="err">#</span><span class="o">-</span><span class="mi">16</span><span class="p">]</span><span class="o">!</span>
+</code></pre></div></div>
+
+<p>为什么这里处理参数 <code class="language-plaintext highlighter-rouge">X0-X7</code> 要记录，还需要记录 <code class="language-plaintext highlighter-rouge">X8</code> 和 <code class="language-plaintext highlighter-rouge">X9</code> 两个寄存器呢？因为我们在 <code class="language-plaintext highlighter-rouge">pre_objc_msgSend</code> 会对其改变。为了还原之前所有寄存器的状态，最保险的方式就是全部记录。</p>
+
+<h2 id="调用-pre_objc_msgsend-方法">调用 <code class="language-plaintext highlighter-rouge">pre_objc_msgSend</code> 方法</h2>
+
+<p>在保存完上下文之后，定义一个 <code class="language-plaintext highlighter-rouge">pre_objc_msgSend</code> 的方法，其作用是用来自己定制 <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 之前发生的事情。</p>
+
+<p>往往我们 Hook <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 的目的，就是想记录方法的上下文信息。例如我们想度量慢函数的时间，则我们需要其<strong>方法名</strong>、<strong>所在的 <code class="language-plaintext highlighter-rouge">Class</code></strong> 以及<strong>其上层调用方法和历史堆栈</strong>等。那么在定义 <code class="language-plaintext highlighter-rouge">pre_objc_msgSend</code> 方法的如参时，我们可以将 <code class="language-plaintext highlighter-rouge">id self</code> （<code class="language-plaintext highlighter-rouge">self</code> 实例指针），<code class="language-plaintext highlighter-rouge">SEL _cmd</code> （方法 ID），<code class="language-plaintext highlighter-rouge">uintptr_t lr</code> （<code class="language-plaintext highlighter-rouge">LR</code> 寄存器，函数调用后的返回地址）传入即可。</p>
+
+<p><strong>这里的 <code class="language-plaintext highlighter-rouge">LR</code> 记录其实并不是为我们业务而服务的，而是需要为堆栈记录，这样在 Hook 的最后可以跳转回上一层方法</strong>。</p>
+
+<p>对应的，我们定义一个带有这三个参数的 <code class="language-plaintext highlighter-rouge">pre_objc_msgSend</code> 方法：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">pre_objc_msgSend</span><span class="p">(</span><span class="n">id</span> <span class="n">self</span><span class="p">,</span> <span class="n">SEL</span> <span class="n">_cmd</span><span class="p">,</span> <span class="kt">uintptr_t</span> <span class="n">lr</span><span class="p">)</span> <span class="p">{</span>
+		<span class="c1">// pre action...</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>为了将对应的参数传入，我们利用 <code class="language-plaintext highlighter-rouge">X0-X2</code> 寄存器来传参。因为 <code class="language-plaintext highlighter-rouge">X0</code> 和 <code class="language-plaintext highlighter-rouge">X1</code> 对应的就是 <code class="language-plaintext highlighter-rouge">self</code> 和 <code class="language-plaintext highlighter-rouge">_cmd</code> ，所以我们只需要将 <code class="language-plaintext highlighter-rouge">LR</code> 传递到 <code class="language-plaintext highlighter-rouge">X2</code> 中即可：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">;</span> <span class="err">将</span> <span class="n">lr</span> <span class="err">传入</span> <span class="n">x2</span>
+<span class="n">mov</span> <span class="n">x2</span><span class="p">,</span> <span class="n">lr</span>
+</code></pre></div></div>
+
+<p>接下来我们来实现调用 <code class="language-plaintext highlighter-rouge">pre_objc_msgSend</code> 方法。</p>
+
+<p>我先给出汇编，然后我们来解析它的意思：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"stp x8, x9, [sp, #-16]!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"mov x12, %0</span><span class="se">\n</span><span class="s">"</span>
+                <span class="o">:</span>
+                <span class="o">:</span> <span class="s">"r"</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pre_objc_msgSend</span><span class="p">));</span>
+<span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"ldp x8, x9, [sp], #16</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"blr x12</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>第一行和第三行是用来记录和恢复 <code class="language-plaintext highlighter-rouge">X8</code> 和 <code class="language-plaintext highlighter-rouge">X9</code> 两个寄存器，其原因是因为使用了 <code class="language-plaintext highlighter-rouge">%0</code> 这个<strong>指令操作数</strong>，这是个什么东西呢？</p>
+
+<p>为了讲解方便，举一个其他的例子。假如我想使用内联汇编写一个加法函数，我可以写出以下代码：</p>
+
+<div class="language-objectivec highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="nf">arm_sum</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">sum</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">asm</span> <span class="k">volatile</span><span class="p">(</span><span class="s">"add %0, %1, %2"</span>   <span class="c1">// 1</span>
+                 <span class="o">:</span> <span class="s">"=r"</span> <span class="p">(</span><span class="n">sum</span><span class="p">)</span>       <span class="c1">// 2</span>
+                 <span class="o">:</span> <span class="s">"r"</span> <span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="s">"r"</span> <span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="c1">// 3</span>
+                 <span class="o">:</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">sum</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">viewDidLoad</span> <span class="p">{</span>
+    <span class="p">[</span><span class="n">super</span> <span class="nf">viewDidLoad</span><span class="p">];</span>
+    <span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="n">arm_sum</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">);</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@"sum = %d"</span><span class="p">,</span> <span class="n">a</span><span class="p">);</span> <span class="c1">// sum = 5</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<ol>
+  <li>这一行称作<strong>汇编语句模版</strong>。<code class="language-plaintext highlighter-rouge">%0</code>、<code class="language-plaintext highlighter-rouge">%1</code>、<code class="language-plaintext highlighter-rouge">%2</code> 代表指令操作数，也可以代表通用寄存器（<strong>需要注意的是，这不是 ARM 汇编，而是基于汇编的上层语言</strong>）。分别代表 <code class="language-plaintext highlighter-rouge">sum</code> 、<code class="language-plaintext highlighter-rouge">a</code> 和 <code class="language-plaintext highlighter-rouge">b</code>（为什么是这个顺序？可以看下面的 2 和 3）。这种操作数在汇编语句模版中只能有 10 个，即 <code class="language-plaintext highlighter-rouge">%0 - %9</code> 。当然这里的代码在 Xcode 可能会有 warning，Xcode 建议我们修改成 <code class="language-plaintext highlighter-rouge">%w0</code> ，这个 <code class="language-plaintext highlighter-rouge">w</code> 代表这个<strong>变量的宽度，<code class="language-plaintext highlighter-rouge">w</code> 是 32 位，<code class="language-plaintext highlighter-rouge">x</code> 是 64 位。</strong></li>
+  <li>第一个冒号 <code class="language-plaintext highlighter-rouge">:</code> 分割的位置是<strong>输出参数</strong>。<code class="language-plaintext highlighter-rouge">=r</code> 其实是两个操作符，我们可以分开来看。<code class="language-plaintext highlighter-rouge">**=</code> 代表 <code class="language-plaintext highlighter-rouge">sum</code> 变量是输出操作符，<code class="language-plaintext highlighter-rouge">r</code> 代表按照顺序与某个通用寄存器相关联，由于它是第一个关联的，自然就进入了 <code class="language-plaintext highlighter-rouge">%0</code>**。</li>
+  <li>第二个冒号 <code class="language-plaintext highlighter-rouge">:</code> 分割的位置是<strong>输入参数</strong>。继续使用操作符 <code class="language-plaintext highlighter-rouge">r</code> 将 <code class="language-plaintext highlighter-rouge">a</code> 和 <code class="language-plaintext highlighter-rouge">b</code> 以此放入通用寄存器 <code class="language-plaintext highlighter-rouge">%1</code> 和 <code class="language-plaintext highlighter-rouge">%2</code> 中。</li>
+</ol>
+
+<p>搞懂了这个你应该就可以明白上面那个：</p>
+
+<div class="language-objectivec highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"mov x12, %0</span><span class="se">\n</span><span class="s">"</span>
+                <span class="o">:</span>
+                <span class="o">:</span> <span class="s">"r"</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pre_objc_msgSend</span><span class="p">));</span>
+</code></pre></div></div>
+
+<p>是什么意思。对的，其实就是把 <code class="language-plaintext highlighter-rouge">pre_objc_msgSend</code> 的地址取出，然后放到 <code class="language-plaintext highlighter-rouge">X12</code> 寄存器。</p>
+
+<p>那么为什么要记录和恢复 <code class="language-plaintext highlighter-rouge">X8</code> 和 <code class="language-plaintext highlighter-rouge">X9</code> 两个寄存器呢？我们在这里先记住一个结论：<strong>当使用汇编语句模版时，就会用到 <code class="language-plaintext highlighter-rouge">X8</code> 、<code class="language-plaintext highlighter-rouge">X9</code> 寄存器，因为它的下层实现是通过这些通用寄存器来做的。</strong></p>
+
+<p>所以为了恢复之前的上下文，我们就再一次的利用栈来保存一下这两个通用寄存器，在正式调用<code class="language-plaintext highlighter-rouge">pre_objc_msgSend</code> 方法之前将其复原即可。</p>
+
+<p>最后一行使用 <code class="language-plaintext highlighter-rouge">blr x12</code> ，正式调用 <code class="language-plaintext highlighter-rouge">pre_objc_msgSend</code> 方法。</p>
+
+<h2 id="恢复上下文并调用原函数">恢复上下文并调用原函数</h2>
+
+<p>恢复上下文和之前的记录上下文是逆操作，所以不做过多分析：</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">ldp</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">],</span> <span class="err">#</span><span class="mi">16</span>
+<span class="n">ldp</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">],</span> <span class="err">#</span><span class="mi">16</span>
+<span class="n">ldp</span> <span class="n">x4</span><span class="p">,</span> <span class="n">x5</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">],</span> <span class="err">#</span><span class="mi">16</span>
+<span class="n">ldp</span> <span class="n">x6</span><span class="p">,</span> <span class="n">x7</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">],</span> <span class="err">#</span><span class="mi">16</span>
+<span class="n">ldp</span> <span class="n">x8</span><span class="p">,</span> <span class="n">x9</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">],</span> <span class="err">#</span><span class="mi">16</span>
+
+<span class="n">ldp</span> <span class="n">q0</span><span class="p">,</span> <span class="n">q1</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">],</span> <span class="err">#</span><span class="mi">32</span>
+<span class="n">ldp</span> <span class="n">q2</span><span class="p">,</span> <span class="n">q3</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">],</span> <span class="err">#</span><span class="mi">32</span>
+<span class="n">ldp</span> <span class="n">q4</span><span class="p">,</span> <span class="n">q5</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">],</span> <span class="err">#</span><span class="mi">32</span>
+<span class="n">ldp</span> <span class="n">q6</span><span class="p">,</span> <span class="n">q7</span><span class="p">,</span> <span class="p">[</span><span class="n">sp</span><span class="p">],</span> <span class="err">#</span><span class="mi">32</span>
+
+</code></pre></div></div>
+
+<p>继续使用我们上述方法进行调用的内联汇编代码来调用远方法 <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 。在这里假设我们已经使用 fishhook 将其实现 Hook 到我们新的内联汇编方法体 <code class="language-plaintext highlighter-rouge">hook_objc_msgSend</code> ，原方法放到 <code class="language-plaintext highlighter-rouge">origin_objc_msgSend</code> 上。所以对应的内联汇编代码：</p>
+
+<div class="language-objectivec highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"stp x8, x9, [sp, #-16]!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"mov x12, %0</span><span class="se">\n</span><span class="s">"</span>
+                <span class="o">:</span>
+                <span class="o">:</span> <span class="s">"r"</span><span class="p">(</span><span class="o">&amp;</span><span class="n">origin_objc_msgSend</span><span class="p">));</span>
+<span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"ldp x8, x9, [sp], #16</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"blr x12</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h2 id="调用-post_objc_msgsend-并恢复-lr">调用 <code class="language-plaintext highlighter-rouge">post_objc_msgSend</code> 并恢复 <code class="language-plaintext highlighter-rouge">LR</code></h2>
+
+<p>在上一篇文章我们讲述过 <code class="language-plaintext highlighter-rouge">LR</code> 寄存器是用来记录<strong>函数调用完成时的返回地址</strong>的。但是经历了咱们多次其他方法的调用，我们没有办法确定 <code class="language-plaintext highlighter-rouge">LR</code> 的值是正确的。<strong>所以在 <code class="language-plaintext highlighter-rouge">hook_objc_msgSend</code> 方法的最后，我们需要将 <code class="language-plaintext highlighter-rouge">LR</code> 值进行恢复。</strong></p>
+
+<p>那么我们用什么方法来恢复 <code class="language-plaintext highlighter-rouge">LR</code> 寄存器值呢？<strong>这里有一种比较 trick 的方法，就是用一个全局数组来记录 <code class="language-plaintext highlighter-rouge">LR</code> 寄存器的值</strong>。我们用数组来模拟一个栈结构，其实就可以对应的找到其  <code class="language-plaintext highlighter-rouge">LR</code> （也许你会说这里<strong>会有线程安全的问题</strong>。是的，我在这里只是做一个示例，如果你有更加健壮的方法，也可以去扩写）。</p>
+
+<p>我们改写一下 <code class="language-plaintext highlighter-rouge">pre_objc_msgSend</code> 方法来记录 <code class="language-plaintext highlighter-rouge">LR</code> 的值：</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// 假设方法调用最多有 10000 层</span>
+<span class="kt">uintptr_t</span> <span class="n">l_ptr_t</span><span class="p">[</span><span class="mi">10000</span><span class="p">];</span>
+<span class="c1">// LR 栈的游标</span>
+<span class="kt">int</span> <span class="n">cur</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">pre_objc_msgSend</span><span class="p">(</span><span class="n">id</span> <span class="n">self</span><span class="p">,</span> <span class="n">SEL</span> <span class="n">_cmd</span><span class="p">,</span> <span class="kt">uintptr_t</span> <span class="n">lr</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"before objc msgSend</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+		<span class="c1">// 记录 lr，且游标 +1</span>
+    <span class="n">l_ptr_t</span><span class="p">[</span><span class="n">cur</span> <span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>根据之前的知识，我们知道方法的返回值在 <code class="language-plaintext highlighter-rouge">ret</code> 之后，会被存入 <code class="language-plaintext highlighter-rouge">X0</code> 寄存器。所以我们在 <code class="language-plaintext highlighter-rouge">post_objc_msgSend</code> 中将上文记录的 <code class="language-plaintext highlighter-rouge">LR</code> 值返回，然后在使用 <code class="language-plaintext highlighter-rouge">X0</code> 寄存器来恢复 <code class="language-plaintext highlighter-rouge">LR</code> 寄存器。</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// 返回记录的 lr 值</span>
+<span class="kt">uintptr_t</span> <span class="nf">post_objc_msgSend</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">cur</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">cur</span> <span class="o">--</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">l_ptr_t</span><span class="p">[</span><span class="n">cur</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="c1">// hook_objc_msgSend 内部</span>
+<span class="p">...</span>
+
+<span class="c1">// 省略 保存上下文过程</span>
+<span class="p">...</span>
+<span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"stp x8, x9, [sp, #-16]!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"mov x12, %0</span><span class="se">\n</span><span class="s">"</span>
+                <span class="o">:</span>
+                <span class="o">:</span> <span class="s">"r"</span><span class="p">(</span><span class="o">&amp;</span><span class="n">post_objc_msgSend</span><span class="p">));</span>
+<span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"ldp x8, x9, [sp], #16</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"blr x12</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+<span class="c1">// 恢复 lr</span>
+<span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"mov lr, x0</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+<span class="c1">// 省略 恢复上下文过程</span>
+<span class="p">...</span>
+
+<span class="c1">// return</span>
+<span class="kr">__asm</span> <span class="nf">volatile</span> <span class="p">(</span><span class="s">"ret</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+</code></pre></div></div>
+
+<p>如此，我们完成了使用内联汇编来 Hook <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 方法的全部实现代码。</p>
+
+<h1 id="简单封装">简单封装</h1>
+
+<p>在上面的全流程中，我们已经全部解析了 Hook <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 的全部实现细节，但是我们发现，其实主要的子操作就分成 3 个：</p>
+
+<ol>
+  <li><strong>记录上下文；</strong></li>
+  <li><strong>恢复上下文；</strong></li>
+  <li><strong>调用方法；</strong></li>
+</ol>
+
+<p>所以我们可以使用<strong>宏</strong>来对这三个子操作进行抽象封装。</p>
+
+<p>在下面代码中，我们将三个操作分别封装成了 <code class="language-plaintext highlighter-rouge">save()</code> 、<code class="language-plaintext highlighter-rouge">load()</code> 和 <code class="language-plaintext highlighter-rouge">call(value)</code> 三个宏，这样在 Hook 流程上就一目了然了。</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#import "objc_msgSend_hook.h"
+#import "fishhook.h"
+#include</span> <span class="cpf">&lt;dispatch/dispatch.h&gt;</span><span class="cp">
+</span>
+<span class="cp">#define call(value) \
+__asm volatile ("stp x8, x9, [sp, #-16]!\n"); \
+__asm volatile ("mov x12, %0\n" :: "r"(value)); \
+__asm volatile ("ldp x8, x9, [sp], #16\n"); \
+__asm volatile ("blr x12\n");
+</span>
+<span class="cp">#define save() \
+__asm volatile ( \
+"stp x8, x9, [sp, #-16]!\n" \
+"stp x6, x7, [sp, #-16]!\n" \
+"stp x4, x5, [sp, #-16]!\n" \
+"stp x2, x3, [sp, #-16]!\n" \
+"stp x0, x1, [sp, #-16]!\n");
+</span>
+<span class="cp">#define load() \
+__asm volatile ( \
+"ldp x0, x1, [sp], #16\n" \
+"ldp x2, x3, [sp], #16\n" \
+"ldp x4, x5, [sp], #16\n" \
+"ldp x6, x7, [sp], #16\n" \
+"ldp x8, x9, [sp], #16\n" );
+</span>
+<span class="n">__unused</span> <span class="k">static</span> <span class="nf">id</span> <span class="p">(</span><span class="o">*</span><span class="n">orig_objc_msgSend</span><span class="p">)(</span><span class="n">id</span><span class="p">,</span> <span class="n">SEL</span><span class="p">,</span> <span class="p">...);</span>
+
+<span class="kt">uintptr_t</span> <span class="n">l_ptr_t</span><span class="p">[</span><span class="mi">10000</span><span class="p">];</span>
+<span class="kt">int</span> <span class="n">cur</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">pre_objc_msgSend</span><span class="p">(</span><span class="n">id</span> <span class="n">self</span><span class="p">,</span> <span class="n">SEL</span> <span class="n">_cmd</span><span class="p">,</span> <span class="kt">uintptr_t</span> <span class="n">lr</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"pre action...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+		<span class="c1">// 做一个简单对测试，输出 ObjC 方法名</span>
+		<span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">object_getClassName</span><span class="p">(</span><span class="n">self</span><span class="p">));</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">_cmd</span><span class="p">);</span>
+    <span class="n">l_ptr_t</span><span class="p">[</span><span class="n">cur</span> <span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">uintptr_t</span> <span class="nf">post_objc_msgSend</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"post action...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">cur</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">cur</span> <span class="o">--</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">l_ptr_t</span><span class="p">[</span><span class="n">cur</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="n">__attribute__</span><span class="p">((</span><span class="n">__naked__</span><span class="p">))</span>
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">hook_Objc_msgSend</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// 记录上下文</span>
+    <span class="n">save</span><span class="p">()</span>
+    
+    <span class="c1">// 将 lr 传入 x2 用于 pre_objc_msgSend 传参</span>
+    <span class="kr">__asm</span> <span class="k">volatile</span> <span class="p">(</span><span class="s">"mov x2, lr</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+    <span class="c1">// 调用 pre_objc_msgSend</span>
+    <span class="n">call</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pre_objc_msgSend</span><span class="p">)</span>
+
+    <span class="c1">// 还原上下文</span>
+    <span class="n">load</span><span class="p">()</span>
+    
+    <span class="c1">// 调用 objc_msgSend 原方法</span>
+    <span class="n">call</span><span class="p">(</span><span class="n">orig_objc_msgSend</span><span class="p">)</span>
+    
+    <span class="c1">// 记录上下文</span>
+    <span class="n">save</span><span class="p">()</span>
+    
+    <span class="c1">// 调用 post_objc_msgSend</span>
+    <span class="n">call</span><span class="p">(</span><span class="o">&amp;</span><span class="n">post_objc_msgSend</span><span class="p">)</span>
+    
+    <span class="c1">// 还原 lr</span>
+    <span class="kr">__asm</span> <span class="k">volatile</span> <span class="p">(</span><span class="s">"mov lr, x0</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    
+    <span class="c1">// 还原上下文</span>
+    <span class="n">load</span><span class="p">()</span>
+    
+    <span class="c1">// return</span>
+    <span class="kr">__asm</span> <span class="k">volatile</span> <span class="p">(</span><span class="s">"ret</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cp">#pragma mark public
+</span>
+<span class="c1">// 启动Hook 入口</span>
+<span class="kt">void</span> <span class="nf">hookStart</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">static</span> <span class="n">dispatch_once_t</span> <span class="n">onceToken</span><span class="p">;</span>
+
+    <span class="n">dispatch_once</span><span class="p">(</span><span class="o">&amp;</span><span class="n">onceToken</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+        <span class="n">rebind_symbols</span><span class="p">((</span><span class="k">struct</span> <span class="nc">rebinding</span><span class="p">[</span><span class="mi">6</span><span class="p">]){</span>
+            <span class="p">{</span> 
+                <span class="s">"objc_msgSend"</span><span class="p">,</span> 
+                <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="n">hook_Objc_msgSend</span><span class="p">,</span> 
+                <span class="p">(</span><span class="kt">void</span> <span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">orig_objc_msgSend</span>
+            <span class="p">},</span>
+        <span class="p">},</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>为什么我在 <code class="language-plaintext highlighter-rouge">load()</code> 和 <code class="language-plaintext highlighter-rouge">save()</code> 方法中没有记录和复原 <code class="language-plaintext highlighter-rouge">Q0 - Q7</code> 寄存器情况？<strong>因为我们在整个的流程中并没有用到浮点数</strong>。所以这些寄存器是不会被修改的，因此我们可以简化这个写法。</p>
+
+<p>从这个点可以引出，<strong>其实 Hook 方法和内联汇编是具有耦合的（通用寄存器就那么几个，大家公用），你需要为 Hook 方法中的实现来定制内联汇编的实现，才能够满足整体的需求实现</strong>。</p>
+
+<p>我在 <code class="language-plaintext highlighter-rouge">pre_objc_msgSend</code> 中增加了打印方法名和类名的测试方法，运行后可以看到效果如下图：</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia20200830151645.png" alt="" /></p>
+
+<p>看到这个输出，聪明的你一定已经想到了线程安全的问题了😄。</p>
+
+<p>这是留给你后面的延伸作业，希望你可以继续这个问题的探究和思考。</p>
+
+<h1 id="总结">总结</h1>
+
+<p>本文探究了使用 <strong>fishhook + 内联汇编</strong>实现 Hook <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 的全部实现及其内在原理。其中知识包括：</p>
+
+<ul>
+  <li>什么是 Inline Hook 技术？</li>
+  <li>fishhook 的实现原理是什么？</li>
+  <li>为什么 fishhook 可以 Hook <code class="language-plaintext highlighter-rouge">objc_msgSend</code> 方法？</li>
+  <li>如何使用内联汇编来进行记录上下文和还原上下文操作？</li>
+  <li>如何使用内联汇编通过方法地址调用方法？</li>
+  <li>汇编语句模版的简单使用。</li>
+</ul>
+
+<p>以上问题也用于考察你是否对这篇文章完全掌握，如果没有建议<strong>添加收藏</strong>再次阅读。</p>
+
+<p>当然这个实现只是一个工具，你可以用它来做很多你需要的事情。</p>
+
+<p>另外，搞懂了这篇文章之后，我推荐你去再去看一看戴铭老师的「iOS 开发高手课 - 01 ｜ App 启动速度怎么做优化与监控」（并无利益，单纯推荐。这一章节可免费试读），我相信很多难点地方都会迎刃而解了。</p>
+
+<h1 id="文章书籍引用与鸣谢">文章书籍引用与鸣谢</h1>
+
+<p>特别感谢好友 @高级页面仔、@Boyang、@Jadyn、@酸菜鱼、@linxi 对于文章的斧正。</p>
+
+<ul>
+  <li>「在Xcode工程中嵌入汇编代码 · 高级页面仔」</li>
+  <li>「iOS 应用逆向与安全之道 · 罗巍」</li>
+  <li>「跟戴铭学 iOS 编程 - 理顺核心知识点 · 戴铭」</li>
+</ul>
+</div><section class="article__sharing d-print-none"><!-- Addthis BEGIN --><script type="text/javascript"
+    src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-5f49bfe5e9a6234f"></script>
+  <div class="addthis_inline_share_toolbox addthis_default_style"></div><!-- Addthis END -->
+</section><div class="d-print-none"><footer class="article__footer"><meta itemprop="dateModified" content="2020-08-05T00:00:00-08:00"><!-- start custom article footer snippet -->
+
+<!-- end custom article footer snippet -->
+<div class="article__license"><div class="license">
+    <p style=" display: flex; align-items: center; ">
+     本作品采用 <a itemprop="license" rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a> 进行许可。
+      <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">
+        <img alt="Attribution-NonCommercial 4.0 International" src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png" />
+      </a>
+    </p>
+  </div></div></footer>
+<img src="/assets/qrcode.png" width="80%"/><div class="article__section-navigator clearfix"><div class="previous"><span>PREVIOUS</span><a href="/2020/06/11/cocoapods-story-1.html">版本管理工具及 Ruby 工具链环境</a></div><div class="next"><span>NEXT</span><a href="/2020/08/17/cocoapods-story-2.html">整体把握 CocoaPods 核心组件</a></div></div></div>
+  
+</div>
+
+<script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    $(function() {
+      var $this ,$scroll;
+      var $articleContent = $('.js-article-content');
+      var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+      var scroll = hasSidebar ? '.js-page-main' : 'html, body';
+      $scroll = $(scroll);
+
+      $articleContent.find('.highlight').each(function() {
+        $this = $(this);
+        $this.attr('data-lang', $this.find('code').attr('data-lang'));
+      });
+      $articleContent.find('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]').each(function() {
+        $this = $(this);
+        $this.append($('<a class="anchor d-print-none" aria-hidden="true"></a>').html('<i class="fas fa-anchor"></i>'));
+      });
+      $articleContent.on('click', '.anchor', function() {
+        $scroll.scrollToAnchor('#' + $(this).parent().attr('id'), 400);
+      });
+    });
+  });
+})();
+</script>
+
+</div><section class="page__comments d-print-none"><style type="text/css">
+		.gitalk-wrapper .gt-header-textarea {
+			color: #333 !important;
+		}
+	</style><div class="gitalk-wrapper" id="js-gitalk-container"></div>
+	<script>
+		window.Lazyload.css('https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css');
+		var url = "/2020/08/05/why-hook-msg_objc-can-use-asm-2.html";
+		var key = url.split("/").pop();
+		key = key.substring(0, key.length - 5);
+		console.log("key", key);
+
+		var repo = 'desgard.github.com';
+
+		// 复用评论
+		var current_repo = '';
+		var current_key = '';
+		if (current_repo && current_repo !== '') {
+			repo = current_repo;
+		}
+		if (current_key && current_key !== '') {
+			key = current_key;
+		}
+
+		if (key !== "" && '' !== 'ban') {
+			window.Lazyload.js('https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', function() {
+				var gitalk = new Gitalk({
+					clientID: 'e2612df42f3f2a83e71c',
+					clientSecret: 'ad17bb24a3dba73607ec340ba593acba91414d99',
+					repo: repo,
+					owner: 'Desgard',
+					admin: ['Desgard'],
+					id: key,
+					distractionFreeMode: false
+				});
+				gitalk.render('js-gitalk-container');
+			});
+		}
+		
+		
+	</script></section></article><!-- start custom main bottom snippet -->
+<!-- end custom main bottom snippet -->
+</div>
+            </div></div></div><div class="page__footer d-print-none">
+<footer class="footer py-4 js-page-footer">
+  <div class="main"><div itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="冬瓜"><meta itemprop="url" content="https://www.desgard.com"><meta itemprop="description" content="I write more code to write less."><div class="footer__author-links"><div class="author-links">
+  <ul class="menu menu--nowrap menu--inline"><link itemprop="url" href="https://www.desgard.com"><li title="Send me an Email.">
+      <a class="button button--circle mail-button" itemprop="email" href="mailto:gua@desgard.com" target="_blank">
+        <i class="fas fa-envelope"></i>
+      </a><li title="Follow me on Facebook.">
+        <a class="button button--circle facebook-button" itemprop="sameAs" href="https://www.facebook.com/desgard.duan" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M767.428571 6.857143l0 150.857143-89.714286 0q-49.142857 0-66.285714 20.571429t-17.142857 61.714286l0 108 167.428571 0-22.285714 169.142857-145.142857 0 0 433.714286-174.857143 0 0-433.714286-145.714286 0 0-169.142857 145.714286 0 0-124.571429q0-106.285714 59.428571-164.857143t158.285714-58.571429q84 0 130.285714 6.857143z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Twitter.">
+        <a class="button button--circle twitter-button" itemprop="sameAs" href="https://twitter.com/Desgard_Duan" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M1024.032 194.432c-37.664 16.704-78.176 28-120.672 33.088 43.36-26.016 76.672-67.168 92.384-116.224-40.608 24.064-85.568 41.568-133.408 50.976-38.336-40.832-92.928-66.336-153.344-66.336-116.032 0-210.08 94.048-210.08 210.08 0 16.48 1.856 32.512 5.44 47.872-174.592-8.768-329.408-92.416-433.024-219.52-18.08 31.04-28.448 67.104-28.448 105.632 0 72.896 37.088 137.184 93.472 174.88-34.432-1.088-66.816-10.528-95.168-26.272-0.032 0.864-0.032 1.76-0.032 2.656 0 101.792 72.416 186.688 168.512 205.984-17.632 4.8-36.192 7.36-55.36 7.36-13.536 0-26.688-1.312-39.52-3.776 26.72 83.456 104.32 144.192 196.256 145.888-71.904 56.352-162.496 89.92-260.928 89.92-16.96 0-33.664-0.992-50.112-2.944 92.96 59.616 203.392 94.4 322.048 94.4 386.432 0 597.728-320.128 597.728-597.76 0-9.12-0.192-18.176-0.608-27.168 41.056-29.632 76.672-66.624 104.832-108.736z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Weibo.">
+        <a class="button button--circle weibo-button" itemprop="sameAs" href="https://weibo.com/desgard" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+	<path d="M769.226164 496.610234c-14.420098-4.330228-24.309277-7.266877-16.746482-26.214823 16.350218-41.133578 18.046881-76.626289 0.307181-101.939024-33.242099-47.500415-124.194284-44.928286-228.44638-1.280945 0-0.056317-32.73525 14.323848-24.371737-11.64523 16.042013-51.54906 13.626547-94.739726-11.332929-119.662341-56.566349-56.601163-206.976479 2.134908-335.954595 131.078209-96.594075 96.61353-152.681222 198.989775-152.681222 287.52035 0 169.337597 217.152361 272.292366 429.593589 272.292366 278.498445 0 463.752111-161.808592 463.752111-290.273715C893.345701 558.867622 827.968378 514.820945 769.226164 496.610234zM430.163922 866.063936c-169.51781 16.728051-315.851649-59.899262-326.864086-171.202185-11.010389-111.275277 117.530505-215.061482 287.031932-231.823323 169.537265-16.761841 315.876224 59.866496 326.86511 171.119247C728.190884 745.495411 599.705282 849.291856 430.163922 866.063936z" />
+	<path d="M954.16753 186.714824c-67.256246-74.565105-166.457264-102.990607-258.020739-83.522502l-0.037886 0c-21.188318 4.535015-34.695065 25.37929-30.159026 46.527675 4.516584 21.166816 25.352668 34.691993 46.54201 30.174385 65.139769-13.832358 135.634727 6.400627 183.442323 59.368863 47.765615 52.96414 60.740938 125.206957 40.282686 188.537431l0.011263 0.012287c-6.666851 20.629249 4.617954 42.698153 25.271777 49.366027 20.570885 6.662755 42.687913-4.607714 49.362955-25.188838 0-0.037886 0-0.116729 0.011263-0.150519C1039.577146 362.756133 1021.443231 261.206205 954.16753 186.714824" />
+	<path d="M850.886125 279.919669c-32.732179-36.315956-81.068126-50.108381-125.685136-40.621609-18.234261 3.885839-29.856965 21.833398-25.946551 40.085067 3.89915 18.173849 21.833398 29.851845 40.024654 25.893307l0 0.037886c21.809848-4.610786 45.459709 2.113405 61.461789 19.83365 16.018463 17.757107 20.323092 41.949655 13.45043 63.178931l0.035838 0c-5.715614 17.717174 3.983113 36.770584 21.717694 42.511796 17.7397 5.677728 36.76956-3.992328 42.493365-21.756603C892.458972 365.691759 883.686907 316.228458 850.886125 279.919669" />
+	<path d="M447.103928 548.691741c-80.666743-20.985579-171.84317 19.215193-206.880229 90.291746-35.685212 72.492657-1.180599 152.963828 80.321676 179.268757 84.41947 27.224424 183.926645-14.492797 218.521364-92.744074C573.187374 649.021137 530.586496 570.268131 447.103928 548.691741zM385.506979 733.819463c-16.398343 26.160554-51.51015 37.623523-77.954335 25.54824-26.066352-11.868448-33.760211-42.248645-17.360844-67.757975 16.197652-25.400793 50.129884-36.716316 76.378497-25.711046C393.129162 677.216253 401.60838 707.401901 385.506979 733.819463zM439.522702 664.493841c-5.929616 10.131852-19.03498 15.010909-29.304039 10.785123-10.096014-4.15411-13.261002-15.495231-7.522862-25.454038 5.906066-9.908634 18.500485-14.747758 28.572948-10.750309C441.502995 642.817105 445.180975 654.283146 439.522702 664.493841z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Zhihu.">
+        <a class="button button--circle zhihu-button" itemprop="sameAs" href="https://www.zhihu.com/people/devgua" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M351.791182 562.469462l192.945407 0c0-45.367257-21.3871-71.939449-21.3871-71.939449L355.897709 490.530013c3.977591-82.182744 7.541767-187.659007 8.816806-226.835262l159.282726 0c0 0-0.86367-67.402109-18.578124-67.402109s-279.979646 0-279.979646 0 16.850783-88.141456 39.318494-127.053698c0 0-83.60514-4.510734-112.121614 106.962104S81.344656 355.077018 76.80834 367.390461c-4.536316 12.313443 24.62791 5.832845 36.941354 0 12.313443-5.832845 68.050885-25.924439 84.252893-103.69571l86.570681 0c1.165546 49.28652 4.596691 200.335724 3.515057 226.835262L109.86113 490.530013c-25.275663 18.147312-33.701566 71.939449-33.701566 71.939449L279.868105 562.469462c-8.497535 56.255235-23.417339 128.763642-44.275389 167.210279-33.05279 60.921511-50.55235 116.65793-169.802314 212.576513 0 0-19.442818 14.257725 40.829917 9.073656 60.273758-5.185093 117.305683-20.739347 156.840094-99.807147 20.553105-41.107233 41.805128-93.250824 58.386782-146.138358l-0.055259 0.185218 167.855986 193.263655c0 0 22.035876-51.847855 5.832845-108.880803L371.045711 650.610918l-42.1244 31.157627-0.045025 0.151449c11.69946-41.020252 20.11206-81.5749 22.726607-116.858498C351.665315 564.212152 351.72876 563.345412 351.791182 562.469462z" p-id="907"></path><path d="M584.918753 182.033893l0 668.840094 70.318532 0 28.807093 80.512708 121.875768-80.512708 153.600307 0L959.520453 182.033893 584.918753 182.033893zM887.150192 778.934538l-79.837326 0-99.578949 65.782216-23.537066-65.782216-24.855084 0L659.341766 256.673847l227.807403 0L887.149169 778.934538z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Github.">
+        <a class="button button--circle github-button" itemprop="sameAs" href="https://github.com/Desgard" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path class="svgpath" data-index="path_0" fill="#272636" d="M0 525.2c0 223.6 143.3 413.7 343 483.5 26.9 6.8 22.8-12.4 22.8-25.4l0-88.7c-155.3 18.2-161.5-84.6-172-101.7-21.1-36-70.8-45.2-56-62.3 35.4-18.2 71.4 4.6 113.1 66.3 30.2 44.7 89.1 37.2 119 29.7 6.5-26.9 20.5-50.9 39.7-69.6C248.8 728.2 181.7 630 181.7 513.2c0-56.6 18.7-108.7 55.3-150.7-23.3-69.3 2.2-128.5 5.6-137.3 66.5-6 135.5 47.6 140.9 51.8 37.8-10.2 80.9-15.6 129.1-15.6 48.5 0 91.8 5.6 129.8 15.9 12.9-9.8 77-55.8 138.8-50.2 3.3 8.8 28.2 66.7 6.3 135 37.1 42.1 56 94.6 56 151.4 0 117-67.5 215.3-228.8 243.7 26.9 26.6 43.6 63.4 43.6 104.2l0 128.8c0.9 10.3 0 20.5 17.2 20.5C878.1 942.4 1024 750.9 1024 525.3c0-282.9-229.3-512-512-512C229.1 13.2 0 242.3 0 525.2L0 525.2z" />
+</svg>
+</div>
+        </a>
+      </li></ul>
+</div>
+</div>
+    </div><div class="site-info mt-2">
+      <div>© 一片瓜田 2020,
+        Powered by <a title="Jekyll is a simple, blog-aware, static site generator." href="http://jekyllrb.com/">Jekyll</a> & <a
+        title="TeXt is a super customizable Jekyll theme." href="https://github.com/kitian616/jekyll-TeXt-theme">TeXt Theme</a>.
+      </div>
+    </div>
+  </div>
+</footer>
+</div></div>
+    </div><script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $body = $('body'), $window = $(window);
+    var $pageRoot = $('.js-page-root'), $pageMain = $('.js-page-main');
+    var activeCount = 0;
+    function modal(options) {
+      var $root = this, visible, onChange, hideWhenWindowScroll = false;
+      var scrollTop;
+      function setOptions(options) {
+        var _options = options || {};
+        visible = _options.initialVisible === undefined ? false : show;
+        onChange = _options.onChange;
+        hideWhenWindowScroll = _options.hideWhenWindowScroll;
+      }
+      function init() {
+        setState(visible);
+      }
+      function setState(isShow) {
+        if (isShow === visible) {
+          return;
+        }
+        visible = isShow;
+        if (visible) {
+          activeCount++;
+          scrollTop = $(window).scrollTop() || $pageMain.scrollTop();
+          $root.addClass('modal--show');
+          $pageMain.scrollTop(scrollTop);
+          activeCount === 1 && ($pageRoot.addClass('show-modal'), $body.addClass('of-hidden'));
+          hideWhenWindowScroll && window.hasEvent('touchstart') && $window.on('scroll', hide);
+          $window.on('keyup', handleKeyup);
+        } else {
+          activeCount > 0 && activeCount--;
+          $root.removeClass('modal--show');
+          $window.scrollTop(scrollTop);
+          activeCount === 0 && ($pageRoot.removeClass('show-modal'), $body.removeClass('of-hidden'));
+          hideWhenWindowScroll && window.hasEvent('touchstart') && $window.off('scroll', hide);
+          $window.off('keyup', handleKeyup);
+        }
+        onChange && onChange(visible);
+      }
+      function show() {
+        setState(true);
+      }
+      function hide() {
+        setState(false);
+      }
+      function handleKeyup(e) {
+        // Char Code: 27  ESC
+        if (e.which ===  27) {
+          hide();
+        }
+      }
+      setOptions(options);
+      init();
+      return {
+        show: show,
+        hide: hide,
+        $el: $root
+      };
+    }
+    $.fn.modal = modal;
+  });
+})();
+</script><div class="modal modal--overflow page__search-modal d-print-none js-page-search-modal"><script>
+(function () {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    // search panel
+    var search = (window.search || (window.search = {}));
+    var useDefaultSearchBox = window.useDefaultSearchBox === undefined ?
+      true : window.useDefaultSearchBox ;
+
+    var $searchModal = $('.js-page-search-modal');
+    var $searchToggle = $('.js-search-toggle');
+    var searchModal = $searchModal.modal({ onChange: handleModalChange, hideWhenWindowScroll: true });
+    var modalVisible = false;
+    search.searchModal = searchModal;
+
+    var $searchBox = null;
+    var $searchInput = null;
+    var $searchClear = null;
+
+    function getModalVisible() {
+      return modalVisible;
+    }
+    search.getModalVisible = getModalVisible;
+
+    function handleModalChange(visible) {
+      modalVisible = visible;
+      if (visible) {
+        search.onShow && search.onShow();
+        useDefaultSearchBox && $searchInput[0] && $searchInput[0].focus();
+      } else {
+        search.onShow && search.onHide();
+        useDefaultSearchBox && $searchInput[0] && $searchInput[0].blur();
+        setTimeout(function() {
+          useDefaultSearchBox && ($searchInput.val(''), $searchBox.removeClass('not-empty'));
+          search.clear && search.clear();
+          window.pageAsideAffix && window.pageAsideAffix.refresh();
+        }, 400);
+      }
+    }
+
+    $searchToggle.on('click', function() {
+      modalVisible ? searchModal.hide() : searchModal.show();
+    });
+    // Char Code: 83  S, 191 /
+    $(window).on('keyup', function(e) {
+      if (!modalVisible && !window.isFormElement(e.target || e.srcElement) && (e.which === 83 || e.which === 191)) {
+        modalVisible || searchModal.show();
+      }
+    });
+
+    if (useDefaultSearchBox) {
+      $searchBox = $('.js-search-box');
+      $searchInput = $searchBox.children('input');
+      $searchClear = $searchBox.children('.js-icon-clear');
+      search.getSearchInput = function() {
+        return $searchInput.get(0);
+      };
+      search.getVal = function() {
+        return $searchInput.val();
+      };
+      search.setVal = function(val) {
+        $searchInput.val(val);
+      };
+
+      $searchInput.on('focus', function() {
+        $(this).addClass('focus');
+      });
+      $searchInput.on('blur', function() {
+        $(this).removeClass('focus');
+      });
+      $searchInput.on('input', window.throttle(function() {
+        var val = $(this).val();
+        if (val === '' || typeof val !== 'string') {
+          search.clear && search.clear();
+        } else {
+          $searchBox.addClass('not-empty');
+          search.onInputNotEmpty && search.onInputNotEmpty(val);
+        }
+      }, 400));
+      $searchClear.on('click', function() {
+        $searchInput.val(''); $searchBox.removeClass('not-empty');
+        search.clear && search.clear();
+      });
+    }
+  });
+})();
+</script><div class="search search--dark">
+  <div class="main">
+    <div class="search__header">Search</div>
+    <div class="search-bar">
+      <div class="search-box js-search-box">
+        <div class="search-box__icon-search"><i class="fas fa-search"></i></div>
+        <input type="text" />
+        <div class="search-box__icon-clear js-icon-clear">
+          <a><i class="fas fa-times"></i></a>
+        </div>
+      </div>
+      <button class="button button--theme-dark button--pill search__cancel js-search-toggle">
+        Cancel</button>
+    </div>
+    <div class="search-result js-search-result"></div>
+  </div>
+</div>
+<script>var SOURCES = window.TEXT_VARIABLES.sources;
+var PAHTS = window.TEXT_VARIABLES.paths;
+window.Lazyload.js([SOURCES.jquery, PAHTS.search_js], function() {
+  var search = (window.search || (window.search = {}));
+  var searchData = window.TEXT_SEARCH_DATA || {};
+
+  function memorize(f) {
+    var cache = {};
+    return function () {
+      var key = Array.prototype.join.call(arguments, ',');
+      if (key in cache) return cache[key];
+      else return cache[key] = f.apply(this, arguments);
+    };
+  }
+
+  /// search
+  function searchByQuery(query) {
+    var i, j, key, keys, cur, _title, result = {};
+    keys = Object.keys(searchData);
+    for (i = 0; i < keys.length; i++) {
+      key = keys[i];
+      for (j = 0; j < searchData[key].length; j++) {
+        cur = searchData[key][j], _title = cur.title;
+        if ((result[key] === undefined || result[key] && result[key].length < 4 )
+          && _title.toLowerCase().indexOf(query.toLowerCase()) >= 0) {
+          if (result[key] === undefined) {
+            result[key] = [];
+          }
+          result[key].push(cur);
+        }
+      }
+    }
+    return result;
+  }
+
+  var renderHeader = memorize(function(header) {
+    return $('<p class="search-result__header">' + header + '</p>');
+  });
+
+  var renderItem = function(index, title, url) {
+    return $('<li class="search-result__item" data-index="' + index + '"><a class="button" href="' + url + '">' + title + '</a></li>');
+  };
+
+  function render(data) {
+    if (!data) { return null; }
+    var $root = $('<ul></ul>'), i, j, key, keys, cur, itemIndex = 0;
+    keys = Object.keys(data);
+    for (i = 0; i < keys.length; i++) {
+      key = keys[i];
+      $root.append(renderHeader(key));
+      for (j = 0; j < data[key].length; j++) {
+        cur = data[key][j];
+        $root.append(renderItem(itemIndex++, cur.title, cur.url));
+      }
+    }
+    return $root;
+  }
+
+  // search box
+  var $result = $('.js-search-result'), $resultItems;
+  var lastActiveIndex, activeIndex;
+
+  function clear() {
+    $result.html(null);
+    $resultItems = $('.search-result__item'); activeIndex = 0;
+  }
+  function onInputNotEmpty(val) {
+    $result.html(render(searchByQuery(val)));
+    $resultItems = $('.search-result__item'); activeIndex = 0;
+    $resultItems.eq(0).addClass('active');
+  }
+
+  search.clear = clear;
+  search.onInputNotEmpty = onInputNotEmpty;
+
+  function updateResultItems() {
+    lastActiveIndex >= 0 && $resultItems.eq(lastActiveIndex).removeClass('active');
+    activeIndex >= 0 && $resultItems.eq(activeIndex).addClass('active');
+  }
+
+  function moveActiveIndex(direction) {
+    var itemsCount = $resultItems ? $resultItems.length : 0;
+    if (itemsCount > 1) {
+      lastActiveIndex = activeIndex;
+      if (direction === 'up') {
+        activeIndex = (activeIndex - 1 + itemsCount) % itemsCount;
+      } else if (direction === 'down') {
+        activeIndex = (activeIndex + 1 + itemsCount) % itemsCount;
+      }
+      updateResultItems();
+    }
+  }
+
+  // Char Code: 13  Enter, 37  ⬅, 38  ⬆, 39  ➡, 40  ⬇
+  $(window).on('keyup', function(e) {
+    var modalVisible = search.getModalVisible && search.getModalVisible();
+    if (modalVisible) {
+      if (e.which === 38) {
+        modalVisible && moveActiveIndex('up');
+      } else if (e.which === 40) {
+        modalVisible && moveActiveIndex('down');
+      } else if (e.which === 13) {
+        modalVisible && $resultItems && activeIndex >= 0 && $resultItems.eq(activeIndex).children('a')[0].click();
+      }
+    }
+  });
+
+  $result.on('mouseover', '.search-result__item > a', function() {
+    var itemIndex = $(this).parent().data('index');
+    itemIndex >= 0 && (lastActiveIndex = activeIndex, activeIndex = itemIndex, updateResultItems());
+  });
+});
+</script>
+</div></div>
+
+
+<script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function scrollToAnchor(anchor, duration, callback) {
+      var $root = this;
+      $root.animate({ scrollTop: $(anchor).position().top }, duration, function() {
+        window.history.replaceState(null, '', window.location.href.split('#')[0] + anchor);
+        callback && callback();
+      });
+    }
+    $.fn.scrollToAnchor = scrollToAnchor;
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function affix(options) {
+      var $root = this, $window = $(window), $scrollTarget, $scroll,
+        offsetBottom = 0, scrollTarget = window, scroll = window.document, disabled = false, isOverallScroller = true,
+        rootTop, rootLeft, rootHeight, scrollBottom, rootBottomTop,
+        hasInit = false, curState;
+
+      function setOptions(options) {
+        var _options = options || {};
+        _options.offsetBottom && (offsetBottom = _options.offsetBottom);
+        _options.scrollTarget && (scrollTarget = _options.scrollTarget);
+        _options.scroll && (scroll = _options.scroll);
+        _options.disabled !== undefined && (disabled = _options.disabled);
+        $scrollTarget = $(scrollTarget);
+        isOverallScroller = window.isOverallScroller($scrollTarget[0]);
+        $scroll = $(scroll);
+      }
+      function preCalc() {
+        top();
+        rootHeight = $root.outerHeight();
+        rootTop = $root.offset().top + (isOverallScroller ? 0 :  $scrollTarget.scrollTop());
+        rootLeft = $root.offset().left;
+      }
+      function calc(needPreCalc) {
+        needPreCalc && preCalc();
+        scrollBottom = $scroll.outerHeight() - offsetBottom - rootHeight;
+        rootBottomTop = scrollBottom - rootTop;
+      }
+      function top() {
+        if (curState !== 'top') {
+          $root.removeClass('fixed').css({
+            left: 0,
+            top: 0
+          });
+          curState = 'top';
+        }
+      }
+      function fixed() {
+        if (curState !== 'fixed') {
+          $root.addClass('fixed').css({
+            left: rootLeft + 'px',
+            top: 0
+          });
+          curState = 'fixed';
+        }
+      }
+      function bottom() {
+        if (curState !== 'bottom') {
+          $root.removeClass('fixed').css({
+            left: 0,
+            top: rootBottomTop + 'px'
+          });
+          curState = 'bottom';
+        }
+      }
+      function setState() {
+        var scrollTop = $scrollTarget.scrollTop();
+        if (scrollTop >= rootTop && scrollTop <= scrollBottom) {
+          fixed();
+        } else if (scrollTop < rootTop) {
+          top();
+        } else {
+          bottom();
+        }
+      }
+      function init() {
+        if(!hasInit) {
+          var interval, timeout;
+          calc(true); setState();
+          // run calc every 100 millisecond
+          interval = setInterval(function() {
+            calc();
+          }, 100);
+          timeout = setTimeout(function() {
+            clearInterval(interval);
+          }, 45000);
+          window.pageLoad.then(function() {
+            setTimeout(function() {
+              clearInterval(interval);
+              clearTimeout(timeout);
+            }, 3000);
+          });
+          $scrollTarget.on('scroll', function() {
+            disabled || setState();
+          });
+          $window.on('resize', function() {
+            disabled || (calc(true), setState());
+          });
+          hasInit = true;
+        }
+      }
+
+      setOptions(options);
+      if (!disabled) {
+        init();
+      }
+      $window.on('resize', window.throttle(function() {
+        init();
+      }, 200));
+      return {
+        setOptions: setOptions,
+        refresh: function() {
+          calc(true, { animation: false }); setState();
+        }
+      };
+    }
+    $.fn.affix = affix;
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function toc(options) {
+      var $root = this, $window = $(window), $scrollTarget, $scroller, $tocUl = $('<ul class="toc toc--ellipsis"></ul>'), $tocLi, $headings, $activeLast, $activeCur,
+        selectors = 'h1,h2,h3', container = 'body', scrollTarget = window, scroller = 'html, body', disabled = false,
+        headingsPos, scrolling = false, hasRendered = false, hasInit = false;
+
+      function setOptions(options) {
+        var _options = options || {};
+        _options.selectors && (selectors = _options.selectors);
+        _options.container && (container = _options.container);
+        _options.scrollTarget && (scrollTarget = _options.scrollTarget);
+        _options.scroller && (scroller = _options.scroller);
+        _options.disabled !== undefined && (disabled = _options.disabled);
+        $headings = $(container).find(selectors).filter('[id]');
+        $scrollTarget = $(scrollTarget);
+        $scroller = $(scroller);
+      }
+      function calc() {
+        headingsPos = [];
+        $headings.each(function() {
+          headingsPos.push(Math.floor($(this).position().top));
+        });
+      }
+      function setState(element, disabled) {
+        var scrollTop = $scrollTarget.scrollTop(), i;
+        if (disabled || !headingsPos || headingsPos.length < 1) { return; }
+        if (element) {
+          $activeCur = element;
+        } else {
+          for (i = 0; i < headingsPos.length; i++) {
+            if (scrollTop >= headingsPos[i]) {
+              $activeCur = $tocLi.eq(i);
+            } else {
+              $activeCur || ($activeCur = $tocLi.eq(i));
+              break;
+            }
+          }
+        }
+        $activeLast && $activeLast.removeClass('active');
+        ($activeLast = $activeCur).addClass('active');
+      }
+      function render() {
+        if(!hasRendered) {
+          $root.append($tocUl);
+          $headings.each(function() {
+            var $this = $(this);
+            $tocUl.append($('<li></li>').addClass('toc-' + $this.prop('tagName').toLowerCase())
+              .append($('<a></a>').text($this.text()).attr('href', '#' + $this.prop('id'))));
+          });
+          $tocLi = $tocUl.children('li');
+          $tocUl.on('click', 'a', function(e) {
+            e.preventDefault();
+            var $this = $(this);
+            scrolling = true;
+            setState($this.parent());
+            $scroller.scrollToAnchor($this.attr('href'), 400, function() {
+              scrolling = false;
+            });
+          });
+        }
+        hasRendered = true;
+      }
+      function init() {
+        var interval, timeout;
+        if(!hasInit) {
+          render(); calc(); setState(null, scrolling);
+          // run calc every 100 millisecond
+          interval = setInterval(function() {
+            calc();
+          }, 100);
+          timeout = setTimeout(function() {
+            clearInterval(interval);
+          }, 45000);
+          window.pageLoad.then(function() {
+            setTimeout(function() {
+              clearInterval(interval);
+              clearTimeout(timeout);
+            }, 3000);
+          });
+          $scrollTarget.on('scroll', function() {
+            disabled || setState(null, scrolling);
+          });
+          $window.on('resize', window.throttle(function() {
+            if (!disabled) {
+              render(); calc(); setState(null, scrolling);
+            }
+          }, 100));
+        }
+        hasInit = true;
+      }
+
+      setOptions(options);
+      if (!disabled) {
+        init();
+      }
+      $window.on('resize', window.throttle(function() {
+        init();
+      }, 200));
+      return {
+        setOptions: setOptions
+      };
+    }
+    $.fn.toc = toc;
+  });
+})();
+/*(function () {
+
+})();*/
+</script><script>
+  /* toc must before affix, since affix need to konw toc' height. */(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  var TOC_SELECTOR = window.TEXT_VARIABLES.site.toc.selectors;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $window = $(window);
+    var $articleContent = $('.js-article-content');
+    var $tocRoot = $('.js-toc-root'), $col2 = $('.js-col-aside');
+    var toc;
+    var tocDisabled = false;
+    var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+    var hasToc = $articleContent.find(TOC_SELECTOR).length > 0;
+
+    function disabled() {
+      return $col2.css('display') === 'none' || !hasToc;
+    }
+
+    tocDisabled = disabled();
+
+    toc = $tocRoot.toc({
+      selectors: TOC_SELECTOR,
+      container: $articleContent,
+      scrollTarget: hasSidebar ? '.js-page-main' : null,
+      scroller: hasSidebar ? '.js-page-main' : null,
+      disabled: tocDisabled
+    });
+
+    $window.on('resize', window.throttle(function() {
+      tocDisabled = disabled();
+      toc && toc.setOptions({
+        disabled: tocDisabled
+      });
+    }, 100));
+
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $window = $(window), $pageFooter = $('.js-page-footer');
+    var $pageAside = $('.js-page-aside');
+    var affix;
+    var tocDisabled = false;
+    var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+
+    affix = $pageAside.affix({
+      offsetBottom: $pageFooter.outerHeight(),
+      scrollTarget: hasSidebar ? '.js-page-main' : null,
+      scroller: hasSidebar ? '.js-page-main' : null,
+      scroll: hasSidebar ? $('.js-page-main').children() : null,
+      disabled: tocDisabled
+    });
+
+    $window.on('resize', window.throttle(function() {
+      affix && affix.setOptions({
+        disabled: tocDisabled
+      });
+    }, 100));
+
+    window.pageAsideAffix = affix;
+  });
+})();
+</script><script>
+  window.Lazyload.js(['https://cdn.bootcss.com/jquery/3.1.1/jquery.min.js', 'https://cdn.bootcss.com/Chart.js/2.7.2/Chart.bundle.min.js'], function() {
+    var $canvas = null, $this = null, _ctx = null, _text = '';
+    $('.language-chart').each(function(){
+      $this = $(this);
+      $canvas = $('<canvas></canvas>');
+      _text = $this.text();
+      $this.text('').append($canvas);
+      _ctx = $canvas.get(0).getContext('2d');
+      (_ctx && _text) && (new Chart(_ctx, JSON.parse(_text)) && $this.attr('data-processed', true));
+    });
+  });
+</script>
+<script type="text/x-mathjax-config">
+	var _config = { tex2jax: {
+		inlineMath: [['$','$'], ['\\(','\\)']]
+	}};MathJax.Hub.Config(_config);
+</script>
+<script type="text/javascript" src="https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+<script>
+  window.Lazyload.js('https://cdn.bootcss.com/mermaid/8.0.0-rc.8/mermaid.min.js', function() {
+    mermaid.initialize({
+      startOnLoad: true
+    });
+    mermaid.init(undefined, '.language-mermaid');
+  });
+</script>
+
+    </div>
+    <script>(function () {
+  var $root = document.getElementsByClassName('root')[0];
+  if (window.hasEvent('touchstart')) {
+    $root.dataset.isTouch = true;
+    document.addEventListener('touchstart', function(){}, false);
+  }
+})();
+</script>
+  </body>
+</html>
+

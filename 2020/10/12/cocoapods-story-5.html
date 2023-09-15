@@ -1,0 +1,1672 @@
+<!DOCTYPE html><html lang="zh_CN">
+  <head><!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-TM7J1LHC1Z"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+		gtag('js', new Date());
+
+		gtag('config', 'G-TM7J1LHC1Z');
+		
+			gtag('config', 'G-TM7J1LHC1Z', { 'anonymize_ip': true });
+		
+	</script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><title>Podspec 文件分析 - 一片瓜田</title><meta name="description" content="引子在上文 Podfile 解析逻辑 中（建议先阅读这篇文章），我们以 Xcode 工程结构作为切入点介绍了 Podfile 背后对应的数据结构，剖析了 Podfile 文件是如何解析与加载，并最终 “入侵” 项目影响其工程结构的。今天我们来聊一聊 CocoaPods-Core 中的另一个重要文件 — Podsp...">
+<link rel="canonical" href="https://www.desgard.com/2020/10/12/cocoapods-story-5.html"><link rel="alternate" type="application/rss+xml" title="一片瓜田" href="/feed.xml"><!-- start favicons snippet, use https://realfavicongenerator.net/ --><link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png"><link rel="manifest" href="/assets/site.webmanifest"><link rel="mask-icon" href="/assets/safari-pinned-tab.svg" color="#fc4d50"><link rel="shortcut icon" href="/assets/favicon.ico">
+
+<meta name="msapplication-TileColor" content="#ffc40d"><meta name="msapplication-config" content="/assets/browserconfig.xml">
+
+<meta name="theme-color" content="#ffffff">
+<!-- end favicons snippet --><link rel="stylesheet" href="/assets/css/main.css"><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" ><!-- start custom head snippets -->
+
+<!-- end custom head snippets -->
+<script>(function() {
+  window.isArray = function(val) {
+    return Object.prototype.toString.call(val) === '[object Array]';
+  };
+  window.isString = function(val) {
+    return typeof val === 'string';
+  };
+
+  window.hasEvent = function(event) {
+    return 'on'.concat(event) in window.document;
+  };
+
+  window.isOverallScroller = function(node) {
+    return node === document.documentElement || node === document.body || node === window;
+  };
+
+  window.isFormElement = function(node) {
+    var tagName = node.tagName;
+    return tagName === 'INPUT' || tagName === 'SELECT' || tagName === 'TEXTAREA';
+  };
+
+  window.pageLoad = (function () {
+    var loaded = false, cbs = [];
+    window.addEventListener('load', function () {
+      var i;
+      loaded = true;
+      if (cbs.length > 0) {
+        for (i = 0; i < cbs.length; i++) {
+          cbs[i]();
+        }
+      }
+    });
+    return {
+      then: function(cb) {
+        cb && (loaded ? cb() : (cbs.push(cb)));
+      }
+    };
+  })();
+})();
+(function() {
+  window.throttle = function(func, wait) {
+    var args, result, thisArg, timeoutId, lastCalled = 0;
+
+    function trailingCall() {
+      lastCalled = new Date;
+      timeoutId = null;
+      result = func.apply(thisArg, args);
+    }
+    return function() {
+      var now = new Date,
+        remaining = wait - (now - lastCalled);
+
+      args = arguments;
+      thisArg = this;
+
+      if (remaining <= 0) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+        lastCalled = now;
+        result = func.apply(thisArg, args);
+      } else if (!timeoutId) {
+        timeoutId = setTimeout(trailingCall, remaining);
+      }
+      return result;
+    };
+  };
+})();
+(function() {
+  var Set = (function() {
+    var add = function(item) {
+      var i, data = this._data;
+      for (i = 0; i < data.length; i++) {
+        if (data[i] === item) {
+          return;
+        }
+      }
+      this.size ++;
+      data.push(item);
+      return data;
+    };
+
+    var Set = function(data) {
+      this.size = 0;
+      this._data = [];
+      var i;
+      if (data.length > 0) {
+        for (i = 0; i < data.length; i++) {
+          add.call(this, data[i]);
+        }
+      }
+    };
+    Set.prototype.add = add;
+    Set.prototype.get = function(index) { return this._data[index]; };
+    Set.prototype.has = function(item) {
+      var i, data = this._data;
+      for (i = 0; i < data.length; i++) {
+        if (this.get(i) === item) {
+          return true;
+        }
+      }
+      return false;
+    };
+    Set.prototype.is = function(map) {
+      if (map._data.length !== this._data.length) { return false; }
+      var i, j, flag, tData = this._data, mData = map._data;
+      for (i = 0; i < tData.length; i++) {
+        for (flag = false, j = 0; j < mData.length; j++) {
+          if (tData[i] === mData[j]) {
+            flag = true;
+            break;
+          }
+        }
+        if (!flag) { return false; }
+      }
+      return true;
+    };
+    Set.prototype.values = function() {
+      return this._data;
+    };
+    return Set;
+  })();
+
+  window.Lazyload = (function(doc) {
+    var queue = {js: [], css: []}, sources = {js: {}, css: {}}, context = this;
+    var createNode = function(name, attrs) {
+      var node = doc.createElement(name), attr;
+      for (attr in attrs) {
+        if (attrs.hasOwnProperty(attr)) {
+          node.setAttribute(attr, attrs[attr]);
+        }
+      }
+      return node;
+    };
+    var end = function(type, url) {
+      var s, q, qi, cbs, i, j, cur, val, flag;
+      if (type === 'js' || type ==='css') {
+        s = sources[type], q = queue[type];
+        s[url] = true;
+        for (i = 0; i < q.length; i++) {
+          cur = q[i];
+          if (cur.urls.has(url)) {
+            qi = cur, val = qi.urls.values();
+            qi && (cbs = qi.callbacks);
+            for (flag = true, j = 0; j < val.length; j++) {
+              cur = val[j];
+              if (!s[cur]) {
+                flag = false;
+              }
+            }
+            if (flag && cbs && cbs.length > 0) {
+              for (j = 0; j < cbs.length; j++) {
+                cbs[j].call(context);
+              }
+              qi.load = true;
+            }
+          }
+        }
+      }
+    };
+    var load = function(type, urls, callback) {
+      var s, q, qi, node, i, cur,
+        _urls = typeof urls === 'string' ? new Set([urls]) : new Set(urls), val, url;
+      if (type === 'js' || type ==='css') {
+        s = sources[type], q = queue[type];
+        for (i = 0; i < q.length; i++) {
+          cur = q[i];
+          if (_urls.is(cur.urls)) {
+            qi = cur;
+            break;
+          }
+        }
+        val = _urls.values();
+        if (qi) {
+          callback && (qi.load || qi.callbacks.push(callback));
+          callback && (qi.load && callback());
+        } else {
+          q.push({
+            urls: _urls,
+            callbacks: callback ? [callback] : [],
+            load: false
+          });
+          for (i = 0; i < val.length; i++) {
+            node = null, url = val[i];
+            if (s[url] === undefined) {
+              (type === 'js' ) && (node = createNode('script', { src: url }));
+              (type === 'css') && (node = createNode('link', { rel: 'stylesheet', href: url }));
+              if (node) {
+                node.onload = (function(type, url) {
+                  return function() {
+                    end(type, url);
+                  };
+                })(type, url);
+                (doc.head || doc.body).appendChild(node);
+                s[url] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+    return {
+      js: function(url, callback) {
+        load('js', url, callback);
+      },
+      css: function(url, callback) {
+        load('css', url, callback);
+      }
+    };
+  })(this.document);
+})();
+</script><script>
+  (function() {
+    var TEXT_VARIABLES = {
+      version: '2.2.6',
+      sources: {
+        font_awesome: 'https://use.fontawesome.com/releases/v5.0.13/css/all.css',
+        jquery: 'https://cdn.bootcss.com/jquery/3.1.1/jquery.min.js',
+        leancloud_js_sdk: '//cdn.jsdelivr.net/npm/leancloud-storage@3.13.2/dist/av-min.js',
+        chart: 'https://cdn.bootcss.com/Chart.js/2.7.2/Chart.bundle.min.js',
+        gitalk: {
+          js: 'https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js',
+          css: 'https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css'
+        },
+        valine: 'https://unpkg.com/valine/dist/Valine.min.js',
+        mathjax: 'https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML',
+        mermaid: 'https://cdn.bootcss.com/mermaid/8.0.0-rc.8/mermaid.min.js'
+      },
+      site: {
+        toc: {
+          selectors: 'h1,h2,h3'
+        }
+      },
+      paths: {
+        search_js: '/assets/search.js'
+      }
+    };
+    window.TEXT_VARIABLES = TEXT_VARIABLES;
+  })();
+</script>
+</head>
+  <body>
+    <div class="root" data-is-touch="false">
+      <div class="layout--page js-page-root"><div class="page__main js-page-main page__viewport has-aside cell cell--auto">
+
+      <div class="page__main-inner"><div class="page__header d-print-none"><header class="header"><div class="main">
+      <div class="header__title">
+        <div class="header__brand"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect y="5" width="24" height="13.8483" fill="url(#pattern0)"/>
+<defs>
+<pattern id="pattern0" patternContentUnits="objectBoundingBox" width="1" height="1">
+<use xlink:href="#image0" transform="scale(0.00229885 0.00398406)"/>
+</pattern>
+<image id="image0" width="435" height="251" xlink:href="data:image/png;base64,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"/>
+</defs>
+</svg>
+<a title="I write more code to write less.
+" href="/">一片瓜田</a></div><button class="button button--secondary button--circle search-button js-search-toggle"><i class="fas fa-search"></i></button></div><nav class="navigation">
+        <ul><li class="navigation__item"><a href="https://www.desgard.com/algo/index.html">《Alog》</a></li><li class="navigation__item"><a href="/feed.xml">RSS</a></li><li class="navigation__item"><a href="/qrcode">Wechat</a></li><li><button class="button button--secondary button--circle search-button js-search-toggle"><i class="fas fa-search"></i></button></li></ul>
+      </nav></div>
+  </header>
+</div><div class="page__content"><div class ="main"><div class="grid grid--reverse">
+
+              <!-- 不需要 -->
+              <!-- <div class="col-aside d-print-none js-col-aside"><aside class="page__aside js-page-aside"><div class="toc-aside js-toc-root"></div>
+</aside></div> -->
+
+              <div class="col-main cell cell--auto"><!-- start custom main top snippet -->
+
+<!-- end custom main top snippet -->
+<article itemscope itemtype="http://schema.org/Article"><div class="article__header"><header><h1>Podspec 文件分析</h1></header><span class="split-space">&nbsp;</span>
+          <!-- <a class="edit-on-github"
+            title="Edit on Github"
+            href="https://github.com/Desgard/desgard.github.com/tree/guardia-v5.0/_posts/2020-10-12-cocoapods-story-5.md">
+            <i class="far fa-edit"></i></a> --></div><meta itemprop="headline" content="Podspec 文件分析"><div class="article__info clearfix"><ul class="left-col menu"><li>
+              <a class="button button--secondary button--pill button--sm"
+                href="/archive.html?tag=CocoaPods+%E5%8E%86%E9%99%A9%E8%AE%B0">CocoaPods 历险记</a>
+            </li><li>
+              <a class="button button--secondary button--pill button--sm"
+                href="/archive.html?tag=Ruby">Ruby</a>
+            </li></ul><ul class="right-col menu"><li><!-- <i class="far fa-calendar-alt"></i>  -->
+              <span>Oct 12, 2020</span>
+            </li></ul></div><meta itemprop="author" content="冬瓜"/><meta itemprop="datePublished" content="2020-10-12T00:00:00-08:00">
+    <meta itemprop="keywords" content="CocoaPods 历险记,Ruby"><div class="js-article-content"><div class="layout--article"><!-- start custom article top snippet -->
+
+<!-- end custom article top snippet -->
+<div class="article__content" itemprop="articleBody"><h1 id="引子">引子</h1>
+
+<p>在上文 <a href="/2020/09/16/cocoapods-story-4.html">Podfile 解析逻辑</a> 中（建议先阅读这篇文章），我们以 Xcode 工程结构作为切入点介绍了 Podfile 背后对应的数据结构，剖析了 <code class="language-plaintext highlighter-rouge">Podfile</code> 文件是如何解析与加载，并最终 <em>“入侵”</em> 项目影响其工程结构的。今天我们来聊一聊 <a href="https://link.zhihu.com/?target=https%3A//github.com/CocoaPods/Core">CocoaPods-Core</a> 中的另一个重要文件 — <code class="language-plaintext highlighter-rouge">Podspec</code> 以及它所撑起的 CocoaPods 世界。</p>
+
+<p>一个 <code class="language-plaintext highlighter-rouge">Pod</code> 的创建和发布离不开 <code class="language-plaintext highlighter-rouge">.podspec</code> 文件，它可以很简单也能复杂，如 <a href="https://github.com/Tencent/QMUI_iOS/blob/master/QMUIKit.podspec">QMUIKit</a>（后续介绍)。</p>
+
+<p>今天我们就直奔主题，来分析 <code class="language-plaintext highlighter-rouge">Podspec</code> 文件。</p>
+
+<h1 id="podspec">Podspec</h1>
+
+<p><code class="language-plaintext highlighter-rouge">Podspec</code> 是用于 <strong>描述一个 Pod 库的源代码和资源将如何被打包编译成链接库或 framework 的文件</strong> ，而 <code class="language-plaintext highlighter-rouge">Podspec</code> 中的这些描述内容最终将映会映射到 <code class="language-plaintext highlighter-rouge">Specification</code> 类中（以下简称 <strong>Spec</strong>）。</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1602123337307-c263f917-e45d-46c7-be0c-74fa1bc663e0.png" alt="" /></p>
+
+<p>现在让我们来重新认识 <code class="language-plaintext highlighter-rouge">Podspec</code>。</p>
+
+<h2 id="podspec-初探">Podspec 初探</h2>
+
+<p><code class="language-plaintext highlighter-rouge">Podspec</code> 支持的文件格式为 <code class="language-plaintext highlighter-rouge">.podspec</code> 和 <code class="language-plaintext highlighter-rouge">.json</code> 两种，而 <code class="language-plaintext highlighter-rouge">.podspec</code> 本质是 Ruby 文件。</p>
+
+<p>问题来了，为什么是 JSON 格式而不像 <code class="language-plaintext highlighter-rouge">Podfile</code> 一样支持 YAML 呢？</p>
+
+<p>笔者的理解：由于 <code class="language-plaintext highlighter-rouge">Podspec</code> 文件会满世界跑，它可能存在于 CocoaPods 的 <a href="https://cdn.cocoapods.org/">CDN Service</a>、<a href="https://github.com/CocoaPods/Specs">Speces Repo</a> 或者你们的私有 Specs Repo 上，因此采用  JSON 的文件在网络传输中会更友好。而 <code class="language-plaintext highlighter-rouge">Podfile</code> 更多的场景是用于序列化，它需要在项目中生成一份经依赖仲裁后的 <code class="language-plaintext highlighter-rouge">Podfile</code> 快照，用于后续的对比。</p>
+
+<h3 id="podspec-1">Podspec</h3>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="no">Pod</span><span class="o">::</span><span class="no">Spec</span><span class="p">.</span><span class="nf">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">spec</span><span class="o">|</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">name</span>         <span class="o">=</span> <span class="s1">'Reachability'</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">version</span>      <span class="o">=</span> <span class="s1">'3.1.0'</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">license</span>      <span class="o">=</span> <span class="p">{</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="s1">'BSD'</span> <span class="p">}</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">homepage</span>     <span class="o">=</span> <span class="s1">'https://github.com/tonymillion/Reachability'</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">authors</span>      <span class="o">=</span> <span class="p">{</span> <span class="s1">'Tony Million'</span> <span class="o">=&gt;</span> <span class="s1">'tonymillion@gmail.com'</span> <span class="p">}</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">summary</span>      <span class="o">=</span> <span class="s1">'ARC and GCD Compatible Reachability Class for iOS and OS X.'</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">source</span>       <span class="o">=</span> <span class="p">{</span> <span class="ss">:git</span> <span class="o">=&gt;</span> <span class="s1">'https://github.com/tonymillion/Reachability.git'</span><span class="p">,</span> <span class="ss">:tag</span> <span class="o">=&gt;</span> <span class="s2">"v</span><span class="si">#{</span><span class="n">spec</span><span class="p">.</span><span class="nf">version</span><span class="si">}</span><span class="s2">"</span> <span class="p">}</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">source_files</span> <span class="o">=</span> <span class="s1">'Reachability.{h,m}'</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">framework</span>    <span class="o">=</span> <span class="s1">'SystemConfiguration'</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>上面这份 <code class="language-plaintext highlighter-rouge">Reachability.podspec</code> 配置，基本通过命令行 <code class="language-plaintext highlighter-rouge">pod lib create NAME</code> 就能帮我们完成。除此之外我们能做的更多，比如，默认情况下 CococaPods 会为每个 <code class="language-plaintext highlighter-rouge">Pod</code> framework 生成一个对应的 <code class="language-plaintext highlighter-rouge">modulemap</code> 文件，它将包含 <code class="language-plaintext highlighter-rouge">Podspec</code> 中指定的公共 headers。如果需要自定义引入的 header 文件，仅需配置 <code class="language-plaintext highlighter-rouge">moduel_map</code> 即可完成。</p>
+
+<p>下面是进阶版配置：</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="no">Pod</span><span class="o">::</span><span class="no">Spec</span><span class="p">.</span><span class="nf">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">spec</span><span class="o">|</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">name</span>         <span class="o">=</span> <span class="s1">'Reachability'</span>
+  <span class="c1"># 省略与前面相同部分的配置 ...</span>
+  
+  <span class="n">spec</span><span class="p">.</span><span class="nf">module_name</span>   <span class="o">=</span> <span class="s1">'Rich'</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">swift_version</span> <span class="o">=</span> <span class="s1">'4.0'</span>
+
+  <span class="n">spec</span><span class="p">.</span><span class="nf">ios</span><span class="p">.</span><span class="nf">deployment_target</span>  <span class="o">=</span> <span class="s1">'9.0'</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">osx</span><span class="p">.</span><span class="nf">deployment_target</span>  <span class="o">=</span> <span class="s1">'10.10'</span>
+
+  <span class="n">spec</span><span class="p">.</span><span class="nf">source_files</span>       <span class="o">=</span> <span class="s1">'Reachability/common/*.swift'</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">ios</span><span class="p">.</span><span class="nf">source_files</span>   <span class="o">=</span> <span class="s1">'Reachability/ios/*.swift'</span><span class="p">,</span> <span class="s1">'Reachability/extensions/*.swift'</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">osx</span><span class="p">.</span><span class="nf">source_files</span>   <span class="o">=</span> <span class="s1">'Reachability/osx/*.swift'</span>
+
+  <span class="n">spec</span><span class="p">.</span><span class="nf">framework</span>      <span class="o">=</span> <span class="s1">'SystemConfiguration'</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">ios</span><span class="p">.</span><span class="nf">framework</span>  <span class="o">=</span> <span class="s1">'UIKit'</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">osx</span><span class="p">.</span><span class="nf">framework</span>  <span class="o">=</span> <span class="s1">'AppKit'</span>
+
+  <span class="n">spec</span><span class="p">.</span><span class="nf">dependency</span> <span class="s1">'SomeOtherPod'</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>像 👆 我们为不同的系统指定了不同的源码和依赖等，当然可配置的不只这些。</p>
+
+<p><code class="language-plaintext highlighter-rouge">Podspec</code> 支持的完整配置分类如下：</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1602123356225-0e9d5db0-e68e-4808-b198-735931d3a780.png" alt="" /></p>
+
+<p>想了解更多的配置选项：<a href="https://guides.cocoapods.org/syntax/Podspec.html">传送门</a>。</p>
+
+<h3 id="convention-over-configuration">Convention Over Configuration</h3>
+
+<p>说到配置，不得不提一下 <code class="language-plaintext highlighter-rouge">CoC</code> 约定大于配置。约定大于配置算是在软件工程较早出现的概念的了，大意是：<strong>为了简单起见，我们的代码需要按照一定的约定来编写</strong>（如代码放在什么目录，用什么文件名，用什么类名等)。 这样既简化了配置文件，同时也降低了学习成本。</p>
+
+<p>约定大于配置可以说是通过 <a href="https://www.wikiwand.com/en/Ruby_on_Rails">Ruby on Rails</a> 发扬光大的。尽管它一直饱受争议，但是主流语言的依赖管理工具，如 <code class="language-plaintext highlighter-rouge">Maven</code>、<code class="language-plaintext highlighter-rouge">npm</code> 等都遵循 <code class="language-plaintext highlighter-rouge">CoC</code> 进行不断演进的，因为 <code class="language-plaintext highlighter-rouge">CoC</code> 能够有效帮助开发者减轻选择的痛感，减少无意义的选择。一些新的语言也吸收了这个思想，比如 Go 语言。如果用 C/C++ 可能需要定义复杂的 Makefile 来定义编译的规则，以及如何运行测试用例，而在 Go 中这些都是约定好的。</p>
+
+<p>举个 🌰 ：<code class="language-plaintext highlighter-rouge">Podfile</code> 中是可以指定 pod library 所链接的 Xcode project，不过大多情况下无需配置，CocoaPods 会自动查找 <code class="language-plaintext highlighter-rouge">Podfile</code> 所在的同级目录下所对应的工程文件 <code class="language-plaintext highlighter-rouge">.project</code> 。</p>
+
+<h2 id="spec-的核心数据结构">Spec 的核心数据结构</h2>
+
+<h3 id="specification">Specification</h3>
+
+<p>在数据结构上 <code class="language-plaintext highlighter-rouge">Specification</code> 与 <a href="https://looseyi.github.io/post/sourcecode-cocoapods/04-cocoapods-podfile/#targetdefinition">TargetDefinition</a> 是类似的，<strong>同为多叉树结构</strong>。简化后的 <code class="language-plaintext highlighter-rouge">Spec</code> 的类如下：</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">require</span> <span class="s1">'active_support/core_ext/string/strip.rb'</span>
+<span class="c1"># 记录对应 platform 上 Spec 的其他 pod 依赖</span>
+<span class="nb">require</span> <span class="s1">'cocoapods-core/specification/consumer'</span>
+<span class="c1"># 解析 DSL</span>
+<span class="nb">require</span> <span class="s1">'cocoapods-core/specification/dsl'</span>
+<span class="c1"># 校验 Spec 的正确性，并抛出对应的错误和警告</span>
+<span class="nb">require</span> <span class="s1">'cocoapods-core/specification/linter'</span>
+<span class="c1"># 用于解析 DSL 内容包含的配置信息</span>
+<span class="nb">require</span> <span class="s1">'cocoapods-core/specification/root_attribute_accessors'</span>
+<span class="c1"># 记录一个 Pod 所有依赖的 Spec 来源信息</span>
+<span class="nb">require</span> <span class="s1">'cocoapods-core/specification/set'</span>
+<span class="c1"># json 格式数据解析</span>
+<span class="nb">require</span> <span class="s1">'cocoapods-core/specification/json'</span>
+
+<span class="k">module</span> <span class="nn">Pod</span>
+  <span class="k">class</span> <span class="nc">Specification</span>
+    <span class="kp">include</span> <span class="no">Pod</span><span class="o">::</span><span class="no">Specification</span><span class="o">::</span><span class="no">DSL</span>
+    <span class="kp">include</span> <span class="no">Pod</span><span class="o">::</span><span class="no">Specification</span><span class="o">::</span><span class="no">DSL</span><span class="o">::</span><span class="no">Deprecations</span>
+    <span class="kp">include</span> <span class="no">Pod</span><span class="o">::</span><span class="no">Specification</span><span class="o">::</span><span class="no">RootAttributesAccessors</span>
+    <span class="kp">include</span> <span class="no">Pod</span><span class="o">::</span><span class="no">Specification</span><span class="o">::</span><span class="no">JSONSupport</span>
+ 
+    <span class="c1"># `subspec` 的父节点</span>
+    <span class="nb">attr_reader</span> <span class="ss">:parent</span>
+    <span class="c1"># `Spec` 的唯一 id，由 name + version 的 hash 构成</span>
+    <span class="nb">attr_reader</span> <span class="ss">:hash_value</span>
+    <span class="c1"># 记录 `Spec` 的配置信息 </span>
+    <span class="nb">attr_accessor</span> <span class="ss">:attributes_hash</span>
+    <span class="c1"># `Spec` 包含的 `subspec`</span>
+    <span class="nb">attr_accessor</span> <span class="ss">:subspecs</span>
+     
+    <span class="c1"># 递归调用获取 Specification 的根节点</span>
+    <span class="k">def</span> <span class="nf">root</span>
+      <span class="n">parent</span> <span class="p">?</span> <span class="n">parent</span><span class="p">.</span><span class="nf">root</span> <span class="p">:</span> <span class="nb">self</span>
+    <span class="k">end</span>
+     
+	 <span class="k">def</span> <span class="nf">hash</span>
+   	<span class="k">if</span> <span class="vi">@hash_value</span><span class="p">.</span><span class="nf">nil?</span>
+      	<span class="vi">@hash_value</span> <span class="o">=</span> <span class="p">(</span><span class="nb">name</span><span class="p">.</span><span class="nf">hash</span> <span class="o">*</span> <span class="mi">53</span><span class="p">)</span> <span class="o">^</span> <span class="n">version</span><span class="p">.</span><span class="nf">hash</span>
+		<span class="k">end</span>
+      <span class="vi">@hash_value</span>
+    <span class="k">end</span>
+     
+    <span class="c1"># ...</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">Specification</code> 同样用 map <code class="language-plaintext highlighter-rouge">attributes_hash</code> 来记录配置信息。</p>
+
+<p>注意，这里的 parent 是为 <code class="language-plaintext highlighter-rouge">subspec</code> 保留的，用于指向其父节点的 <code class="language-plaintext highlighter-rouge">Spec</code>。</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1602123372255-dae8539b-97d6-4219-8c0a-875c57bc53cd.png" alt="" /></p>
+
+<h3 id="subspecs">Subspecs</h3>
+
+<p>乍一听 <code class="language-plaintext highlighter-rouge">Subspec</code> 这个概念似乎有一些抽象，不过当你理解了上面的描述，就能明白什么是 <code class="language-plaintext highlighter-rouge">Subspec</code> 了。我们知道在 Xcode 项目中，target 作为最小的可编译单元，它编译后的产物为链接库或 framework。而在 CocoaPods 的世界里这些 targets 则是由 <code class="language-plaintext highlighter-rouge">Spec</code> 文件来描述的，它还能拆分成一个或者多个 <code class="language-plaintext highlighter-rouge">Subspec</code>，我们暂且把它称为 <code class="language-plaintext highlighter-rouge">Spec</code> 的 <strong>子模块</strong>，子模块也是用 <strong>Specification</strong> 类来描述的。</p>
+
+<p><strong>子模块可以单独作为依赖被引入到项目中。</strong>它有几个特点：</p>
+
+<ul>
+  <li>未指定 <code class="language-plaintext highlighter-rouge">default_subspec</code> 的情况下，<code class="language-plaintext highlighter-rouge">Spec</code> 的全部子模块都将作为依赖被引入；</li>
+  <li>子模块会主动继承其父节点 <code class="language-plaintext highlighter-rouge">Spec</code> 中定义的 <code class="language-plaintext highlighter-rouge">attributes_hash</code>；</li>
+  <li>子模块可以指定自己的源代码、资源文件、编译配置、依赖等；</li>
+  <li>同一 <code class="language-plaintext highlighter-rouge">Spec</code> 内部的子模块是可以有依赖关系的；</li>
+  <li>每个子模块在 <code class="language-plaintext highlighter-rouge">pod push</code> 的时候是需要被 lint 通过的；</li>
+</ul>
+
+<p>光听总结似乎还是云里雾里，祭出 QMUI 让大家感受一下：</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="no">Pod</span><span class="o">::</span><span class="no">Spec</span><span class="p">.</span><span class="nf">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">s</span><span class="o">|</span>
+  <span class="n">s</span><span class="p">.</span><span class="nf">name</span>             <span class="o">=</span> <span class="s2">"QMUIKit"</span>
+  <span class="n">s</span><span class="p">.</span><span class="nf">version</span>          <span class="o">=</span> <span class="s2">"4.2.1"</span>
+  <span class="c1"># ...</span>
+  <span class="n">s</span><span class="p">.</span><span class="nf">subspec</span> <span class="s1">'QMUICore'</span> <span class="k">do</span> <span class="o">|</span><span class="n">ss</span><span class="o">|</span>
+    <span class="n">ss</span><span class="p">.</span><span class="nf">source_files</span> <span class="o">=</span> <span class="s1">'QMUIKit/QMUIKit.h'</span><span class="p">,</span> <span class="s1">'QMUIKit/QMUICore'</span><span class="p">,</span> <span class="s1">'QMUIKit/UIKitExtensions'</span>
+    <span class="n">ss</span><span class="p">.</span><span class="nf">dependency</span> <span class="s1">'QMUIKit/QMUIWeakObjectContainer'</span>
+    <span class="n">ss</span><span class="p">.</span><span class="nf">dependency</span> <span class="s1">'QMUIKit/QMUILog'</span>
+  <span class="k">end</span>
+
+  <span class="n">s</span><span class="p">.</span><span class="nf">subspec</span> <span class="s1">'QMUIWeakObjectContainer'</span> <span class="k">do</span> <span class="o">|</span><span class="n">ss</span><span class="o">|</span>
+    <span class="n">ss</span><span class="p">.</span><span class="nf">source_files</span> <span class="o">=</span> <span class="s1">'QMUIKit/QMUIComponents/QMUIWeakObjectContainer.{h,m}'</span>
+  <span class="k">end</span>
+
+  <span class="n">s</span><span class="p">.</span><span class="nf">subspec</span> <span class="s1">'QMUILog'</span> <span class="k">do</span> <span class="o">|</span><span class="n">ss</span><span class="o">|</span>
+    <span class="n">ss</span><span class="p">.</span><span class="nf">source_files</span> <span class="o">=</span> <span class="s1">'QMUIKit/QMUIComponents/QMUILog/*.{h,m}'</span>
+  <span class="k">end</span>
+
+  <span class="n">s</span><span class="p">.</span><span class="nf">subspec</span> <span class="s1">'QMUIComponents'</span> <span class="k">do</span> <span class="o">|</span><span class="n">ss</span><span class="o">|</span>
+    <span class="n">ss</span><span class="p">.</span><span class="nf">dependency</span> <span class="s1">'QMUIKit/QMUICore'</span>
+     
+    <span class="n">ss</span><span class="p">.</span><span class="nf">subspec</span> <span class="s1">'QMUIButton'</span> <span class="k">do</span> <span class="o">|</span><span class="n">sss</span><span class="o">|</span>
+      <span class="n">sss</span><span class="p">.</span><span class="nf">source_files</span> <span class="o">=</span> <span class="s1">'QMUIKit/QMUIComponents/QMUIButton/QMUIButton.{h,m}'</span>
+    <span class="k">end</span>
+    <span class="c1"># 此处省略 59 个 Components</span>
+  <span class="k">end</span>
+  <span class="c1"># ...</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<blockquote>
+  <p>不吹不黑，QMUI 是笔者见过国内开源作品中代码注释非常详尽且提供完整 Demo 的项目之一。</p>
+</blockquote>
+
+<p>整个 QMUIKit 的 <code class="language-plaintext highlighter-rouge">Spec</code> 文件中，总共定义了 <strong>64</strong> 个 <code class="language-plaintext highlighter-rouge">subspec</code> 子模块，同时这些子模块之间还做了分层。比如 QMUICore：</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1602123383555-32462e33-aaf5-4004-899f-cfd384e1e04e.png" alt="" /></p>
+
+<p>另外补充一点，CocoaPods 支持了不同类型的 <code class="language-plaintext highlighter-rouge">SubSpec</code>：</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># lib/cocoapods-core/specification/dsl/attribute_support.rb</span>
+
+<span class="no">SUPPORTED_SPEC_TYPES</span> <span class="o">=</span> <span class="p">[</span><span class="ss">:library</span><span class="p">,</span> <span class="ss">:app</span><span class="p">,</span> <span class="ss">:test</span><span class="p">].</span><span class="nf">freeze</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">:app</code> 和 <code class="language-plaintext highlighter-rouge">:test</code> 用于在项目中集成单元测试代码的 <code class="language-plaintext highlighter-rouge">Subspec</code>。</p>
+
+<h2 id="podspec-from-json">Podspec From JSON</h2>
+
+<p>有了上文 <code class="language-plaintext highlighter-rouge">Podfile</code> 的了解，这次我们对 <code class="language-plaintext highlighter-rouge">Podspec</code> 的文件加载会更加轻车熟路。首先是由 <code class="language-plaintext highlighter-rouge">#from_file</code> 方法进行文件路径和内容编码格式的检查，将加载的内容转入 <code class="language-plaintext highlighter-rouge">#from_string</code>：</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">from_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">subspec_name</span> <span class="o">=</span> <span class="kp">nil</span><span class="p">)</span>
+  <span class="n">path</span> <span class="o">=</span> <span class="no">Pathname</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+  <span class="k">unless</span> <span class="n">path</span><span class="p">.</span><span class="nf">exist?</span>
+    <span class="k">raise</span> <span class="no">Informative</span><span class="p">,</span> <span class="s2">"No Podspec exists at path `</span><span class="si">#{</span><span class="n">path</span><span class="si">}</span><span class="s2">`."</span>
+  <span class="k">end</span>
+
+  <span class="n">string</span> <span class="o">=</span> <span class="no">File</span><span class="p">.</span><span class="nf">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">'r:utf-8'</span><span class="p">,</span> <span class="o">&amp;</span><span class="ss">:read</span><span class="p">)</span>
+  <span class="c1"># Work around for Rubinius incomplete encoding in 1.9 mode</span>
+  <span class="k">if</span> <span class="n">string</span><span class="p">.</span><span class="nf">respond_to?</span><span class="p">(</span><span class="ss">:encoding</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">string</span><span class="p">.</span><span class="nf">encoding</span><span class="p">.</span><span class="nf">name</span> <span class="o">!=</span> <span class="s1">'UTF-8'</span>
+    <span class="n">string</span><span class="p">.</span><span class="nf">encode!</span><span class="p">(</span><span class="s1">'UTF-8'</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="n">from_string</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">subspec_name</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">from_string</span><span class="p">(</span><span class="n">spec_contents</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">subspec_name</span> <span class="o">=</span> <span class="kp">nil</span><span class="p">)</span>
+  <span class="n">path</span> <span class="o">=</span> <span class="no">Pathname</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">path</span><span class="p">).</span><span class="nf">expand_path</span>
+  <span class="n">spec</span> <span class="o">=</span> <span class="kp">nil</span>
+  <span class="k">case</span> <span class="n">path</span><span class="p">.</span><span class="nf">extname</span>
+  <span class="k">when</span> <span class="s1">'.podspec'</span>
+    <span class="no">Dir</span><span class="p">.</span><span class="nf">chdir</span><span class="p">(</span><span class="n">path</span><span class="p">.</span><span class="nf">parent</span><span class="p">.</span><span class="nf">directory?</span> <span class="p">?</span> <span class="n">path</span><span class="p">.</span><span class="nf">parent</span> <span class="p">:</span> <span class="no">Dir</span><span class="p">.</span><span class="nf">pwd</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">spec</span> <span class="o">=</span> <span class="o">::</span><span class="no">Pod</span><span class="p">.</span><span class="nf">_eval_Podspec</span><span class="p">(</span><span class="n">spec_contents</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+      <span class="k">unless</span> <span class="n">spec</span><span class="p">.</span><span class="nf">is_a?</span><span class="p">(</span><span class="no">Specification</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="no">Informative</span><span class="p">,</span> <span class="s2">"Invalid Podspec file at path `</span><span class="si">#{</span><span class="n">path</span><span class="si">}</span><span class="s2">`."</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">when</span> <span class="s1">'.json'</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="no">Specification</span><span class="p">.</span><span class="nf">from_json</span><span class="p">(</span><span class="n">spec_contents</span><span class="p">)</span>
+  <span class="k">else</span>
+    <span class="k">raise</span> <span class="no">Informative</span><span class="p">,</span> <span class="s2">"Unsupported specification format `</span><span class="si">#{</span><span class="n">path</span><span class="p">.</span><span class="nf">extname</span><span class="si">}</span><span class="s2">` for spec at `</span><span class="si">#{</span><span class="n">path</span><span class="si">}</span><span class="s2">`."</span>
+  <span class="k">end</span>
+
+  <span class="n">spec</span><span class="p">.</span><span class="nf">defined_in_file</span> <span class="o">=</span> <span class="n">path</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">subspec_by_name</span><span class="p">(</span><span class="n">subspec_name</span><span class="p">,</span> <span class="kp">true</span><span class="p">)</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>接着根据文件类型为 <code class="language-plaintext highlighter-rouge">.podspec</code> 和 <code class="language-plaintext highlighter-rouge">.json</code> 分别采用不同的解析方式。在  <strong>JSONSupport</strong> 模块内将 <code class="language-plaintext highlighter-rouge">#from_json</code> 的逻辑拆成了两部分：</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># `lib/cocoapods-core/specification/json.rb`</span>
+<span class="k">module</span> <span class="nn">Pod</span>
+  <span class="k">class</span> <span class="nc">Specification</span>
+    <span class="k">module</span> <span class="nn">JSONSupport</span>
+    <span class="c1"># ①</span>
+    <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">from_json</span><span class="p">(</span><span class="n">json</span><span class="p">)</span>
+      <span class="nb">require</span> <span class="s1">'json'</span>
+      <span class="nb">hash</span> <span class="o">=</span> <span class="no">JSON</span><span class="p">.</span><span class="nf">parse</span><span class="p">(</span><span class="n">json</span><span class="p">)</span>
+      <span class="n">from_hash</span><span class="p">(</span><span class="nb">hash</span><span class="p">)</span>
+    <span class="k">end</span>
+    <span class="c1"># ②</span>
+    <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">from_hash</span><span class="p">(</span><span class="nb">hash</span><span class="p">,</span> <span class="n">parent</span> <span class="o">=</span> <span class="kp">nil</span><span class="p">,</span> <span class="ss">test_specification: </span><span class="kp">false</span><span class="p">,</span> <span class="ss">app_specification: </span><span class="kp">false</span><span class="p">)</span>
+      <span class="n">attributes_hash</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">.</span><span class="nf">dup</span>
+      <span class="n">spec</span> <span class="o">=</span> <span class="no">Spec</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="kp">nil</span><span class="p">,</span> <span class="n">test_specification</span><span class="p">,</span> <span class="ss">:app_specification</span> <span class="o">=&gt;</span> <span class="n">app_specification</span><span class="p">)</span>
+      <span class="n">subspecs</span> <span class="o">=</span> <span class="n">attributes_hash</span><span class="p">.</span><span class="nf">delete</span><span class="p">(</span><span class="s1">'subspecs'</span><span class="p">)</span>
+      <span class="n">testspecs</span> <span class="o">=</span> <span class="n">attributes_hash</span><span class="p">.</span><span class="nf">delete</span><span class="p">(</span><span class="s1">'testspecs'</span><span class="p">)</span>
+      <span class="n">appspecs</span> <span class="o">=</span> <span class="n">attributes_hash</span><span class="p">.</span><span class="nf">delete</span><span class="p">(</span><span class="s1">'appspecs'</span><span class="p">)</span>
+  
+      <span class="c1">## backwards compatibility with 1.3.0</span>
+      <span class="n">spec</span><span class="p">.</span><span class="nf">test_specification</span> <span class="o">=</span> <span class="o">!</span><span class="n">attributes_hash</span><span class="p">[</span><span class="s1">'test_type'</span><span class="p">].</span><span class="nf">nil?</span>
+  
+      <span class="n">spec</span><span class="p">.</span><span class="nf">attributes_hash</span> <span class="o">=</span> <span class="n">attributes_hash</span>
+      <span class="n">spec</span><span class="p">.</span><span class="nf">subspecs</span><span class="p">.</span><span class="nf">concat</span><span class="p">(</span><span class="n">subspecs_from_hash</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">subspecs</span><span class="p">,</span> <span class="kp">false</span><span class="p">,</span> <span class="kp">false</span><span class="p">))</span>
+      <span class="n">spec</span><span class="p">.</span><span class="nf">subspecs</span><span class="p">.</span><span class="nf">concat</span><span class="p">(</span><span class="n">subspecs_from_hash</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">testspecs</span><span class="p">,</span> <span class="kp">true</span><span class="p">,</span> <span class="kp">false</span><span class="p">))</span>
+      <span class="n">spec</span><span class="p">.</span><span class="nf">subspecs</span><span class="p">.</span><span class="nf">concat</span><span class="p">(</span><span class="n">subspecs_from_hash</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">appspecs</span><span class="p">,</span> <span class="kp">false</span><span class="p">,</span> <span class="kp">true</span><span class="p">))</span>
+  
+      <span class="n">spec</span>
+    <span class="k">end</span>
+    <span class="c1"># ③</span>
+    <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">subspecs_from_hash</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">subspecs</span><span class="p">,</span> <span class="n">test_specification</span><span class="p">,</span> <span class="n">app_specification</span><span class="p">)</span>
+      <span class="k">return</span> <span class="p">[]</span> <span class="k">if</span> <span class="n">subspecs</span><span class="p">.</span><span class="nf">nil?</span>
+      <span class="n">subspecs</span><span class="p">.</span><span class="nf">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">s_hash</span><span class="o">|</span>
+        <span class="no">Specification</span><span class="p">.</span><span class="nf">from_hash</span><span class="p">(</span><span class="n">s_hash</span><span class="p">,</span> <span class="n">spec</span><span class="p">,</span>
+                                <span class="ss">:test_specification</span> <span class="o">=&gt;</span> <span class="n">test_specification</span><span class="p">,</span>
+                                <span class="ss">:app_specification</span> <span class="o">=&gt;</span> <span class="n">app_specification</span><span class="p">)</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>这里的逻辑也是比较简单：</p>
+
+<ul>
+  <li>① 将传入的字符串转换为 json；</li>
+  <li>② 将转换后的 json 转换为 <code class="language-plaintext highlighter-rouge">Spec</code> 对象并将 json 转换为 <code class="language-plaintext highlighter-rouge">attributes_hash</code>，同时触发 ③；</li>
+  <li>③ 通过 <code class="language-plaintext highlighter-rouge">self.subspecs_from_hash</code> 实现递归调用完成 <code class="language-plaintext highlighter-rouge">subspecs</code> 解析；</li>
+</ul>
+
+<blockquote>
+  <p>Tips: 方法 ② 里的 <strong>Spec</strong> 是对 <code class="language-plaintext highlighter-rouge">Specification</code> 的别名。</p>
+</blockquote>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1602123399989-8bef8979-4f1d-4ab5-984a-95f57e384a91.png" alt="" /></p>
+
+<h2 id="podspec-from-ruby">Podspec From Ruby</h2>
+
+<p><code class="language-plaintext highlighter-rouge">QMUIKit.podspec</code> 的文件内容，大家是否注意到其开头的声明：</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="no">Pod</span><span class="o">::</span><span class="no">Spec</span><span class="p">.</span><span class="nf">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">s</span><span class="o">|</span>
+  <span class="n">s</span><span class="p">.</span><span class="nf">name</span>             <span class="o">=</span> <span class="s2">"QMUIKit"</span>
+  <span class="n">s</span><span class="p">.</span><span class="nf">source_files</span>     <span class="o">=</span> <span class="s1">'QMUIKit/QMUIKit.h'</span>
+  <span class="c1"># ...</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>发现没 <code class="language-plaintext highlighter-rouge">.podspec</code> 文件就是<strong>简单直接地声明了一个 <code class="language-plaintext highlighter-rouge">Specifiction</code> 对象</strong>，然后通过 block 块定制来完成配置。像 <code class="language-plaintext highlighter-rouge">name</code>、<code class="language-plaintext highlighter-rouge">source_files</code> 这些配置参数最终都会转换为方法调用并将值存入 <code class="language-plaintext highlighter-rouge">attributes_hash</code> 中。这些方法调用的实现方式分两种：</p>
+
+<ol>
+  <li>大部分配置是通过方法包装器 <code class="language-plaintext highlighter-rouge">attribute</code> 和 <code class="language-plaintext highlighter-rouge">root_attribute</code> 来动态添加的 setter 方法；</li>
+  <li>对于复杂逻辑的配置则直接方法声明，如 <code class="language-plaintext highlighter-rouge">subspec</code> 、<code class="language-plaintext highlighter-rouge">dependency</code> 方法等（后续介绍)。</li>
+</ol>
+
+<h3 id="attribute-wrappter">attribute wrappter</h3>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># `lib/cocoapods-core/specification/dsl.rb`</span>
+<span class="k">module</span> <span class="nn">Pod</span>
+  <span class="k">class</span> <span class="nc">Specification</span>
+    <span class="k">module</span> <span class="nn">DSL</span>
+      <span class="kp">extend</span> <span class="no">Pod</span><span class="o">::</span><span class="no">Specification</span><span class="o">::</span><span class="no">DSL</span><span class="o">::</span><span class="no">AttributeSupport</span>
+      <span class="c1"># Deprecations must be required after include AttributeSupport</span>
+      <span class="nb">require</span> <span class="s1">'cocoapods-core/specification/dsl/deprecations'</span>
+
+      <span class="n">attribute</span> <span class="ss">:name</span><span class="p">,</span>
+                <span class="ss">:required</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">,</span>
+                <span class="ss">:inherited</span> <span class="o">=&gt;</span> <span class="kp">false</span><span class="p">,</span>
+                <span class="ss">:multi_platform</span> <span class="o">=&gt;</span> <span class="kp">false</span>
+
+      <span class="n">root_attribute</span> <span class="ss">:version</span><span class="p">,</span>
+                      <span class="ss">:required</span> <span class="o">=&gt;</span> <span class="kp">true</span>
+      <span class="c1"># ...</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>可以看出 name 和 version 的方法声明与普通的不太一样，其实 <code class="language-plaintext highlighter-rouge">attribute</code> 和 <code class="language-plaintext highlighter-rouge">root_attribute</code> 是通过 Ruby 的方法包装器来实现的，感兴趣的同学看这里 「<a href="https://github.com/mxchenxiaodong/haha_day/issues/3#">Python装饰器 与 Ruby实现</a>」。</p>
+
+<blockquote>
+  <p>Tips: Ruby 原生提供的属性访问器 — <code class="language-plaintext highlighter-rouge">attr_accessor</code> 大家应该不陌生，就是通过包装器实现的。</p>
+</blockquote>
+
+<p>这些<strong>装饰器所声明的方法会在其模块被加载时动态生成</strong>，来看其实现：</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># `lib/cocoapods-core/specification/attribute_support.rb`</span>
+<span class="k">module</span> <span class="nn">Pod</span>
+  <span class="k">class</span> <span class="nc">Specification</span>
+    <span class="k">module</span> <span class="nn">DSL</span>
+      <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+        <span class="nb">attr_reader</span> <span class="ss">:attributes</span>
+      <span class="k">end</span>
+
+      <span class="k">module</span> <span class="nn">AttributeSupport</span>
+        <span class="k">def</span> <span class="nf">root_attribute</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="n">options</span> <span class="o">=</span> <span class="p">{})</span>
+          <span class="n">options</span><span class="p">[</span><span class="ss">:root_only</span><span class="p">]</span> <span class="o">=</span> <span class="kp">true</span>
+          <span class="n">options</span><span class="p">[</span><span class="ss">:multi_platform</span><span class="p">]</span> <span class="o">=</span> <span class="kp">false</span>
+          <span class="n">store_attribute</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+        <span class="k">end</span>
+
+        <span class="k">def</span> <span class="nf">attribute</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="n">options</span> <span class="o">=</span> <span class="p">{})</span>
+          <span class="n">store_attribute</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+        <span class="k">end</span>
+
+        <span class="k">def</span> <span class="nf">store_attribute</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+          <span class="kp">attr</span> <span class="o">=</span> <span class="no">Attribute</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+          <span class="vi">@attributes</span> <span class="o">||=</span> <span class="p">{}</span>
+          <span class="vi">@attributes</span><span class="p">[</span><span class="nb">name</span><span class="p">]</span> <span class="o">=</span> <span class="kp">attr</span>
+        <span class="k">end</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">attribute</code> 和 <code class="language-plaintext highlighter-rouge">root_attribute</code> 最终都走到了 <code class="language-plaintext highlighter-rouge">store_attribute</code> 保存在创建的 Attribute 对象内，并以配置的 Symbol 名称作为 KEY 存入 <code class="language-plaintext highlighter-rouge">@attributes</code>，用于生成最终的 attributes setter 方法。</p>
+
+<p>最关键的一步，让我们回到 <code class="language-plaintext highlighter-rouge">specification</code> 文件：</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># `/lib/coocapods-core/specification`</span>
+<span class="k">module</span> <span class="nn">Pod</span>
+  <span class="k">class</span> <span class="nc">Specification</span>
+    <span class="c1"># ...</span>
+    
+    <span class="k">def</span> <span class="nf">store_attribute</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">platform_name</span> <span class="o">=</span> <span class="kp">nil</span><span class="p">)</span>
+      <span class="nb">name</span> <span class="o">=</span> <span class="nb">name</span><span class="p">.</span><span class="nf">to_s</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="no">Specification</span><span class="p">.</span><span class="nf">convert_keys_to_string</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="n">value</span><span class="p">.</span><span class="nf">is_a?</span><span class="p">(</span><span class="no">Hash</span><span class="p">)</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="p">.</span><span class="nf">strip_heredoc</span><span class="p">.</span><span class="nf">strip</span> <span class="k">if</span> <span class="n">value</span><span class="p">.</span><span class="nf">respond_to?</span><span class="p">(</span><span class="ss">:strip_heredoc</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">platform_name</span>
+        <span class="n">platform_name</span> <span class="o">=</span> <span class="n">platform_name</span><span class="p">.</span><span class="nf">to_s</span>
+        <span class="n">attributes_hash</span><span class="p">[</span><span class="n">platform_name</span><span class="p">]</span> <span class="o">||=</span> <span class="p">{}</span>
+        <span class="n">attributes_hash</span><span class="p">[</span><span class="n">platform_name</span><span class="p">][</span><span class="nb">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+      <span class="k">else</span>
+        <span class="n">attributes_hash</span><span class="p">[</span><span class="nb">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+
+    <span class="no">DSL</span><span class="p">.</span><span class="nf">attributes</span><span class="p">.</span><span class="nf">values</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">a</span><span class="o">|</span>
+      <span class="n">define_method</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="nf">writer_name</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">value</span><span class="o">|</span>
+        <span class="n">store_attribute</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="nf">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+      <span class="k">end</span>
+
+      <span class="k">if</span> <span class="n">a</span><span class="p">.</span><span class="nf">writer_singular_form</span>
+        <span class="kp">alias_method</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="nf">writer_singular_form</span><span class="p">,</span> <span class="n">a</span><span class="p">.</span><span class="nf">writer_name</span><span class="p">)</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">Specification</code> 类被加载时，会先遍历 <code class="language-plaintext highlighter-rouge">DSL</code> module 加载后所保存的 attributes，再通过 <code class="language-plaintext highlighter-rouge">define_method</code> 动态生成对应的配置方法。最终数据还是保存在 <code class="language-plaintext highlighter-rouge">attributes_hash</code> 中。</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1602123416825-7fdc4274-d87a-45d0-9d04-4eeeb063c81c.png" alt="" /></p>
+
+<h3 id="attribute">Attribute</h3>
+
+<p>Attribute 是为了记录该配置的相关信息，例如，记录 <code class="language-plaintext highlighter-rouge">Spec</code> 是否为根节点、<code class="language-plaintext highlighter-rouge">Spec</code> 类型、所支持的 platforms、资源地址通配符等。</p>
+
+<ol>
+  <li>以 <code class="language-plaintext highlighter-rouge">root_attribute</code> 包装的配置仅用于修饰 <code class="language-plaintext highlighter-rouge">Spec</code> 根节点，比如版本号 <code class="language-plaintext highlighter-rouge">version</code> 只能由 <code class="language-plaintext highlighter-rouge">Spec</code> 根节点来设置，另外还有 <code class="language-plaintext highlighter-rouge">source</code>、<code class="language-plaintext highlighter-rouge">static_framework</code>、<code class="language-plaintext highlighter-rouge">module_name</code> 等；</li>
+  <li>以 <code class="language-plaintext highlighter-rouge">attribute</code> 包装的配置则不限是否为 <code class="language-plaintext highlighter-rouge">Spec</code> 根结点。我们以 AFNetworking 的 <code class="language-plaintext highlighter-rouge">source_files</code> 为例：由于在 macOS 和 watchOS 上并没有 UIKit framwork，因此它单独将 UIKit 的相关功能拆分到了 <code class="language-plaintext highlighter-rouge">AFNetworking/UIKit</code> 中；</li>
+</ol>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="no">Pod</span><span class="o">::</span><span class="no">Spec</span><span class="p">.</span><span class="nf">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">s</span><span class="o">|</span>
+  <span class="c1"># ...</span>
+  <span class="n">s</span><span class="p">.</span><span class="nf">subspec</span> <span class="s1">'NSURLSession'</span> <span class="k">do</span> <span class="o">|</span><span class="n">ss</span><span class="o">|</span>
+	 <span class="c1"># ...</span>
+  <span class="k">end</span>
+
+  <span class="n">s</span><span class="p">.</span><span class="nf">subspec</span> <span class="s1">'UIKit'</span> <span class="k">do</span> <span class="o">|</span><span class="n">ss</span><span class="o">|</span>
+    <span class="n">ss</span><span class="p">.</span><span class="nf">ios</span><span class="p">.</span><span class="nf">deployment_target</span> <span class="o">=</span> <span class="s1">'9.0'</span>
+    <span class="n">ss</span><span class="p">.</span><span class="nf">tvos</span><span class="p">.</span><span class="nf">deployment_target</span> <span class="o">=</span> <span class="s1">'9.0'</span>
+    <span class="n">ss</span><span class="p">.</span><span class="nf">dependency</span> <span class="s1">'AFNetworking/NSURLSession'</span>
+
+    <span class="n">ss</span><span class="p">.</span><span class="nf">source_files</span> <span class="o">=</span> <span class="s1">'UIKit+AFNetworking'</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<h3 id="subspec">#subspec</h3>
+
+<p>除了 attribute 装饰器声明的 setter 方法，还有几个自定义的方法是直接通过 eval 调用的。</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">subspec</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">block</span><span class="p">)</span>
+  <span class="n">subspec</span> <span class="o">=</span> <span class="no">Specification</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="nb">name</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">block</span><span class="p">)</span>
+  <span class="vi">@subspecs</span> <span class="o">&lt;&lt;</span> <span class="n">subspec</span>
+  <span class="n">subspec</span>
+<span class="k">end</span>
+
+<span class="k">def</span> <span class="nf">test_spec</span><span class="p">(</span><span class="nb">name</span> <span class="o">=</span> <span class="s1">'Tests'</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">block</span><span class="p">)</span>
+  <span class="n">subspec</span> <span class="o">=</span> <span class="no">Specification</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="nb">name</span><span class="p">,</span> <span class="kp">true</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">block</span><span class="p">)</span>
+  <span class="vi">@subspecs</span> <span class="o">&lt;&lt;</span> <span class="n">subspec</span>
+  <span class="n">subspec</span>
+<span class="k">end</span>
+
+<span class="k">def</span> <span class="nf">app_spec</span><span class="p">(</span><span class="nb">name</span> <span class="o">=</span> <span class="s1">'App'</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">block</span><span class="p">)</span>
+  <span class="n">appspec</span> <span class="o">=</span> <span class="no">Specification</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="nb">name</span><span class="p">,</span> <span class="ss">:app_specification</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">block</span><span class="p">)</span>
+  <span class="vi">@subspecs</span> <span class="o">&lt;&lt;</span> <span class="n">appspec</span>
+  <span class="n">appspec</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>这三种不同类型的 <code class="language-plaintext highlighter-rouge">Subspec</code> 经 <code class="language-plaintext highlighter-rouge">eval</code> 转换为对应的 <code class="language-plaintext highlighter-rouge">Specification</code> 对象，注意这里初始化后都将 parent 节点指向 <strong>self</strong> 同时存入 <code class="language-plaintext highlighter-rouge">@subspecs</code> 数组中，完成 <code class="language-plaintext highlighter-rouge">SubSpec</code> 依赖链的构造。</p>
+
+<h3 id="dependency">#dependency</h3>
+
+<p>对于其他 <code class="language-plaintext highlighter-rouge">pod</code> 依赖的添加我们通过 dependency 方法来实现：</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">dependency</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+  <span class="nb">name</span><span class="p">,</span> <span class="o">*</span><span class="n">version_requirements</span> <span class="o">=</span> <span class="n">args</span>
+  <span class="c1"># dependency args 有效性校验 ...</span>
+
+  <span class="n">attributes_hash</span><span class="p">[</span><span class="s1">'dependencies'</span><span class="p">]</span> <span class="o">||=</span> <span class="p">{}</span>
+  <span class="n">attributes_hash</span><span class="p">[</span><span class="s1">'dependencies'</span><span class="p">][</span><span class="nb">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">version_requirements</span>
+
+  <span class="k">unless</span> <span class="n">whitelisted_configurations</span><span class="p">.</span><span class="nf">nil?</span>
+    <span class="c1"># configuration 白名单过滤和校验 ...</span>
+
+    <span class="n">attributes_hash</span><span class="p">[</span><span class="s1">'configuration_pod_whitelist'</span><span class="p">]</span> <span class="o">||=</span> <span class="p">{}</span>
+    <span class="n">attributes_hash</span><span class="p">[</span><span class="s1">'configuration_pod_whitelist'</span><span class="p">][</span><span class="nb">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">whitelisted_configurations</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>dependency 方法内部主要是对依赖有效性的校验，限于篇幅这里不列出实现，核心要点如下：</p>
+
+<ol>
+  <li><strong>检查依赖循环</strong>，根据 <code class="language-plaintext highlighter-rouge">Spec</code> 名称判断 <code class="language-plaintext highlighter-rouge">Spec</code> 与自身，<code class="language-plaintext highlighter-rouge">Spec</code> 与<code class="language-plaintext highlighter-rouge">SubSpec</code>之间是否存在循环依赖；</li>
+  <li><strong>检查依赖来源</strong>，<code class="language-plaintext highlighter-rouge">Podspec</code> 中不支持 <code class="language-plaintext highlighter-rouge">:git</code> 或 <code class="language-plaintext highlighter-rouge">:path</code> 形式的来源指定，如需设定可通过 <code class="language-plaintext highlighter-rouge">Podfile</code> 来修改;</li>
+  <li><strong>检查 configuation 白名单</strong>，目前仅支持 Xcode 默认的 <code class="language-plaintext highlighter-rouge">Debug</code> 和 <code class="language-plaintext highlighter-rouge">Release</code> 的 configuration 配置；</li>
+</ol>
+
+<h1 id="创建并使用你的-pod">创建并使用你的 Pod</h1>
+
+<p>最后一节来两个实践：创建 Pod 以及在项目中使用 <code class="language-plaintext highlighter-rouge">SubSpecs</code>。</p>
+
+<h2 id="pod-创建">Pod 创建</h2>
+
+<p>pod 相关使用官方都提供了很详尽的都文档，本小节仅做介绍。</p>
+
+<h3 id="1-创建-pod">1. 创建 Pod</h3>
+
+<p>仅需一行命令完成 <code class="language-plaintext highlighter-rouge">Pod</code> 创建（<a href="https://guides.cocoapods.org/making/using-pod-lib-create.html">文档</a>）：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>pod lib create <span class="sb">`</span>NAME<span class="sb">`</span>
+</code></pre></div></div>
+
+<p>之后每一步都会输出友好提示，按照提示选择即可。在添加完 source code 和 dependency 之后，你还可以在 CocoaPods 为你提供的 Example 项目中运行和调试代码。</p>
+
+<p>准备就绪后，可以通过以下命令进行校验，检查 <code class="language-plaintext highlighter-rouge">Pod</code> 正确性：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>pod lib lint <span class="sb">`</span><span class="o">[</span>Podspec_PATHS ...]<span class="sb">`</span>
+</code></pre></div></div>
+
+<h3 id="2-发布-pod">2. 发布 Pod</h3>
+
+<p>校验通过后就可以将 <code class="language-plaintext highlighter-rouge">Pod</code> 发布了，你可以将 <code class="language-plaintext highlighter-rouge">PodSepc</code> 发布到  Master Repo 上，或者发布到内部的 Spec Repo 上。</p>
+
+<p><strong>CocoaPods Master Repo</strong></p>
+
+<p>如果发布的 CocoaPods 的主仓库，那么需要通过 CocoaPods 提供的 <strong>Trunk</strong> 命令：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>pod trunk push <span class="sb">`</span><span class="o">[</span>NAME.podspec]<span class="sb">`</span>
+</code></pre></div></div>
+
+<p>不过使用前需要先通过邮箱注册，详情查看<a href="https://guides.cocoapods.org/making/getting-setup-with-trunk.html">文档</a>。</p>
+
+<p><strong>Private Spec Repo</strong></p>
+
+<p>对于发布到私有仓库的，可通过 CocoaPods 提供的 <strong>Repo</strong> 命令：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>pod repo push <span class="sb">`</span>REPO_NAME<span class="sb">`</span> <span class="sb">`</span>SPEC_NAME.podspec<span class="sb">`</span>
+</code></pre></div></div>
+
+<p>文档详情 — <a href="https://guides.cocoapods.org/making/private-cocoapods.html">传送门</a>。</p>
+
+<h2 id="subspecs-in-podfile">SubSpecs In Podfile</h2>
+
+<p>在 <code class="language-plaintext highlighter-rouge">SubSpec</code> 一节提到过，在 CocoaPods 中 <code class="language-plaintext highlighter-rouge">SubSpec</code> 是被作为单独的依赖来看待的，这里就借这个实操来证明一下。</p>
+
+<p>在上文的实践中，我们知道每一个 <code class="language-plaintext highlighter-rouge">Pod</code> 库对应为 Xcode 项目中的一个个 target，那么当明确指定部分 <code class="language-plaintext highlighter-rouge">SubSpec</code> 时，它们也将被作为独立的 target 进行编译。不过这里需要明确一下使用场景：</p>
+
+<h3 id="1-single-target">1. Single Target</h3>
+
+<p>当主项目中仅有一个 target 或多个 target 引用了同一个 <code class="language-plaintext highlighter-rouge">pod</code> 库的多个不同 <code class="language-plaintext highlighter-rouge">SubSpec</code> 时，生成的 target 只会有一个。我们以 QMUIKit 为例，项目 Demo.project 下的 Podfile 配置如下：</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">target</span> <span class="s1">'Demo'</span> <span class="k">do</span>
+  <span class="n">pod</span> <span class="s1">'QMUIKit/QMUIComponents/QMUILabel'</span><span class="p">,</span> <span class="ss">:path</span> <span class="o">=&gt;</span> <span class="s1">'../QMUI_iOS'</span>
+  <span class="n">pod</span> <span class="s1">'QMUIKit/QMUIComponents/QMUIButton'</span><span class="p">,</span> <span class="ss">:path</span> <span class="o">=&gt;</span> <span class="s1">'../QMUI_iOS'</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1602123432109-ac15c4c8-89fd-4547-bbd0-704681fa8d77.png" alt="" /></p>
+
+<p>此时 <code class="language-plaintext highlighter-rouge">Pods.project</code> 下的 QMUIKit 的 target 名称为 <strong>QMUIKit</strong>。</p>
+
+<h3 id="2-multiple-target">2. Multiple Target</h3>
+
+<p>如果我们的主项目中存在多个 target 且使用同一个 <code class="language-plaintext highlighter-rouge">pod</code> 库的不同 <code class="language-plaintext highlighter-rouge">SubSpec</code> 时，结果则有所不同。</p>
+
+<p>现在我们在步骤 1 的基础上添加如下配置：</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">target</span> <span class="s1">'Demo2'</span> <span class="k">do</span>
+	<span class="n">pod</span> <span class="s1">'QMUIKit/QMUIComponents/QMUILog'</span><span class="p">,</span> <span class="ss">:path</span> <span class="o">=&gt;</span> <span class="s1">'../QMUI_iOS'</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1602123439862-d2a9f0e9-7177-4714-8914-364c5c77e18a.png" alt="" /></p>
+
+<p>可以发现，CocoaPods 为每个 tareget 对应的 <code class="language-plaintext highlighter-rouge">SubSpec</code> 依赖生成了不同的 QMUIKit targets。</p>
+
+<blockquote>
+  <p>Tips: 当主工程 target 依赖的 <code class="language-plaintext highlighter-rouge">Subspec</code> 数量过多导致的名称超过 50 个字符，将会对 subspec 后缀做摘要处理作为唯一标识符。</p>
+</blockquote>
+
+<h1 id="总结">总结</h1>
+
+<p>本文是 CocoaPods-Core 的第二篇，重点介绍了 <code class="language-plaintext highlighter-rouge">Podspec</code> 的类构成和解析实现，总结如下：</p>
+
+<ol>
+  <li>初探 <code class="language-plaintext highlighter-rouge">Podspec</code> 让我们对其能力边界和配置分类有了更好的了解；</li>
+  <li>深入 <code class="language-plaintext highlighter-rouge">Podspec</code> 我们发现其数据结构同 <code class="language-plaintext highlighter-rouge">Podfile</code> 类似，都是根据依赖关系建立对应的树结构；</li>
+  <li><code class="language-plaintext highlighter-rouge">Podspec</code> 针对单个库的源码和资源提供了更精细化的管理，<code class="language-plaintext highlighter-rouge">SubSpec</code> 结构的推出让大型 library 的内部分层提供了很好的工具；</li>
+  <li>装饰器模式结合 Ruby 的动态特性，让 <code class="language-plaintext highlighter-rouge">Podspec</code> 的 DSL 特性的实现起来更加优雅；</li>
+</ol>
+
+<h1 id="知识点问题梳理">知识点问题梳理</h1>
+
+<p>这里罗列了四个问题用来考察你是否已经掌握了这篇文章，如果没有建议你加入**收藏 **再次阅读：</p>
+
+<ol>
+  <li>说说 <code class="language-plaintext highlighter-rouge">Podspec</code> 所支持的配置有几类，分别具有哪些功能 ？</li>
+  <li><code class="language-plaintext highlighter-rouge">Podspec</code> 与 <code class="language-plaintext highlighter-rouge">SubSpec</code> 之间有哪些关系 ？</li>
+  <li>说说 <code class="language-plaintext highlighter-rouge">SubSpec</code> 的特点以及作用 ？</li>
+  <li>谈谈 <code class="language-plaintext highlighter-rouge">Podspec</code> 中的 DSL 解析与 <code class="language-plaintext highlighter-rouge">Podfile</code> 的解析实现有哪些区别 ？</li>
+</ol>
+</div><section class="article__sharing d-print-none"><!-- Addthis BEGIN --><script type="text/javascript"
+    src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-5f49bfe5e9a6234f"></script>
+  <div class="addthis_inline_share_toolbox addthis_default_style"></div><!-- Addthis END -->
+</section><div class="d-print-none"><footer class="article__footer"><meta itemprop="dateModified" content="2020-10-12T00:00:00-08:00"><!-- start custom article footer snippet -->
+
+<!-- end custom article footer snippet -->
+<div class="article__license"><div class="license">
+    <p style=" display: flex; align-items: center; ">
+     本作品采用 <a itemprop="license" rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a> 进行许可。
+      <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">
+        <img alt="Attribution-NonCommercial 4.0 International" src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png" />
+      </a>
+    </p>
+  </div></div></footer>
+<img src="/assets/qrcode.png" width="80%"/><div class="article__section-navigator clearfix"><div class="previous"><span>PREVIOUS</span><a href="/2020/10/08/cocoapods-story-ex-2.html">Ruby 黑魔法 - eval 和 alias</a></div><div class="next"><span>NEXT</span><a href="/2020/11/05/cocoapods-story-6.html">Podspec 管理策略</a></div></div></div>
+  
+</div>
+
+<script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    $(function() {
+      var $this ,$scroll;
+      var $articleContent = $('.js-article-content');
+      var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+      var scroll = hasSidebar ? '.js-page-main' : 'html, body';
+      $scroll = $(scroll);
+
+      $articleContent.find('.highlight').each(function() {
+        $this = $(this);
+        $this.attr('data-lang', $this.find('code').attr('data-lang'));
+      });
+      $articleContent.find('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]').each(function() {
+        $this = $(this);
+        $this.append($('<a class="anchor d-print-none" aria-hidden="true"></a>').html('<i class="fas fa-anchor"></i>'));
+      });
+      $articleContent.on('click', '.anchor', function() {
+        $scroll.scrollToAnchor('#' + $(this).parent().attr('id'), 400);
+      });
+    });
+  });
+})();
+</script>
+
+</div><section class="page__comments d-print-none"><style type="text/css">
+		.gitalk-wrapper .gt-header-textarea {
+			color: #333 !important;
+		}
+	</style><div class="gitalk-wrapper" id="js-gitalk-container"></div>
+	<script>
+		window.Lazyload.css('https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css');
+		var url = "/2020/10/12/cocoapods-story-5.html";
+		var key = url.split("/").pop();
+		key = key.substring(0, key.length - 5);
+		console.log("key", key);
+
+		var repo = 'desgard.github.com';
+
+		// 复用评论
+		var current_repo = '';
+		var current_key = '';
+		if (current_repo && current_repo !== '') {
+			repo = current_repo;
+		}
+		if (current_key && current_key !== '') {
+			key = current_key;
+		}
+
+		if (key !== "" && '' !== 'ban') {
+			window.Lazyload.js('https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', function() {
+				var gitalk = new Gitalk({
+					clientID: 'e2612df42f3f2a83e71c',
+					clientSecret: 'ad17bb24a3dba73607ec340ba593acba91414d99',
+					repo: repo,
+					owner: 'Desgard',
+					admin: ['Desgard'],
+					id: key,
+					distractionFreeMode: false
+				});
+				gitalk.render('js-gitalk-container');
+			});
+		}
+		
+		
+	</script></section></article><!-- start custom main bottom snippet -->
+<!-- end custom main bottom snippet -->
+</div>
+            </div></div></div><div class="page__footer d-print-none">
+<footer class="footer py-4 js-page-footer">
+  <div class="main"><div itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="冬瓜"><meta itemprop="url" content="https://www.desgard.com"><meta itemprop="description" content="I write more code to write less."><div class="footer__author-links"><div class="author-links">
+  <ul class="menu menu--nowrap menu--inline"><link itemprop="url" href="https://www.desgard.com"><li title="Send me an Email.">
+      <a class="button button--circle mail-button" itemprop="email" href="mailto:gua@desgard.com" target="_blank">
+        <i class="fas fa-envelope"></i>
+      </a><li title="Follow me on Facebook.">
+        <a class="button button--circle facebook-button" itemprop="sameAs" href="https://www.facebook.com/desgard.duan" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M767.428571 6.857143l0 150.857143-89.714286 0q-49.142857 0-66.285714 20.571429t-17.142857 61.714286l0 108 167.428571 0-22.285714 169.142857-145.142857 0 0 433.714286-174.857143 0 0-433.714286-145.714286 0 0-169.142857 145.714286 0 0-124.571429q0-106.285714 59.428571-164.857143t158.285714-58.571429q84 0 130.285714 6.857143z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Twitter.">
+        <a class="button button--circle twitter-button" itemprop="sameAs" href="https://twitter.com/Desgard_Duan" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M1024.032 194.432c-37.664 16.704-78.176 28-120.672 33.088 43.36-26.016 76.672-67.168 92.384-116.224-40.608 24.064-85.568 41.568-133.408 50.976-38.336-40.832-92.928-66.336-153.344-66.336-116.032 0-210.08 94.048-210.08 210.08 0 16.48 1.856 32.512 5.44 47.872-174.592-8.768-329.408-92.416-433.024-219.52-18.08 31.04-28.448 67.104-28.448 105.632 0 72.896 37.088 137.184 93.472 174.88-34.432-1.088-66.816-10.528-95.168-26.272-0.032 0.864-0.032 1.76-0.032 2.656 0 101.792 72.416 186.688 168.512 205.984-17.632 4.8-36.192 7.36-55.36 7.36-13.536 0-26.688-1.312-39.52-3.776 26.72 83.456 104.32 144.192 196.256 145.888-71.904 56.352-162.496 89.92-260.928 89.92-16.96 0-33.664-0.992-50.112-2.944 92.96 59.616 203.392 94.4 322.048 94.4 386.432 0 597.728-320.128 597.728-597.76 0-9.12-0.192-18.176-0.608-27.168 41.056-29.632 76.672-66.624 104.832-108.736z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Weibo.">
+        <a class="button button--circle weibo-button" itemprop="sameAs" href="https://weibo.com/desgard" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+	<path d="M769.226164 496.610234c-14.420098-4.330228-24.309277-7.266877-16.746482-26.214823 16.350218-41.133578 18.046881-76.626289 0.307181-101.939024-33.242099-47.500415-124.194284-44.928286-228.44638-1.280945 0-0.056317-32.73525 14.323848-24.371737-11.64523 16.042013-51.54906 13.626547-94.739726-11.332929-119.662341-56.566349-56.601163-206.976479 2.134908-335.954595 131.078209-96.594075 96.61353-152.681222 198.989775-152.681222 287.52035 0 169.337597 217.152361 272.292366 429.593589 272.292366 278.498445 0 463.752111-161.808592 463.752111-290.273715C893.345701 558.867622 827.968378 514.820945 769.226164 496.610234zM430.163922 866.063936c-169.51781 16.728051-315.851649-59.899262-326.864086-171.202185-11.010389-111.275277 117.530505-215.061482 287.031932-231.823323 169.537265-16.761841 315.876224 59.866496 326.86511 171.119247C728.190884 745.495411 599.705282 849.291856 430.163922 866.063936z" />
+	<path d="M954.16753 186.714824c-67.256246-74.565105-166.457264-102.990607-258.020739-83.522502l-0.037886 0c-21.188318 4.535015-34.695065 25.37929-30.159026 46.527675 4.516584 21.166816 25.352668 34.691993 46.54201 30.174385 65.139769-13.832358 135.634727 6.400627 183.442323 59.368863 47.765615 52.96414 60.740938 125.206957 40.282686 188.537431l0.011263 0.012287c-6.666851 20.629249 4.617954 42.698153 25.271777 49.366027 20.570885 6.662755 42.687913-4.607714 49.362955-25.188838 0-0.037886 0-0.116729 0.011263-0.150519C1039.577146 362.756133 1021.443231 261.206205 954.16753 186.714824" />
+	<path d="M850.886125 279.919669c-32.732179-36.315956-81.068126-50.108381-125.685136-40.621609-18.234261 3.885839-29.856965 21.833398-25.946551 40.085067 3.89915 18.173849 21.833398 29.851845 40.024654 25.893307l0 0.037886c21.809848-4.610786 45.459709 2.113405 61.461789 19.83365 16.018463 17.757107 20.323092 41.949655 13.45043 63.178931l0.035838 0c-5.715614 17.717174 3.983113 36.770584 21.717694 42.511796 17.7397 5.677728 36.76956-3.992328 42.493365-21.756603C892.458972 365.691759 883.686907 316.228458 850.886125 279.919669" />
+	<path d="M447.103928 548.691741c-80.666743-20.985579-171.84317 19.215193-206.880229 90.291746-35.685212 72.492657-1.180599 152.963828 80.321676 179.268757 84.41947 27.224424 183.926645-14.492797 218.521364-92.744074C573.187374 649.021137 530.586496 570.268131 447.103928 548.691741zM385.506979 733.819463c-16.398343 26.160554-51.51015 37.623523-77.954335 25.54824-26.066352-11.868448-33.760211-42.248645-17.360844-67.757975 16.197652-25.400793 50.129884-36.716316 76.378497-25.711046C393.129162 677.216253 401.60838 707.401901 385.506979 733.819463zM439.522702 664.493841c-5.929616 10.131852-19.03498 15.010909-29.304039 10.785123-10.096014-4.15411-13.261002-15.495231-7.522862-25.454038 5.906066-9.908634 18.500485-14.747758 28.572948-10.750309C441.502995 642.817105 445.180975 654.283146 439.522702 664.493841z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Zhihu.">
+        <a class="button button--circle zhihu-button" itemprop="sameAs" href="https://www.zhihu.com/people/devgua" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M351.791182 562.469462l192.945407 0c0-45.367257-21.3871-71.939449-21.3871-71.939449L355.897709 490.530013c3.977591-82.182744 7.541767-187.659007 8.816806-226.835262l159.282726 0c0 0-0.86367-67.402109-18.578124-67.402109s-279.979646 0-279.979646 0 16.850783-88.141456 39.318494-127.053698c0 0-83.60514-4.510734-112.121614 106.962104S81.344656 355.077018 76.80834 367.390461c-4.536316 12.313443 24.62791 5.832845 36.941354 0 12.313443-5.832845 68.050885-25.924439 84.252893-103.69571l86.570681 0c1.165546 49.28652 4.596691 200.335724 3.515057 226.835262L109.86113 490.530013c-25.275663 18.147312-33.701566 71.939449-33.701566 71.939449L279.868105 562.469462c-8.497535 56.255235-23.417339 128.763642-44.275389 167.210279-33.05279 60.921511-50.55235 116.65793-169.802314 212.576513 0 0-19.442818 14.257725 40.829917 9.073656 60.273758-5.185093 117.305683-20.739347 156.840094-99.807147 20.553105-41.107233 41.805128-93.250824 58.386782-146.138358l-0.055259 0.185218 167.855986 193.263655c0 0 22.035876-51.847855 5.832845-108.880803L371.045711 650.610918l-42.1244 31.157627-0.045025 0.151449c11.69946-41.020252 20.11206-81.5749 22.726607-116.858498C351.665315 564.212152 351.72876 563.345412 351.791182 562.469462z" p-id="907"></path><path d="M584.918753 182.033893l0 668.840094 70.318532 0 28.807093 80.512708 121.875768-80.512708 153.600307 0L959.520453 182.033893 584.918753 182.033893zM887.150192 778.934538l-79.837326 0-99.578949 65.782216-23.537066-65.782216-24.855084 0L659.341766 256.673847l227.807403 0L887.149169 778.934538z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Github.">
+        <a class="button button--circle github-button" itemprop="sameAs" href="https://github.com/Desgard" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path class="svgpath" data-index="path_0" fill="#272636" d="M0 525.2c0 223.6 143.3 413.7 343 483.5 26.9 6.8 22.8-12.4 22.8-25.4l0-88.7c-155.3 18.2-161.5-84.6-172-101.7-21.1-36-70.8-45.2-56-62.3 35.4-18.2 71.4 4.6 113.1 66.3 30.2 44.7 89.1 37.2 119 29.7 6.5-26.9 20.5-50.9 39.7-69.6C248.8 728.2 181.7 630 181.7 513.2c0-56.6 18.7-108.7 55.3-150.7-23.3-69.3 2.2-128.5 5.6-137.3 66.5-6 135.5 47.6 140.9 51.8 37.8-10.2 80.9-15.6 129.1-15.6 48.5 0 91.8 5.6 129.8 15.9 12.9-9.8 77-55.8 138.8-50.2 3.3 8.8 28.2 66.7 6.3 135 37.1 42.1 56 94.6 56 151.4 0 117-67.5 215.3-228.8 243.7 26.9 26.6 43.6 63.4 43.6 104.2l0 128.8c0.9 10.3 0 20.5 17.2 20.5C878.1 942.4 1024 750.9 1024 525.3c0-282.9-229.3-512-512-512C229.1 13.2 0 242.3 0 525.2L0 525.2z" />
+</svg>
+</div>
+        </a>
+      </li></ul>
+</div>
+</div>
+    </div><div class="site-info mt-2">
+      <div>© 一片瓜田 2020,
+        Powered by <a title="Jekyll is a simple, blog-aware, static site generator." href="http://jekyllrb.com/">Jekyll</a> & <a
+        title="TeXt is a super customizable Jekyll theme." href="https://github.com/kitian616/jekyll-TeXt-theme">TeXt Theme</a>.
+      </div>
+    </div>
+  </div>
+</footer>
+</div></div>
+    </div><script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $body = $('body'), $window = $(window);
+    var $pageRoot = $('.js-page-root'), $pageMain = $('.js-page-main');
+    var activeCount = 0;
+    function modal(options) {
+      var $root = this, visible, onChange, hideWhenWindowScroll = false;
+      var scrollTop;
+      function setOptions(options) {
+        var _options = options || {};
+        visible = _options.initialVisible === undefined ? false : show;
+        onChange = _options.onChange;
+        hideWhenWindowScroll = _options.hideWhenWindowScroll;
+      }
+      function init() {
+        setState(visible);
+      }
+      function setState(isShow) {
+        if (isShow === visible) {
+          return;
+        }
+        visible = isShow;
+        if (visible) {
+          activeCount++;
+          scrollTop = $(window).scrollTop() || $pageMain.scrollTop();
+          $root.addClass('modal--show');
+          $pageMain.scrollTop(scrollTop);
+          activeCount === 1 && ($pageRoot.addClass('show-modal'), $body.addClass('of-hidden'));
+          hideWhenWindowScroll && window.hasEvent('touchstart') && $window.on('scroll', hide);
+          $window.on('keyup', handleKeyup);
+        } else {
+          activeCount > 0 && activeCount--;
+          $root.removeClass('modal--show');
+          $window.scrollTop(scrollTop);
+          activeCount === 0 && ($pageRoot.removeClass('show-modal'), $body.removeClass('of-hidden'));
+          hideWhenWindowScroll && window.hasEvent('touchstart') && $window.off('scroll', hide);
+          $window.off('keyup', handleKeyup);
+        }
+        onChange && onChange(visible);
+      }
+      function show() {
+        setState(true);
+      }
+      function hide() {
+        setState(false);
+      }
+      function handleKeyup(e) {
+        // Char Code: 27  ESC
+        if (e.which ===  27) {
+          hide();
+        }
+      }
+      setOptions(options);
+      init();
+      return {
+        show: show,
+        hide: hide,
+        $el: $root
+      };
+    }
+    $.fn.modal = modal;
+  });
+})();
+</script><div class="modal modal--overflow page__search-modal d-print-none js-page-search-modal"><script>
+(function () {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    // search panel
+    var search = (window.search || (window.search = {}));
+    var useDefaultSearchBox = window.useDefaultSearchBox === undefined ?
+      true : window.useDefaultSearchBox ;
+
+    var $searchModal = $('.js-page-search-modal');
+    var $searchToggle = $('.js-search-toggle');
+    var searchModal = $searchModal.modal({ onChange: handleModalChange, hideWhenWindowScroll: true });
+    var modalVisible = false;
+    search.searchModal = searchModal;
+
+    var $searchBox = null;
+    var $searchInput = null;
+    var $searchClear = null;
+
+    function getModalVisible() {
+      return modalVisible;
+    }
+    search.getModalVisible = getModalVisible;
+
+    function handleModalChange(visible) {
+      modalVisible = visible;
+      if (visible) {
+        search.onShow && search.onShow();
+        useDefaultSearchBox && $searchInput[0] && $searchInput[0].focus();
+      } else {
+        search.onShow && search.onHide();
+        useDefaultSearchBox && $searchInput[0] && $searchInput[0].blur();
+        setTimeout(function() {
+          useDefaultSearchBox && ($searchInput.val(''), $searchBox.removeClass('not-empty'));
+          search.clear && search.clear();
+          window.pageAsideAffix && window.pageAsideAffix.refresh();
+        }, 400);
+      }
+    }
+
+    $searchToggle.on('click', function() {
+      modalVisible ? searchModal.hide() : searchModal.show();
+    });
+    // Char Code: 83  S, 191 /
+    $(window).on('keyup', function(e) {
+      if (!modalVisible && !window.isFormElement(e.target || e.srcElement) && (e.which === 83 || e.which === 191)) {
+        modalVisible || searchModal.show();
+      }
+    });
+
+    if (useDefaultSearchBox) {
+      $searchBox = $('.js-search-box');
+      $searchInput = $searchBox.children('input');
+      $searchClear = $searchBox.children('.js-icon-clear');
+      search.getSearchInput = function() {
+        return $searchInput.get(0);
+      };
+      search.getVal = function() {
+        return $searchInput.val();
+      };
+      search.setVal = function(val) {
+        $searchInput.val(val);
+      };
+
+      $searchInput.on('focus', function() {
+        $(this).addClass('focus');
+      });
+      $searchInput.on('blur', function() {
+        $(this).removeClass('focus');
+      });
+      $searchInput.on('input', window.throttle(function() {
+        var val = $(this).val();
+        if (val === '' || typeof val !== 'string') {
+          search.clear && search.clear();
+        } else {
+          $searchBox.addClass('not-empty');
+          search.onInputNotEmpty && search.onInputNotEmpty(val);
+        }
+      }, 400));
+      $searchClear.on('click', function() {
+        $searchInput.val(''); $searchBox.removeClass('not-empty');
+        search.clear && search.clear();
+      });
+    }
+  });
+})();
+</script><div class="search search--dark">
+  <div class="main">
+    <div class="search__header">Search</div>
+    <div class="search-bar">
+      <div class="search-box js-search-box">
+        <div class="search-box__icon-search"><i class="fas fa-search"></i></div>
+        <input type="text" />
+        <div class="search-box__icon-clear js-icon-clear">
+          <a><i class="fas fa-times"></i></a>
+        </div>
+      </div>
+      <button class="button button--theme-dark button--pill search__cancel js-search-toggle">
+        Cancel</button>
+    </div>
+    <div class="search-result js-search-result"></div>
+  </div>
+</div>
+<script>var SOURCES = window.TEXT_VARIABLES.sources;
+var PAHTS = window.TEXT_VARIABLES.paths;
+window.Lazyload.js([SOURCES.jquery, PAHTS.search_js], function() {
+  var search = (window.search || (window.search = {}));
+  var searchData = window.TEXT_SEARCH_DATA || {};
+
+  function memorize(f) {
+    var cache = {};
+    return function () {
+      var key = Array.prototype.join.call(arguments, ',');
+      if (key in cache) return cache[key];
+      else return cache[key] = f.apply(this, arguments);
+    };
+  }
+
+  /// search
+  function searchByQuery(query) {
+    var i, j, key, keys, cur, _title, result = {};
+    keys = Object.keys(searchData);
+    for (i = 0; i < keys.length; i++) {
+      key = keys[i];
+      for (j = 0; j < searchData[key].length; j++) {
+        cur = searchData[key][j], _title = cur.title;
+        if ((result[key] === undefined || result[key] && result[key].length < 4 )
+          && _title.toLowerCase().indexOf(query.toLowerCase()) >= 0) {
+          if (result[key] === undefined) {
+            result[key] = [];
+          }
+          result[key].push(cur);
+        }
+      }
+    }
+    return result;
+  }
+
+  var renderHeader = memorize(function(header) {
+    return $('<p class="search-result__header">' + header + '</p>');
+  });
+
+  var renderItem = function(index, title, url) {
+    return $('<li class="search-result__item" data-index="' + index + '"><a class="button" href="' + url + '">' + title + '</a></li>');
+  };
+
+  function render(data) {
+    if (!data) { return null; }
+    var $root = $('<ul></ul>'), i, j, key, keys, cur, itemIndex = 0;
+    keys = Object.keys(data);
+    for (i = 0; i < keys.length; i++) {
+      key = keys[i];
+      $root.append(renderHeader(key));
+      for (j = 0; j < data[key].length; j++) {
+        cur = data[key][j];
+        $root.append(renderItem(itemIndex++, cur.title, cur.url));
+      }
+    }
+    return $root;
+  }
+
+  // search box
+  var $result = $('.js-search-result'), $resultItems;
+  var lastActiveIndex, activeIndex;
+
+  function clear() {
+    $result.html(null);
+    $resultItems = $('.search-result__item'); activeIndex = 0;
+  }
+  function onInputNotEmpty(val) {
+    $result.html(render(searchByQuery(val)));
+    $resultItems = $('.search-result__item'); activeIndex = 0;
+    $resultItems.eq(0).addClass('active');
+  }
+
+  search.clear = clear;
+  search.onInputNotEmpty = onInputNotEmpty;
+
+  function updateResultItems() {
+    lastActiveIndex >= 0 && $resultItems.eq(lastActiveIndex).removeClass('active');
+    activeIndex >= 0 && $resultItems.eq(activeIndex).addClass('active');
+  }
+
+  function moveActiveIndex(direction) {
+    var itemsCount = $resultItems ? $resultItems.length : 0;
+    if (itemsCount > 1) {
+      lastActiveIndex = activeIndex;
+      if (direction === 'up') {
+        activeIndex = (activeIndex - 1 + itemsCount) % itemsCount;
+      } else if (direction === 'down') {
+        activeIndex = (activeIndex + 1 + itemsCount) % itemsCount;
+      }
+      updateResultItems();
+    }
+  }
+
+  // Char Code: 13  Enter, 37  ⬅, 38  ⬆, 39  ➡, 40  ⬇
+  $(window).on('keyup', function(e) {
+    var modalVisible = search.getModalVisible && search.getModalVisible();
+    if (modalVisible) {
+      if (e.which === 38) {
+        modalVisible && moveActiveIndex('up');
+      } else if (e.which === 40) {
+        modalVisible && moveActiveIndex('down');
+      } else if (e.which === 13) {
+        modalVisible && $resultItems && activeIndex >= 0 && $resultItems.eq(activeIndex).children('a')[0].click();
+      }
+    }
+  });
+
+  $result.on('mouseover', '.search-result__item > a', function() {
+    var itemIndex = $(this).parent().data('index');
+    itemIndex >= 0 && (lastActiveIndex = activeIndex, activeIndex = itemIndex, updateResultItems());
+  });
+});
+</script>
+</div></div>
+
+
+<script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function scrollToAnchor(anchor, duration, callback) {
+      var $root = this;
+      $root.animate({ scrollTop: $(anchor).position().top }, duration, function() {
+        window.history.replaceState(null, '', window.location.href.split('#')[0] + anchor);
+        callback && callback();
+      });
+    }
+    $.fn.scrollToAnchor = scrollToAnchor;
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function affix(options) {
+      var $root = this, $window = $(window), $scrollTarget, $scroll,
+        offsetBottom = 0, scrollTarget = window, scroll = window.document, disabled = false, isOverallScroller = true,
+        rootTop, rootLeft, rootHeight, scrollBottom, rootBottomTop,
+        hasInit = false, curState;
+
+      function setOptions(options) {
+        var _options = options || {};
+        _options.offsetBottom && (offsetBottom = _options.offsetBottom);
+        _options.scrollTarget && (scrollTarget = _options.scrollTarget);
+        _options.scroll && (scroll = _options.scroll);
+        _options.disabled !== undefined && (disabled = _options.disabled);
+        $scrollTarget = $(scrollTarget);
+        isOverallScroller = window.isOverallScroller($scrollTarget[0]);
+        $scroll = $(scroll);
+      }
+      function preCalc() {
+        top();
+        rootHeight = $root.outerHeight();
+        rootTop = $root.offset().top + (isOverallScroller ? 0 :  $scrollTarget.scrollTop());
+        rootLeft = $root.offset().left;
+      }
+      function calc(needPreCalc) {
+        needPreCalc && preCalc();
+        scrollBottom = $scroll.outerHeight() - offsetBottom - rootHeight;
+        rootBottomTop = scrollBottom - rootTop;
+      }
+      function top() {
+        if (curState !== 'top') {
+          $root.removeClass('fixed').css({
+            left: 0,
+            top: 0
+          });
+          curState = 'top';
+        }
+      }
+      function fixed() {
+        if (curState !== 'fixed') {
+          $root.addClass('fixed').css({
+            left: rootLeft + 'px',
+            top: 0
+          });
+          curState = 'fixed';
+        }
+      }
+      function bottom() {
+        if (curState !== 'bottom') {
+          $root.removeClass('fixed').css({
+            left: 0,
+            top: rootBottomTop + 'px'
+          });
+          curState = 'bottom';
+        }
+      }
+      function setState() {
+        var scrollTop = $scrollTarget.scrollTop();
+        if (scrollTop >= rootTop && scrollTop <= scrollBottom) {
+          fixed();
+        } else if (scrollTop < rootTop) {
+          top();
+        } else {
+          bottom();
+        }
+      }
+      function init() {
+        if(!hasInit) {
+          var interval, timeout;
+          calc(true); setState();
+          // run calc every 100 millisecond
+          interval = setInterval(function() {
+            calc();
+          }, 100);
+          timeout = setTimeout(function() {
+            clearInterval(interval);
+          }, 45000);
+          window.pageLoad.then(function() {
+            setTimeout(function() {
+              clearInterval(interval);
+              clearTimeout(timeout);
+            }, 3000);
+          });
+          $scrollTarget.on('scroll', function() {
+            disabled || setState();
+          });
+          $window.on('resize', function() {
+            disabled || (calc(true), setState());
+          });
+          hasInit = true;
+        }
+      }
+
+      setOptions(options);
+      if (!disabled) {
+        init();
+      }
+      $window.on('resize', window.throttle(function() {
+        init();
+      }, 200));
+      return {
+        setOptions: setOptions,
+        refresh: function() {
+          calc(true, { animation: false }); setState();
+        }
+      };
+    }
+    $.fn.affix = affix;
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function toc(options) {
+      var $root = this, $window = $(window), $scrollTarget, $scroller, $tocUl = $('<ul class="toc toc--ellipsis"></ul>'), $tocLi, $headings, $activeLast, $activeCur,
+        selectors = 'h1,h2,h3', container = 'body', scrollTarget = window, scroller = 'html, body', disabled = false,
+        headingsPos, scrolling = false, hasRendered = false, hasInit = false;
+
+      function setOptions(options) {
+        var _options = options || {};
+        _options.selectors && (selectors = _options.selectors);
+        _options.container && (container = _options.container);
+        _options.scrollTarget && (scrollTarget = _options.scrollTarget);
+        _options.scroller && (scroller = _options.scroller);
+        _options.disabled !== undefined && (disabled = _options.disabled);
+        $headings = $(container).find(selectors).filter('[id]');
+        $scrollTarget = $(scrollTarget);
+        $scroller = $(scroller);
+      }
+      function calc() {
+        headingsPos = [];
+        $headings.each(function() {
+          headingsPos.push(Math.floor($(this).position().top));
+        });
+      }
+      function setState(element, disabled) {
+        var scrollTop = $scrollTarget.scrollTop(), i;
+        if (disabled || !headingsPos || headingsPos.length < 1) { return; }
+        if (element) {
+          $activeCur = element;
+        } else {
+          for (i = 0; i < headingsPos.length; i++) {
+            if (scrollTop >= headingsPos[i]) {
+              $activeCur = $tocLi.eq(i);
+            } else {
+              $activeCur || ($activeCur = $tocLi.eq(i));
+              break;
+            }
+          }
+        }
+        $activeLast && $activeLast.removeClass('active');
+        ($activeLast = $activeCur).addClass('active');
+      }
+      function render() {
+        if(!hasRendered) {
+          $root.append($tocUl);
+          $headings.each(function() {
+            var $this = $(this);
+            $tocUl.append($('<li></li>').addClass('toc-' + $this.prop('tagName').toLowerCase())
+              .append($('<a></a>').text($this.text()).attr('href', '#' + $this.prop('id'))));
+          });
+          $tocLi = $tocUl.children('li');
+          $tocUl.on('click', 'a', function(e) {
+            e.preventDefault();
+            var $this = $(this);
+            scrolling = true;
+            setState($this.parent());
+            $scroller.scrollToAnchor($this.attr('href'), 400, function() {
+              scrolling = false;
+            });
+          });
+        }
+        hasRendered = true;
+      }
+      function init() {
+        var interval, timeout;
+        if(!hasInit) {
+          render(); calc(); setState(null, scrolling);
+          // run calc every 100 millisecond
+          interval = setInterval(function() {
+            calc();
+          }, 100);
+          timeout = setTimeout(function() {
+            clearInterval(interval);
+          }, 45000);
+          window.pageLoad.then(function() {
+            setTimeout(function() {
+              clearInterval(interval);
+              clearTimeout(timeout);
+            }, 3000);
+          });
+          $scrollTarget.on('scroll', function() {
+            disabled || setState(null, scrolling);
+          });
+          $window.on('resize', window.throttle(function() {
+            if (!disabled) {
+              render(); calc(); setState(null, scrolling);
+            }
+          }, 100));
+        }
+        hasInit = true;
+      }
+
+      setOptions(options);
+      if (!disabled) {
+        init();
+      }
+      $window.on('resize', window.throttle(function() {
+        init();
+      }, 200));
+      return {
+        setOptions: setOptions
+      };
+    }
+    $.fn.toc = toc;
+  });
+})();
+/*(function () {
+
+})();*/
+</script><script>
+  /* toc must before affix, since affix need to konw toc' height. */(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  var TOC_SELECTOR = window.TEXT_VARIABLES.site.toc.selectors;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $window = $(window);
+    var $articleContent = $('.js-article-content');
+    var $tocRoot = $('.js-toc-root'), $col2 = $('.js-col-aside');
+    var toc;
+    var tocDisabled = false;
+    var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+    var hasToc = $articleContent.find(TOC_SELECTOR).length > 0;
+
+    function disabled() {
+      return $col2.css('display') === 'none' || !hasToc;
+    }
+
+    tocDisabled = disabled();
+
+    toc = $tocRoot.toc({
+      selectors: TOC_SELECTOR,
+      container: $articleContent,
+      scrollTarget: hasSidebar ? '.js-page-main' : null,
+      scroller: hasSidebar ? '.js-page-main' : null,
+      disabled: tocDisabled
+    });
+
+    $window.on('resize', window.throttle(function() {
+      tocDisabled = disabled();
+      toc && toc.setOptions({
+        disabled: tocDisabled
+      });
+    }, 100));
+
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $window = $(window), $pageFooter = $('.js-page-footer');
+    var $pageAside = $('.js-page-aside');
+    var affix;
+    var tocDisabled = false;
+    var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+
+    affix = $pageAside.affix({
+      offsetBottom: $pageFooter.outerHeight(),
+      scrollTarget: hasSidebar ? '.js-page-main' : null,
+      scroller: hasSidebar ? '.js-page-main' : null,
+      scroll: hasSidebar ? $('.js-page-main').children() : null,
+      disabled: tocDisabled
+    });
+
+    $window.on('resize', window.throttle(function() {
+      affix && affix.setOptions({
+        disabled: tocDisabled
+      });
+    }, 100));
+
+    window.pageAsideAffix = affix;
+  });
+})();
+</script><script>
+  window.Lazyload.js(['https://cdn.bootcss.com/jquery/3.1.1/jquery.min.js', 'https://cdn.bootcss.com/Chart.js/2.7.2/Chart.bundle.min.js'], function() {
+    var $canvas = null, $this = null, _ctx = null, _text = '';
+    $('.language-chart').each(function(){
+      $this = $(this);
+      $canvas = $('<canvas></canvas>');
+      _text = $this.text();
+      $this.text('').append($canvas);
+      _ctx = $canvas.get(0).getContext('2d');
+      (_ctx && _text) && (new Chart(_ctx, JSON.parse(_text)) && $this.attr('data-processed', true));
+    });
+  });
+</script>
+<script type="text/x-mathjax-config">
+	var _config = { tex2jax: {
+		inlineMath: [['$','$'], ['\\(','\\)']]
+	}};MathJax.Hub.Config(_config);
+</script>
+<script type="text/javascript" src="https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+<script>
+  window.Lazyload.js('https://cdn.bootcss.com/mermaid/8.0.0-rc.8/mermaid.min.js', function() {
+    mermaid.initialize({
+      startOnLoad: true
+    });
+    mermaid.init(undefined, '.language-mermaid');
+  });
+</script>
+
+    </div>
+    <script>(function () {
+  var $root = document.getElementsByClassName('root')[0];
+  if (window.hasEvent('touchstart')) {
+    $root.dataset.isTouch = true;
+    document.addEventListener('touchstart', function(){}, false);
+  }
+})();
+</script>
+  </body>
+</html>
+

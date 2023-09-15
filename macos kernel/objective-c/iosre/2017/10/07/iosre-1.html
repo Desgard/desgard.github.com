@@ -1,0 +1,1470 @@
+<!DOCTYPE html><html lang="zh_CN">
+  <head><!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-TM7J1LHC1Z"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+		gtag('js', new Date());
+
+		gtag('config', 'G-TM7J1LHC1Z');
+		
+			gtag('config', 'G-TM7J1LHC1Z', { 'anonymize_ip': true });
+		
+	</script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><title>Mach-O 文件格式探索 - 一片瓜田</title><meta name="description" content="最近开始研究 iOS 逆向的相关知识，并且使用 MonkeyDev 对 WeChat 进行了实战。这里我放出后期会持续更新的个人项目 WeCheat。在逆向专题真正开始之前，需要系统的学习一些软件内幕知识。这篇文章将从二进制格式开始讲起，并探秘 Mach-O 文件格式内容。进程与二进制格式进程在众多操作系统中都有...">
+<link rel="canonical" href="https://www.desgard.com/macos%20kernel/objective-c/iosre/2017/10/07/iosre-1.html"><link rel="alternate" type="application/rss+xml" title="一片瓜田" href="/feed.xml"><!-- start favicons snippet, use https://realfavicongenerator.net/ --><link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png"><link rel="manifest" href="/assets/site.webmanifest"><link rel="mask-icon" href="/assets/safari-pinned-tab.svg" color="#fc4d50"><link rel="shortcut icon" href="/assets/favicon.ico">
+
+<meta name="msapplication-TileColor" content="#ffc40d"><meta name="msapplication-config" content="/assets/browserconfig.xml">
+
+<meta name="theme-color" content="#ffffff">
+<!-- end favicons snippet --><link rel="stylesheet" href="/assets/css/main.css"><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" ><!-- start custom head snippets -->
+
+<!-- end custom head snippets -->
+<script>(function() {
+  window.isArray = function(val) {
+    return Object.prototype.toString.call(val) === '[object Array]';
+  };
+  window.isString = function(val) {
+    return typeof val === 'string';
+  };
+
+  window.hasEvent = function(event) {
+    return 'on'.concat(event) in window.document;
+  };
+
+  window.isOverallScroller = function(node) {
+    return node === document.documentElement || node === document.body || node === window;
+  };
+
+  window.isFormElement = function(node) {
+    var tagName = node.tagName;
+    return tagName === 'INPUT' || tagName === 'SELECT' || tagName === 'TEXTAREA';
+  };
+
+  window.pageLoad = (function () {
+    var loaded = false, cbs = [];
+    window.addEventListener('load', function () {
+      var i;
+      loaded = true;
+      if (cbs.length > 0) {
+        for (i = 0; i < cbs.length; i++) {
+          cbs[i]();
+        }
+      }
+    });
+    return {
+      then: function(cb) {
+        cb && (loaded ? cb() : (cbs.push(cb)));
+      }
+    };
+  })();
+})();
+(function() {
+  window.throttle = function(func, wait) {
+    var args, result, thisArg, timeoutId, lastCalled = 0;
+
+    function trailingCall() {
+      lastCalled = new Date;
+      timeoutId = null;
+      result = func.apply(thisArg, args);
+    }
+    return function() {
+      var now = new Date,
+        remaining = wait - (now - lastCalled);
+
+      args = arguments;
+      thisArg = this;
+
+      if (remaining <= 0) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+        lastCalled = now;
+        result = func.apply(thisArg, args);
+      } else if (!timeoutId) {
+        timeoutId = setTimeout(trailingCall, remaining);
+      }
+      return result;
+    };
+  };
+})();
+(function() {
+  var Set = (function() {
+    var add = function(item) {
+      var i, data = this._data;
+      for (i = 0; i < data.length; i++) {
+        if (data[i] === item) {
+          return;
+        }
+      }
+      this.size ++;
+      data.push(item);
+      return data;
+    };
+
+    var Set = function(data) {
+      this.size = 0;
+      this._data = [];
+      var i;
+      if (data.length > 0) {
+        for (i = 0; i < data.length; i++) {
+          add.call(this, data[i]);
+        }
+      }
+    };
+    Set.prototype.add = add;
+    Set.prototype.get = function(index) { return this._data[index]; };
+    Set.prototype.has = function(item) {
+      var i, data = this._data;
+      for (i = 0; i < data.length; i++) {
+        if (this.get(i) === item) {
+          return true;
+        }
+      }
+      return false;
+    };
+    Set.prototype.is = function(map) {
+      if (map._data.length !== this._data.length) { return false; }
+      var i, j, flag, tData = this._data, mData = map._data;
+      for (i = 0; i < tData.length; i++) {
+        for (flag = false, j = 0; j < mData.length; j++) {
+          if (tData[i] === mData[j]) {
+            flag = true;
+            break;
+          }
+        }
+        if (!flag) { return false; }
+      }
+      return true;
+    };
+    Set.prototype.values = function() {
+      return this._data;
+    };
+    return Set;
+  })();
+
+  window.Lazyload = (function(doc) {
+    var queue = {js: [], css: []}, sources = {js: {}, css: {}}, context = this;
+    var createNode = function(name, attrs) {
+      var node = doc.createElement(name), attr;
+      for (attr in attrs) {
+        if (attrs.hasOwnProperty(attr)) {
+          node.setAttribute(attr, attrs[attr]);
+        }
+      }
+      return node;
+    };
+    var end = function(type, url) {
+      var s, q, qi, cbs, i, j, cur, val, flag;
+      if (type === 'js' || type ==='css') {
+        s = sources[type], q = queue[type];
+        s[url] = true;
+        for (i = 0; i < q.length; i++) {
+          cur = q[i];
+          if (cur.urls.has(url)) {
+            qi = cur, val = qi.urls.values();
+            qi && (cbs = qi.callbacks);
+            for (flag = true, j = 0; j < val.length; j++) {
+              cur = val[j];
+              if (!s[cur]) {
+                flag = false;
+              }
+            }
+            if (flag && cbs && cbs.length > 0) {
+              for (j = 0; j < cbs.length; j++) {
+                cbs[j].call(context);
+              }
+              qi.load = true;
+            }
+          }
+        }
+      }
+    };
+    var load = function(type, urls, callback) {
+      var s, q, qi, node, i, cur,
+        _urls = typeof urls === 'string' ? new Set([urls]) : new Set(urls), val, url;
+      if (type === 'js' || type ==='css') {
+        s = sources[type], q = queue[type];
+        for (i = 0; i < q.length; i++) {
+          cur = q[i];
+          if (_urls.is(cur.urls)) {
+            qi = cur;
+            break;
+          }
+        }
+        val = _urls.values();
+        if (qi) {
+          callback && (qi.load || qi.callbacks.push(callback));
+          callback && (qi.load && callback());
+        } else {
+          q.push({
+            urls: _urls,
+            callbacks: callback ? [callback] : [],
+            load: false
+          });
+          for (i = 0; i < val.length; i++) {
+            node = null, url = val[i];
+            if (s[url] === undefined) {
+              (type === 'js' ) && (node = createNode('script', { src: url }));
+              (type === 'css') && (node = createNode('link', { rel: 'stylesheet', href: url }));
+              if (node) {
+                node.onload = (function(type, url) {
+                  return function() {
+                    end(type, url);
+                  };
+                })(type, url);
+                (doc.head || doc.body).appendChild(node);
+                s[url] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+    return {
+      js: function(url, callback) {
+        load('js', url, callback);
+      },
+      css: function(url, callback) {
+        load('css', url, callback);
+      }
+    };
+  })(this.document);
+})();
+</script><script>
+  (function() {
+    var TEXT_VARIABLES = {
+      version: '2.2.6',
+      sources: {
+        font_awesome: 'https://use.fontawesome.com/releases/v5.0.13/css/all.css',
+        jquery: 'https://cdn.bootcss.com/jquery/3.1.1/jquery.min.js',
+        leancloud_js_sdk: '//cdn.jsdelivr.net/npm/leancloud-storage@3.13.2/dist/av-min.js',
+        chart: 'https://cdn.bootcss.com/Chart.js/2.7.2/Chart.bundle.min.js',
+        gitalk: {
+          js: 'https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js',
+          css: 'https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css'
+        },
+        valine: 'https://unpkg.com/valine/dist/Valine.min.js',
+        mathjax: 'https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML',
+        mermaid: 'https://cdn.bootcss.com/mermaid/8.0.0-rc.8/mermaid.min.js'
+      },
+      site: {
+        toc: {
+          selectors: 'h1,h2,h3'
+        }
+      },
+      paths: {
+        search_js: '/assets/search.js'
+      }
+    };
+    window.TEXT_VARIABLES = TEXT_VARIABLES;
+  })();
+</script>
+</head>
+  <body>
+    <div class="root" data-is-touch="false">
+      <div class="layout--page js-page-root"><div class="page__main js-page-main page__viewport has-aside cell cell--auto">
+
+      <div class="page__main-inner"><div class="page__header d-print-none"><header class="header"><div class="main">
+      <div class="header__title">
+        <div class="header__brand"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect y="5" width="24" height="13.8483" fill="url(#pattern0)"/>
+<defs>
+<pattern id="pattern0" patternContentUnits="objectBoundingBox" width="1" height="1">
+<use xlink:href="#image0" transform="scale(0.00229885 0.00398406)"/>
+</pattern>
+<image id="image0" width="435" height="251" xlink:href="data:image/png;base64,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"/>
+</defs>
+</svg>
+<a title="I write more code to write less.
+" href="/">一片瓜田</a></div><button class="button button--secondary button--circle search-button js-search-toggle"><i class="fas fa-search"></i></button></div><nav class="navigation">
+        <ul><li class="navigation__item"><a href="https://www.desgard.com/algo/index.html">《Alog》</a></li><li class="navigation__item"><a href="/feed.xml">RSS</a></li><li class="navigation__item"><a href="/qrcode">Wechat</a></li><li><button class="button button--secondary button--circle search-button js-search-toggle"><i class="fas fa-search"></i></button></li></ul>
+      </nav></div>
+  </header>
+</div><div class="page__content"><div class ="main"><div class="grid grid--reverse">
+
+              <!-- 不需要 -->
+              <!-- <div class="col-aside d-print-none js-col-aside"><aside class="page__aside js-page-aside"><div class="toc-aside js-toc-root"></div>
+</aside></div> -->
+
+              <div class="col-main cell cell--auto"><!-- start custom main top snippet -->
+
+<!-- end custom main top snippet -->
+<article itemscope itemtype="http://schema.org/Article"><div class="article__header"><header><h1>Mach-O 文件格式探索</h1></header><span class="split-space">&nbsp;</span>
+          <!-- <a class="edit-on-github"
+            title="Edit on Github"
+            href="https://github.com/Desgard/desgard.github.com/tree/guardia-v5.0/_posts/2017-10-08-iosre-1.md">
+            <i class="far fa-edit"></i></a> --></div><meta itemprop="headline" content="Mach-O 文件格式探索"><div class="article__info clearfix"><ul class="left-col menu"><li>
+              <a class="button button--secondary button--pill button--sm"
+                href="/archive.html?tag=Objective-C">Objective-C</a>
+            </li></ul><ul class="right-col menu"><!-- <li><i class="fas fa-user"></i> <span>冬瓜</span></li> --><li><!-- <i class="far fa-calendar-alt"></i>  -->
+              <span>Oct 07, 2017</span>
+            </li></ul></div><meta itemprop="author" content="冬瓜"/><meta itemprop="datePublished" content="2017-10-07T17:01:00-08:00">
+    <meta itemprop="keywords" content="Objective-C"><div class="js-article-content"><div class="layout--article"><!-- start custom article top snippet -->
+
+<!-- end custom article top snippet -->
+<div class="article__content" itemprop="articleBody"><p>最近开始研究 iOS 逆向的相关知识，并且使用 <a href="https://github.com/AloneMonkey/MonkeyDev/">MonkeyDev</a> 对 WeChat 进行了实战。这里我放出后期会持续更新的个人项目 <a href="https://github.com/Desgard/WeCheat">WeCheat</a>。在逆向专题真正开始之前，需要系统的学习一些软件内幕知识。这篇文章将从二进制格式开始讲起，并探秘 Mach-O 文件格式内容。</p>
+
+<h2 id="进程与二进制格式">进程与二进制格式</h2>
+
+<p>进程在众多操作系统中都有提及，它是作为一个正在执行的程序的实例，这是 UNIX 的一个基本概念。而进程的出现是特殊文件在内存中加载得到的结果，这种文件必须使用操作系统可以认知的格式，这样才对该文件引入依赖库，初始化运行环境以及顺利地执行创造条件。</p>
+
+<p><strong>Mach-O</strong>（Mach Object File Format）是 macOS 上的可执行文件格式，类似于 Linux 和大部分 UNIX 的原生格式 <strong>ELF</strong>（Extensible Firmware Interface）。为了更加全面的了解这块内容，我们看一下 macOS 支持的三种可执行格式：解释器脚本格式、通用二进制格式和 Mach-O 格式。</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>可执行格式</th>
+      <th>magic</th>
+      <th>用途</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>脚本</td>
+      <td><code class="language-plaintext highlighter-rouge">\x7FELF</code></td>
+      <td>主要用于 shell 脚本，但是也常用语其他解释器，如 Perl, AWK 等。也就是我们常见的脚本文件中在 <code class="language-plaintext highlighter-rouge">#!</code> 标记后的字符串，即为执行命令的指令方式，以文件的 stdin 来传递命令</td>
+    </tr>
+    <tr>
+      <td>通用二进制格式</td>
+      <td><code class="language-plaintext highlighter-rouge">0xcafebabe</code> <br /><code class="language-plaintext highlighter-rouge">0xbebafeca</code></td>
+      <td>包含多种架构支持的二进制格式，只在 macOS 上支持</td>
+    </tr>
+    <tr>
+      <td>Mach-O</td>
+      <td><code class="language-plaintext highlighter-rouge">0xfeedface</code>（32 位）<br /> <code class="language-plaintext highlighter-rouge">0xfeedfacf</code>（64 位）</td>
+      <td>macOS 的原生二进制格式</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="通用二进制格式universal-binary">通用二进制格式（Universal Binary）</h3>
+
+<p>这个格式在有些资料中也叫胖二进制格式（Fat Binary），Apple 提出这个概念是为了解决一些历史原因，macOS（更确切的应该说是 OS X）最早是构建于 PPC 架构之上，后来才移植到 Intel 架构（从 Mac OS X Tiger 10.4.7 开始），通用二进制格式的二进制文件可以在 PPC 和 x86 两种处理器上执行。</p>
+
+<p>说到底，通用二进制格式只不过是对多架构的二进制文件的打包集合文件，而 macOS 中的多架构二进制文件也就是适配不同架构的 Mach-O 文件。</p>
+
+<p><strong>Fat Header</strong> 的数据结构在 <code class="language-plaintext highlighter-rouge">&lt;mach-o/fat.h&gt;</code> 头文件中有定义，可以参看 <code class="language-plaintext highlighter-rouge">/usr/include/mach-o/fat.h</code> 找到定义头：</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"> 
+<span class="c1">#define FAT_MAGIC	0xcafebabe</span>
+<span class="c1">#define FAT_CIGAM	0xbebafeca	/* NXSwapLong(FAT_MAGIC) */</span>
+
+<span class="n">struct</span> <span class="n">fat_header</span> <span class="p">{</span>
+	<span class="n">uint32_t</span>	<span class="n">magic</span><span class="p">;</span>		<span class="sr">/* FAT_MAGIC 或 FAT_MAGIC_64 */</span>
+	<span class="n">uint32_t</span>	<span class="n">nfat_arch</span><span class="p">;</span>	<span class="sr">/* 结构体实例的个数 */</span>
+<span class="p">};</span>
+
+<span class="n">struct</span> <span class="n">fat_arch</span> <span class="p">{</span>
+	<span class="n">cpu_type_t</span>	<span class="n">cputype</span><span class="p">;</span>	<span class="sr">/* cpu 说明符 (int) */</span>
+	<span class="n">cpu_subtype_t</span>	<span class="n">cpusubtype</span><span class="p">;</span>	<span class="sr">/* 指定 cpu 确切型号的整数 (int) */</span>
+	<span class="n">uint32_t</span>	<span class="n">offset</span><span class="p">;</span>		<span class="sr">/* CPU 架构数据相对于当前文件开头的偏移值 */</span>
+	<span class="n">uint32_t</span>	<span class="n">size</span><span class="p">;</span>		<span class="sr">/* 数据大小 */</span>
+	<span class="n">uint32_t</span>	<span class="n">align</span><span class="p">;</span>		<span class="sr">/* 数据内润对其边界，取值为 2 的幂 */</span>
+<span class="p">};</span></code></pre></figure>
+
+<p>对于 <code class="language-plaintext highlighter-rouge">cputype</code> 和 <code class="language-plaintext highlighter-rouge">cpusubtype</code> 两个字段这里不讲述，可以参看 <code class="language-plaintext highlighter-rouge">/usr/include/mach/machine.h</code> 头中对其的定义，另外 <a href="https://developer.apple.com/documentation/kernel/mach_header?language=objc">Apple 官方文档</a>中也有简单的描述。</p>
+
+<p>在 <code class="language-plaintext highlighter-rouge">fat_header</code> 中，<code class="language-plaintext highlighter-rouge">magic</code> 也就是我们之前在表中罗列的 <em>magic</em> 标识符，也可以类比成 UNIX 中 ELF 文件的 <em>magic</em> 标识。加载器会通过这个符号来判断这是什么文件，通用二进制的 <em>magic</em> 为 <code class="language-plaintext highlighter-rouge">0xcafebabe</code>。<code class="language-plaintext highlighter-rouge">nfat_arch</code> 字段指明当前的通用二进制文件中包含了多少个不同架构的 Mach-O 文件。<code class="language-plaintext highlighter-rouge">fat_header</code> 后会跟着多个 <code class="language-plaintext highlighter-rouge">fat_arch</code>，并与多个 Mach-O 文件及其描述信息（文件大小、CPU 架构、CPU 型号、内存对齐方式）相关联。</p>
+
+<p>这里可以通过 <code class="language-plaintext highlighter-rouge">file</code> 命令来查看简要的架构信息，这里以 iOS 平台 WeChat 4.5.1 版本为例：</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"> 
+<span class="o">~</span> <span class="n">file</span> <span class="no">Desktop</span><span class="o">/</span><span class="no">WeChat</span><span class="p">.</span><span class="nf">app</span><span class="o">/</span><span class="no">WeChat</span>
+<span class="no">Desktop</span><span class="o">/</span><span class="no">WeChat</span><span class="p">.</span><span class="nf">app</span><span class="o">/</span><span class="no">WeChat</span><span class="p">:</span> <span class="no">Mach</span><span class="o">-</span><span class="no">O</span> <span class="n">universal</span> <span class="n">binary</span> <span class="n">with</span> <span class="mi">2</span> <span class="ss">architectures: </span><span class="p">[</span><span class="ss">arm_v7: </span><span class="no">Mach</span><span class="o">-</span><span class="no">O</span> <span class="n">executable</span> <span class="n">arm_v7</span><span class="p">]</span> <span class="p">[</span><span class="n">arm64</span><span class="p">]</span>
+<span class="no">Desktop</span><span class="o">/</span><span class="no">WeChat</span><span class="p">.</span><span class="nf">app</span><span class="o">/</span><span class="no">WeChat</span> <span class="p">(</span><span class="k">for</span> <span class="n">architecture</span> <span class="n">armv7</span><span class="p">):</span>	<span class="no">Mach</span><span class="o">-</span><span class="no">O</span> <span class="n">executable</span> <span class="n">arm_v7</span>
+<span class="no">Desktop</span><span class="o">/</span><span class="no">WeChat</span><span class="p">.</span><span class="nf">app</span><span class="o">/</span><span class="no">WeChat</span> <span class="p">(</span><span class="k">for</span> <span class="n">architecture</span> <span class="n">arm64</span><span class="p">):</span>	<span class="no">Mach</span><span class="o">-</span><span class="no">O</span> <span class="mi">64</span><span class="o">-</span><span class="n">bit</span> <span class="n">executable</span> <span class="n">arm64</span></code></pre></figure>
+
+<p>进一步，也可以使用 <code class="language-plaintext highlighter-rouge">otool</code> 工具来打印其 <code class="language-plaintext highlighter-rouge">fat_header</code> 详细信息：</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"> 
+<span class="o">~</span> <span class="n">otool</span> <span class="o">-</span><span class="n">f</span> <span class="o">-</span><span class="no">V</span> <span class="no">Desktop</span><span class="o">/</span><span class="no">WeChat</span><span class="p">.</span><span class="nf">app</span><span class="o">/</span><span class="no">WeChat</span>
+<span class="no">Fat</span> <span class="n">headers</span>
+<span class="n">fat_magic</span> <span class="no">FAT_MAGIC</span>
+<span class="n">nfat_arch</span> <span class="mi">2</span>
+<span class="n">architecture</span> <span class="n">armv7</span>
+    <span class="n">cputype</span> <span class="no">CPU_TYPE_ARM</span>
+    <span class="n">cpusubtype</span> <span class="no">CPU_SUBTYPE_ARM_V7</span>
+    <span class="n">capabilities</span> <span class="mh">0x0</span>
+    <span class="n">offset</span> <span class="mi">16384</span>
+    <span class="n">size</span> <span class="mi">56450224</span>
+    <span class="n">align</span> <span class="mi">2</span><span class="o">^</span><span class="mi">14</span> <span class="p">(</span><span class="mi">16384</span><span class="p">)</span>
+<span class="n">architecture</span> <span class="n">arm64</span>
+    <span class="n">cputype</span> <span class="no">CPU_TYPE_ARM64</span>
+    <span class="n">cpusubtype</span> <span class="no">CPU_SUBTYPE_ARM64_ALL</span>
+    <span class="n">capabilities</span> <span class="mh">0x0</span>
+    <span class="n">offset</span> <span class="mi">56475648</span>
+    <span class="n">size</span> <span class="mi">64571648</span>
+    <span class="n">align</span> <span class="mi">2</span><span class="o">^</span><span class="mi">14</span> <span class="p">(</span><span class="mi">16384</span><span class="p">)</span></code></pre></figure>
+
+<p>之后我们用 <em>Synalyze It!</em> 来查看 WeChat 的 Mach64 Header 的效果：</p>
+
+<p><img src="/assets/images/blog/15058343519881/15073563641200.jpg" alt="" /></p>
+
+<ul>
+  <li>从第一个段中得到 <code class="language-plaintext highlighter-rouge">magic = 0xcafebabe</code> ，说明是 <code class="language-plaintext highlighter-rouge">FAT_MAGIC</code>。</li>
+  <li>第二段中所存储的字段为 <code class="language-plaintext highlighter-rouge">nfat_arch = 0x00000002</code>，说明该 App 中包含了两种 CPU 架构。</li>
+  <li>后续的则是 <code class="language-plaintext highlighter-rouge">fat_arch</code> 结构体中的内容，<code class="language-plaintext highlighter-rouge">cputype(0x0000000c)</code>、<code class="language-plaintext highlighter-rouge">cpusubtype(0x00000009)</code>、<code class="language-plaintext highlighter-rouge">offset(0x00004000)</code>、<code class="language-plaintext highlighter-rouge">size(0x03505C00)</code> 等等。需要臧帅闯是如果只含有一种 CPU 架构，是没有 fat 头定义的，这部分则可跳过，从而直接过去 <code class="language-plaintext highlighter-rouge">arch</code> 数据。</li>
+</ul>
+
+<h2 id="mach-o-文件格式">Mach-O 文件格式</h2>
+
+<p>由上所知一个通用二进制格式包含了很多个 Mach-O 文件格式，下面我们来具体说说这个格式。Mach-O 文件格式在官方文档中有一个描述图，是很多教程中都引用到的，我重新绘制了一版更清晰的：</p>
+
+<p><img src="/assets/images/blog/15058343519881/mach-o.png" alt="mach-o" />
+可以看的出 Mach-O 主要由 3 部分组成:</p>
+
+<ul>
+  <li>Mach-O 头（Mach Header）：这里描述了 Mach-O 的 CPU 架构、文件类型以及加载命令等信息；</li>
+  <li>加载命令（Load Command）：描述了文件中数据的具体组织结构，不同的数据类型使用不同的加载命令表示；</li>
+  <li>数据区（Data）：Data 中每一个段（Segment）的数据都保存在此，段的概念和 ELF 文件中段的概念类似，都拥有一个或多个 Section ，用来存放数据和代码。</li>
+</ul>
+
+<h3 id="mach-o-头">Mach-O 头</h3>
+
+<p>与 Mach-O 文件格式有关的结构体定义都可以从 <code class="language-plaintext highlighter-rouge">/usr/include/mach-o/loader.h</code> 中找到，也就是 <code class="language-plaintext highlighter-rouge">&lt;mach-o/loader.h&gt;</code> 头。以下只给出 64 位定义的代码，因为 32 位的区别是缺少了一个预留字段：</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"> 
+<span class="c1">#define	MH_MAGIC	0xfeedface	/* the mach magic number */</span>
+<span class="c1">#define MH_CIGAM	0xcefaedfe	/* NXSwapInt(MH_MAGIC) */</span>
+
+<span class="n">struct</span> <span class="n">mach_header_64</span> <span class="p">{</span>
+	<span class="n">uint32_t</span>	<span class="n">magic</span><span class="p">;</span>		<span class="sr">/* mach magic 标识符 */</span>
+	<span class="n">cpu_type_t</span>	<span class="n">cputype</span><span class="p">;</span>	<span class="sr">/* CPU 类型标识符，同通用二进制格式中的定义 */</span>
+	<span class="n">cpu_subtype_t</span>	<span class="n">cpusubtype</span><span class="p">;</span>	<span class="sr">/* CPU 子类型标识符，同通用二级制格式中的定义 */</span>
+	<span class="n">uint32_t</span>	<span class="n">filetype</span><span class="p">;</span>	<span class="sr">/* 文件类型 */</span>
+	<span class="n">uint32_t</span>	<span class="n">ncmds</span><span class="p">;</span>		<span class="sr">/* 加载器中加载命令的条数 */</span>
+	<span class="n">uint32_t</span>	<span class="n">sizeofcmds</span><span class="p">;</span>	<span class="sr">/* 加载器中加载命令的总大小 */</span>
+	<span class="n">uint32_t</span>	<span class="n">flags</span><span class="p">;</span>		<span class="sr">/* dyld 的标志 */</span>
+	<span class="n">uint32_t</span>	<span class="n">reserved</span><span class="p">;</span>	<span class="sr">/* 64 位的保留字段 */</span>
+<span class="p">};</span></code></pre></figure>
+
+<p>由于 Mach-O 支持多种类型文件，所以此处引入了 <code class="language-plaintext highlighter-rouge">filetype</code> 字段来标明，这些文件类型定义在 <code class="language-plaintext highlighter-rouge">loader.h</code> 文件中同样可以找到。</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"> 
+<span class="c1">#define	MH_OBJECT	0x1		/* Target 文件：编译器对源码编译后得到的中间结果 */</span>
+<span class="c1">#define	MH_EXECUTE	0x2		/* 可执行二进制文件 */</span>
+<span class="c1">#define	MH_FVMLIB	0x3		/* VM 共享库文件（还不清楚是什么东西） */</span>
+<span class="c1">#define	MH_CORE		0x4		/* Core 文件，一般在 App Crash 产生 */</span>
+<span class="c1">#define	MH_PRELOAD	0x5		/* preloaded executable file */</span>
+<span class="c1">#define	MH_DYLIB	0x6		/* 动态库 */</span>
+<span class="c1">#define	MH_DYLINKER	0x7		/* 动态连接器 /usr/lib/dyld */</span>
+<span class="c1">#define	MH_BUNDLE	0x8		/* 非独立的二进制文件，往往通过 gcc-bundle 生成 */</span>
+<span class="c1">#define	MH_DYLIB_STUB	0x9		/* 静态链接文件（还不清楚是什么东西） */</span>
+<span class="c1">#define	MH_DSYM		0xa		/* 符号文件以及调试信息，在解析堆栈符号中常用 */</span>
+<span class="c1">#define	MH_KEXT_BUNDLE	0xb		/* x86_64 内核扩展 */</span></code></pre></figure>
+
+<p>另外在 <code class="language-plaintext highlighter-rouge">loader.h</code> 中还可以找到 <code class="language-plaintext highlighter-rouge">flags</code> 中所取值的全部定义，这里只介绍常用的：</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"> 
+<span class="c1">#define	MH_NOUNDEFS	0x1		/* Target 文件中没有带未定义的符号，常为静态二进制文件 */</span>
+<span class="c1">#define MH_SPLIT_SEGS	0x20  /* Target 文件中的只读 Segment 和可读写 Segment 分开  */</span>
+<span class="c1">#define MH_TWOLEVEL	0x80		/* 该 Image 使用二级命名空间(two name space binding)绑定方案 */</span>
+<span class="c1">#define MH_FORCE_FLAT	0x100 /* 使用扁平命名空间(flat name space binding)绑定（与 MH_TWOLEVEL 互斥） */</span>
+<span class="c1">#define MH_WEAK_DEFINES	0x8000 /* 二进制文件使用了弱符号 */</span>
+<span class="c1">#define MH_BINDS_TO_WEAK 0x10000 /* 二进制文件链接了弱符号 */</span>
+<span class="c1">#define MH_ALLOW_STACK_EXECUTION 0x20000/* 允许 Stack 可执行 */</span>
+<span class="c1">#define	MH_PIE 0x200000  /* 对可执行的文件类型启用地址空间 layout 随机化 */</span>
+<span class="c1">#define MH_NO_HEAP_EXECUTION 0x1000000 /* 将 Heap 标记为不可执行，可防止 heap spray 攻击 */</span></code></pre></figure>
+
+<p>Mach-O 文件头主要目的是为加载命令提供信息。加载命令过程紧跟在头之后，并且 <code class="language-plaintext highlighter-rouge">ncmds</code> 和 <code class="language-plaintext highlighter-rouge">sizeofcmds</code> 来能个字段将会用在加载命令的过程中。</p>
+
+<h3 id="mach-o-data">Mach-O Data</h3>
+
+<p>加载命令在 Mach-O 文件加载解析时，会被内核加载器或者动态链接器调用。这些指令都采用 <code class="language-plaintext highlighter-rouge">Type-Size-Value</code> 这种格式，即：32 位的 <code class="language-plaintext highlighter-rouge">cmd</code> 值（表示类型），32 位的 <code class="language-plaintext highlighter-rouge">cmdsize</code> 值（32 位二级制位 4 的倍数，64 位位 8 的倍数），以及命令本身（由 <code class="language-plaintext highlighter-rouge">cmdsize</code> 指定的长度）。内核加载器使用的命令可以参看 <a href="http://unix.superglobalmegacorp.com/xnu/newsrc/bsd/kern/mach_loader.c.html">xnu 源码</a>来学习，其他命令则是由动态链接器处理的。</p>
+
+<p>在正式进入加载命令这一过程之前，先来学习一下 Mach-O 的 Data 区域，其中由 Segment 段和 Section 节组成。先来说 Segment 的组成，以下代码仍旧来自 <code class="language-plaintext highlighter-rouge">loader.h</code>：</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"> 
+<span class="c1">#define	SEG_PAGEZERO	"__PAGEZERO" /* 当时 MH_EXECUTE 文件时，捕获到空指针 */</span>
+<span class="c1">#define	SEG_TEXT	"__TEXT" /* 代码/只读数据段 */</span>
+<span class="c1">#define	SEG_DATA	"__DATA" /* 数据段 */</span>
+<span class="c1">#define	SEG_OBJC	"__OBJC" /* Objective-C runtime 段 */</span>
+<span class="c1">#define	SEG_LINKEDIT	"__LINKEDIT" /* 包含需要被动态链接器使用的符号和其他表，包括符号表、字符串表等 */</span></code></pre></figure>
+
+<p>进而来看一下 Segment 的数据结构具体是什么样的（同样这里也只放出 64 位的代码，与 32 位的区别就是其中 <code class="language-plaintext highlighter-rouge">uint64_t</code> 类型的几个字段取代了原先 32 位类型字段）：</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"> 
+<span class="n">struct</span> <span class="n">segment_command_64</span> <span class="p">{</span> 
+	<span class="n">uint32_t</span>	<span class="n">cmd</span><span class="p">;</span>		<span class="sr">/* LC_SEGMENT_64 */</span>
+	<span class="n">uint32_t</span>	<span class="n">cmdsize</span><span class="p">;</span>	<span class="sr">/* section_64 结构体所需要的空间 */</span>
+	<span class="n">char</span>		<span class="n">segname</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>	<span class="sr">/* segment 名字，上述宏中的定义 */</span>
+	<span class="n">uint64_t</span>	<span class="n">vmaddr</span><span class="p">;</span>		<span class="sr">/* 所描述段的虚拟内存地址 */</span>
+	<span class="n">uint64_t</span>	<span class="n">vmsize</span><span class="p">;</span>		<span class="sr">/* 为当前段分配的虚拟内存大小 */</span>
+	<span class="n">uint64_t</span>	<span class="n">fileoff</span><span class="p">;</span>	<span class="sr">/* 当前段在文件中的偏移量 */</span>
+	<span class="n">uint64_t</span>	<span class="n">filesize</span><span class="p">;</span>	<span class="sr">/* 当前段在文件中占用的字节 */</span>
+	<span class="n">vm_prot_t</span>	<span class="n">maxprot</span><span class="p">;</span>	<span class="sr">/* 段所在页所需要的最高内存保护，用八进制表示 */</span>
+	<span class="n">vm_prot_t</span>	<span class="n">initprot</span><span class="p">;</span>	<span class="sr">/* 段所在页原始内存保护 */</span>
+	<span class="n">uint32_t</span>	<span class="n">nsects</span><span class="p">;</span>		<span class="sr">/* 段中 Section 数量 */</span>
+	<span class="n">uint32_t</span>	<span class="n">flags</span><span class="p">;</span>		<span class="sr">/* 标识符 */</span>
+<span class="p">};</span></code></pre></figure>
+
+<p>部分的 Segment （主要指的 <code class="language-plaintext highlighter-rouge">__TEXT</code> 和 <code class="language-plaintext highlighter-rouge">__DATA</code>）可以进一步分解为 Section。之所以按照 Segment -&gt; Section 的结构组织方式，是因为在同一个 Segment 下的 Section，可以控制相同的权限，也可以不完全按照 Page 的大小进行内存对其，节省内存的空间。而 Segment 对外整体暴露，在程序载入阶段映射成一个完整的虚拟内存，更好的做到内存对齐（可以继续参考 <em>OS X &amp; iOS Kernel Programming</em> 一书的第一章内容）。下面给出 Section 具体的数据结构：</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"> 
+<span class="n">struct</span> <span class="n">section_64</span> <span class="p">{</span> 
+	<span class="n">char</span>		<span class="n">sectname</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>	<span class="sr">/* Section 名字 */</span>
+	<span class="n">char</span>		<span class="n">segname</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>	<span class="sr">/* Section 所在的 Segment 名称 */</span>
+	<span class="n">uint64_t</span>	<span class="n">addr</span><span class="p">;</span>		<span class="sr">/* Section 所在的内存地址 */</span>
+	<span class="n">uint64_t</span>	<span class="n">size</span><span class="p">;</span>		<span class="sr">/* Section 的大小 */</span>
+	<span class="n">uint32_t</span>	<span class="n">offset</span><span class="p">;</span>		<span class="sr">/* Section 所在的文件偏移 */</span>
+	<span class="n">uint32_t</span>	<span class="n">align</span><span class="p">;</span>		<span class="sr">/* Section 的内存对齐边界 (2 的次幂) */</span>
+	<span class="n">uint32_t</span>	<span class="n">reloff</span><span class="p">;</span>		<span class="sr">/* 重定位信息的文件偏移 */</span>
+	<span class="n">uint32_t</span>	<span class="n">nreloc</span><span class="p">;</span>		<span class="sr">/* 重定位条目的数目 */</span>
+	<span class="n">uint32_t</span>	<span class="n">flags</span><span class="p">;</span>		<span class="sr">/* 标志属性 */</span>
+	<span class="n">uint32_t</span>	<span class="n">reserved1</span><span class="p">;</span>	<span class="sr">/* 保留字段1 (for offset or index) */</span>
+	<span class="n">uint32_t</span>	<span class="n">reserved2</span><span class="p">;</span>	<span class="sr">/* 保留字段2 (for count or sizeof) */</span>
+	<span class="n">uint32_t</span>	<span class="n">reserved3</span><span class="p">;</span>	<span class="sr">/* 保留字段3 */</span>
+<span class="p">};</span></code></pre></figure>
+
+<p>下面列举一些常见的 Section。</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Section</th>
+      <th>用途</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__TEXT.__text</code></td>
+      <td>主程序代码</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__TEXT.__cstring</code></td>
+      <td>C 语言字符串</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__TEXT.__const</code></td>
+      <td><code class="language-plaintext highlighter-rouge">const</code> 关键字修饰的常量</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__TEXT.__stubs	</code></td>
+      <td>用于 Stub 的占位代码，很多地方称之为<em>桩代码</em>。</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__TEXT.__stubs_helper</code></td>
+      <td>当 Stub 无法找到真正的符号地址后的最终指向</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__TEXT.__objc_methname</code></td>
+      <td>Objective-C 方法名称</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__TEXT.__objc_methtype</code></td>
+      <td>Objective-C 方法类型</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__TEXT.__objc_classname</code></td>
+      <td>Objective-C 类名称</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__DATA.__data</code></td>
+      <td>初始化过的可变数据</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__DATA.__la_symbol_ptr</code></td>
+      <td>lazy binding 的指针表，表中的指针一开始都指向 <code class="language-plaintext highlighter-rouge">__stub_helper</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__DATA.nl_symbol_ptr</code></td>
+      <td>非 lazy binding 的指针表，每个表项中的指针都指向一个在装载过程中，被动态链机器搜索完成的符号</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__DATA.__const</code></td>
+      <td>没有初始化过的常量</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__DATA.__cfstring</code></td>
+      <td>程序中使用的 Core Foundation 字符串（<code class="language-plaintext highlighter-rouge">CFStringRefs</code>）</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__DATA.__bss</code></td>
+      <td>BSS，存放为初始化的全局变量，即常说的静态内存分配</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__DATA.__common</code></td>
+      <td>没有初始化过的符号声明</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__DATA.__objc_classlist</code></td>
+      <td>Objective-C 类列表</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__DATA.__objc_protolist</code></td>
+      <td>Objective-C 原型</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__DATA.__objc_imginfo</code></td>
+      <td>Objective-C 镜像信息</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__DATA.__objc_selfrefs</code></td>
+      <td>Objective-C <code class="language-plaintext highlighter-rouge">self</code> 引用</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__DATA.__objc_protorefs</code></td>
+      <td>Objective-C 原型引用</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">__DATA.__objc_superrefs</code></td>
+      <td>Objective-C 超类引用</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="验证实验">验证实验</h2>
+
+<p>当了解了 Segment 和 Section 的定义之后，我们可以简单的探索一下 <code class="language-plaintext highlighter-rouge">LC_SEGMENT</code> 这个命令的过程。用 helloworld 来做个试验：</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="sr">//</span> <span class="n">main</span><span class="p">.</span><span class="nf">cpp</span>
+<span class="c1">#import &lt;stdio.h&gt;</span>
+
+<span class="n">int</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nb">printf</span><span class="p">(</span><span class="s2">"hello"</span><span class="p">);</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>使用 <code class="language-plaintext highlighter-rouge">clang -g main.cpp -o main</code> 生成执行文件。然后拖入到 <em>MachOView</em> 中来查看一下加载 Segment 的结构（当然使用 <em>Synalyze It!</em> 也能捕捉到这些信息的，但是 <em>MachOView</em> 更对结构的分层更加一目了然）：</p>
+
+<p><img src="/assets/images/blog/15058343519881/15074302081133.jpg" alt="MachOView" /></p>
+
+<p><img src="/assets/images/blog/15058343519881/15074291855917.jpg" alt="Synalyze It! 分析结果" /></p>
+
+<p>在 <code class="language-plaintext highlighter-rouge">LC_SEGMENT_64</code> 中有四个元素，分别是 <code class="language-plaintext highlighter-rouge">__PAGEZERO</code>、<code class="language-plaintext highlighter-rouge">__TEXT</code>、<code class="language-plaintext highlighter-rouge">__DATA</code>、<code class="language-plaintext highlighter-rouge">__LINKEDIT</code> 这四个 Segment。其中，<code class="language-plaintext highlighter-rouge">__TEXT</code> 的 <code class="language-plaintext highlighter-rouge">__text</code> Section 的加载是可以验证到的，我们从 Section 的实例中取出其 <code class="language-plaintext highlighter-rouge">addr</code> 来对比汇编之后代码的起始地址即可。使用 <code class="language-plaintext highlighter-rouge">otool -vt main</code> 来获取其汇编代码：</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"> 
+<span class="o">~</span> <span class="n">otool</span> <span class="o">-</span><span class="n">vt</span> <span class="n">main</span>
+<span class="ss">main:
+</span><span class="p">(</span><span class="n">__TEXT</span><span class="p">,</span><span class="n">__text</span><span class="p">)</span> <span class="n">section</span>
+<span class="ss">_main:
+</span><span class="mo">0000000100000</span><span class="n">f60</span>	<span class="n">pushq</span>	<span class="o">%</span><span class="n">rbp</span>
+<span class="mo">0000000100000</span><span class="n">f61</span>	<span class="n">movq</span>	<span class="o">%</span><span class="n">rsp</span><span class="p">,</span> <span class="o">%</span><span class="n">rbp</span>
+<span class="mo">0000000100000</span><span class="n">f64</span>	<span class="n">subq</span>	<span class="vg">$0x10</span><span class="p">,</span> <span class="o">%</span><span class="n">rsp</span>
+<span class="mo">0000000100000</span><span class="n">f68</span>	<span class="n">leaq</span>	<span class="mh">0x3b</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">),</span> <span class="o">%</span><span class="n">rdi</span>
+<span class="mo">0000000100000</span><span class="n">f6f</span>	<span class="n">movl</span>	<span class="vg">$0x0</span><span class="p">,</span> <span class="o">-</span><span class="mh">0x4</span><span class="p">(</span><span class="o">%</span><span class="n">rbp</span><span class="p">)</span>
+<span class="mo">0000000100000</span><span class="n">f76</span>	<span class="n">movb</span>	<span class="vg">$0x0</span><span class="p">,</span> <span class="o">%</span><span class="n">al</span>
+<span class="mo">0000000100000</span><span class="n">f78</span>	<span class="n">callq</span>	<span class="mh">0x100000f8a</span>
+<span class="mo">0000000100000</span><span class="n">f7d</span>	<span class="n">xorl</span>	<span class="o">%</span><span class="n">ecx</span><span class="p">,</span> <span class="o">%</span><span class="n">ecx</span>
+<span class="mo">0000000100000</span><span class="n">f7f</span>	<span class="n">movl</span>	<span class="o">%</span><span class="n">eax</span><span class="p">,</span> <span class="o">-</span><span class="mh">0x8</span><span class="p">(</span><span class="o">%</span><span class="n">rbp</span><span class="p">)</span>
+<span class="mo">0000000100000</span><span class="n">f82</span>	<span class="n">movl</span>	<span class="o">%</span><span class="n">ecx</span><span class="p">,</span> <span class="o">%</span><span class="n">eax</span>
+<span class="mo">0000000100000</span><span class="n">f84</span>	<span class="n">addq</span>	<span class="vg">$0x10</span><span class="p">,</span> <span class="o">%</span><span class="n">rsp</span>
+<span class="mo">0000000100000</span><span class="n">f88</span>	<span class="n">popq</span>	<span class="o">%</span><span class="n">rbp</span>
+<span class="mo">0000000100000</span><span class="n">f89</span>	<span class="n">retq</span></code></pre></figure>
+
+<p>对比 <em>Synalyze It!</em> 的分析结果中 <code class="language-plaintext highlighter-rouge">SEG__TEXT.__text</code> 中的 <code class="language-plaintext highlighter-rouge">addr</code> 观察：</p>
+
+<p><img src="/assets/images/blog/15058343519881/15074350810612.jpg" alt="" /></p>
+
+<p>其对应的物理地址均为 <code class="language-plaintext highlighter-rouge">0x100000F60</code>，说明其 <code class="language-plaintext highlighter-rouge">LC_SEGMENT</code> 对于 Segment 和 Section 的加载与我们的预期完全一致。</p>
+
+<h2 id="对于-__text__stubs-的一些探究">对于 <code class="language-plaintext highlighter-rouge">__TEXT.__stubs</code> 的一些探究</h2>
+
+<p>这是对于五子棋大神的 <a href="http://satanwoo.github.io/2017/06/13/Macho-1/"><em>深入剖析Macho (1)</em></a> 中的过程进行再次验证。在查阅过关于 <code class="language-plaintext highlighter-rouge">__stubs</code> 的相关资料后还是不太理解到底是个什么东西。在知乎中有这么一个<a href="https://www.zhihu.com/question/24844900">问题</a>，其中的观点是 Stub 会根据不同的代码上下文表示的含义不同。在 <a href="https://en.wikipedia.org/wiki/Method_stub">wikipedia</a> 也有一个关于 <a href="https://en.wikipedia.org/wiki/Method_stub">Method stub</a> 的词条，其中的解释是这样的：</p>
+
+<blockquote>
+  <p>A method stub or simply stub in software development is a piece of code used to stand in for some other programming functionality. A stub may simulate the behavior of existing code (such as a procedure on a remote machine) or be a temporary substitute for yet-to-be-developed code. Stubs are therefore most useful in porting, distributed computing as well as general software development and testing.</p>
+</blockquote>
+
+<p>大意就是：<em>Stub 是指用来替换一部分功能的程序段。桩程序可以用来模拟已有程序的行为（比如一个远端机器的过程）或是对将要开发的代码的一种临时替代。</em></p>
+
+<p>我们将 Calculator 应用拖入到 <em>Synalyze It!</em> 和 <em>Hopper Disassembler</em> 中。首先使用 <em>Synalyze It!</em> 来查找一个 <code class="language-plaintext highlighter-rouge">__stubs</code> 地址：</p>
+
+<p><img src="/assets/images/blog/15058343519881/15074371126384.jpg" alt="" /></p>
+
+<p>取出地址 <code class="language-plaintext highlighter-rouge">0x100016450</code> 并在 <em>Hopper</em> 中查找对应的代码，并以此双击进入：</p>
+
+<p><img src="/assets/images/blog/15058343519881/15074373726740.jpg" alt="" /></p>
+
+<p><img src="/assets/images/blog/15058343519881/15074375282210.jpg" alt="" /></p>
+
+<p>到达第二幅图的位置的时候，我们发现无法继续进入，因为 <code class="language-plaintext highlighter-rouge">_CFRelease</code> 中的代码是没有意义的。我们拿出 <code class="language-plaintext highlighter-rouge">0x100031000</code> 这个首地址，在 <em>MachOView</em> 中查找：</p>
+
+<p><img src="/assets/images/blog/15058343519881/15074383379688.jpg" alt="" /></p>
+
+<p>发现其低 32 位的值为 <code class="language-plaintext highlighter-rouge">0x00000010001663E</code>，将这个地址继续在 <em>hopper</em> 中搜索：</p>
+
+<p><img src="/assets/images/blog/15058343519881/15074385597132.jpg" alt="" /></p>
+
+<p>发现这一系列操作都会跳到 <code class="language-plaintext highlighter-rouge">0x000000010001650c</code> 这个位置，而这里就是 <code class="language-plaintext highlighter-rouge">__TEXT.__stub_helper</code> 的表头。</p>
+
+<p><img src="/assets/images/blog/15058343519881/15074386833986.jpg" alt="" /></p>
+
+<p>也就是说，<code class="language-plaintext highlighter-rouge">__la_symbol_ptr</code> 里面的所有表项的数据在开始时都会被 binding 成 <code class="language-plaintext highlighter-rouge">__stub_helper</code>。而在之后的调用中，虽然依旧会跳到 <code class="language-plaintext highlighter-rouge">__stub</code> 区域，但是 <code class="language-plaintext highlighter-rouge">__la_symbol_ptr</code> 中由于在之前的调用中获取到了对应方法的真实地址，所以无需在进入 <em>dyld_stub_binder</em> 阶段，并直接调用函数。这样就完成了一次近似于 <strong>lazy</strong> 思想的延时 binding 过程。（这个过程可以用 lldb 来加以验证，在之后会补充。）</p>
+
+<p>总结一下 Stub 机制。其实和 <code class="language-plaintext highlighter-rouge">wikipedia</code> 上的说法一致，设置函数占位符并采用 <strong>lazy</strong> 思想做成延迟 binding 的流程。在 macOS 中也是如此，外部函数引用在 <code class="language-plaintext highlighter-rouge">__DATA</code> 段的 <code class="language-plaintext highlighter-rouge">__la_symbol_ptr</code> 区域先生产一个占位符，当第一个调用启动时，就会进入符号的动态链接过程，一旦找到地址后，就将 <code class="language-plaintext highlighter-rouge">__DATA</code> Segment 中的 <code class="language-plaintext highlighter-rouge">__la_symbol_ptr</code> Section 中的占位符修改为方法的真实地址，这样就完成了只需要一个符号绑定的执行过程。</p>
+
+<h2 id="参考文献">参考文献</h2>
+
+<ul>
+  <li><a href="http://satanwoo.github.io/2017/06/13/Macho-1/">深入剖析MachO - satanwoo 五子棋</a></li>
+  <li><a href="http://blog.tingyun.com/web/article/detail/1341?spm=5176.100239.blogcont64288.7.IuEYnv">Mach-O二进制文件解析 - 刘振天</a></li>
+  <li><a href="http://oncenote.com/2015/06/01/How-App-Launch/">由App的启动说起 - Jamin’s Blog</a></li>
+  <li><a href="https://makezl.github.io/2016/06/27/dylib/">dylib浅析 - leisuro 的村屋</a></li>
+  <li><a href="https://zhuanlan.zhihu.com/p/24858664">Mach-O文件格式 - 非虫</a></li>
+</ul>
+
+</div><section class="article__sharing d-print-none"><!-- Addthis BEGIN --><script type="text/javascript"
+    src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-5f49bfe5e9a6234f"></script>
+  <div class="addthis_inline_share_toolbox addthis_default_style"></div><!-- Addthis END -->
+</section><div class="d-print-none"><footer class="article__footer"><meta itemprop="dateModified" content="2017-10-07T17:01:00-08:00"><!-- start custom article footer snippet -->
+
+<!-- end custom article footer snippet -->
+<div class="article__license"><div class="license">
+    <p style=" display: flex; align-items: center; ">
+     本作品采用 <a itemprop="license" rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a> 进行许可。
+      <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">
+        <img alt="Attribution-NonCommercial 4.0 International" src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png" />
+      </a>
+    </p>
+  </div></div></footer>
+<img src="/assets/qrcode.png" width="80%"/><div class="article__section-navigator clearfix"><div class="previous"><span>PREVIOUS</span><a href="/algorithm/data%20structure/swift/2017/08/26/lazy-segment-tree.html">用 Lazy 思想实现 Segment Tree 的区间更新</a></div><div class="next"><span>NEXT</span><a href="/python/2017/11/11/Shadowsocks-2.html">Shadowsocks Probe II - TCP 代理过程</a></div></div></div>
+  
+</div>
+
+<script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    $(function() {
+      var $this ,$scroll;
+      var $articleContent = $('.js-article-content');
+      var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+      var scroll = hasSidebar ? '.js-page-main' : 'html, body';
+      $scroll = $(scroll);
+
+      $articleContent.find('.highlight').each(function() {
+        $this = $(this);
+        $this.attr('data-lang', $this.find('code').attr('data-lang'));
+      });
+      $articleContent.find('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]').each(function() {
+        $this = $(this);
+        $this.append($('<a class="anchor d-print-none" aria-hidden="true"></a>').html('<i class="fas fa-anchor"></i>'));
+      });
+      $articleContent.on('click', '.anchor', function() {
+        $scroll.scrollToAnchor('#' + $(this).parent().attr('id'), 400);
+      });
+    });
+  });
+})();
+</script>
+
+</div><section class="page__comments d-print-none"><style type="text/css">
+		.gitalk-wrapper .gt-header-textarea {
+			color: #333 !important;
+		}
+	</style><div class="gitalk-wrapper" id="js-gitalk-container"></div>
+	<script>
+		window.Lazyload.css('https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css');
+		var url = "/macos%20kernel/objective-c/iosre/2017/10/07/iosre-1.html";
+		var key = url.split("/").pop();
+		key = key.substring(0, key.length - 5);
+		console.log("key", key);
+
+		var repo = 'desgard.github.com';
+
+		// 复用评论
+		var current_repo = '';
+		var current_key = '';
+		if (current_repo && current_repo !== '') {
+			repo = current_repo;
+		}
+		if (current_key && current_key !== '') {
+			key = current_key;
+		}
+
+		if (key !== "" && '' !== 'ban') {
+			window.Lazyload.js('https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', function() {
+				var gitalk = new Gitalk({
+					clientID: 'e2612df42f3f2a83e71c',
+					clientSecret: 'ad17bb24a3dba73607ec340ba593acba91414d99',
+					repo: repo,
+					owner: 'Desgard',
+					admin: ['Desgard'],
+					id: key,
+					distractionFreeMode: false
+				});
+				gitalk.render('js-gitalk-container');
+			});
+		}
+		
+		
+	</script></section></article><!-- start custom main bottom snippet -->
+<!-- end custom main bottom snippet -->
+</div>
+            </div></div></div><div class="page__footer d-print-none">
+<footer class="footer py-4 js-page-footer">
+  <div class="main"><div itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="冬瓜"><meta itemprop="url" content="https://www.desgard.com"><meta itemprop="description" content="I write more code to write less."><div class="footer__author-links"><div class="author-links">
+  <ul class="menu menu--nowrap menu--inline"><link itemprop="url" href="https://www.desgard.com"><li title="Send me an Email.">
+      <a class="button button--circle mail-button" itemprop="email" href="mailto:gua@desgard.com" target="_blank">
+        <i class="fas fa-envelope"></i>
+      </a><li title="Follow me on Facebook.">
+        <a class="button button--circle facebook-button" itemprop="sameAs" href="https://www.facebook.com/desgard.duan" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M767.428571 6.857143l0 150.857143-89.714286 0q-49.142857 0-66.285714 20.571429t-17.142857 61.714286l0 108 167.428571 0-22.285714 169.142857-145.142857 0 0 433.714286-174.857143 0 0-433.714286-145.714286 0 0-169.142857 145.714286 0 0-124.571429q0-106.285714 59.428571-164.857143t158.285714-58.571429q84 0 130.285714 6.857143z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Twitter.">
+        <a class="button button--circle twitter-button" itemprop="sameAs" href="https://twitter.com/Desgard_Duan" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M1024.032 194.432c-37.664 16.704-78.176 28-120.672 33.088 43.36-26.016 76.672-67.168 92.384-116.224-40.608 24.064-85.568 41.568-133.408 50.976-38.336-40.832-92.928-66.336-153.344-66.336-116.032 0-210.08 94.048-210.08 210.08 0 16.48 1.856 32.512 5.44 47.872-174.592-8.768-329.408-92.416-433.024-219.52-18.08 31.04-28.448 67.104-28.448 105.632 0 72.896 37.088 137.184 93.472 174.88-34.432-1.088-66.816-10.528-95.168-26.272-0.032 0.864-0.032 1.76-0.032 2.656 0 101.792 72.416 186.688 168.512 205.984-17.632 4.8-36.192 7.36-55.36 7.36-13.536 0-26.688-1.312-39.52-3.776 26.72 83.456 104.32 144.192 196.256 145.888-71.904 56.352-162.496 89.92-260.928 89.92-16.96 0-33.664-0.992-50.112-2.944 92.96 59.616 203.392 94.4 322.048 94.4 386.432 0 597.728-320.128 597.728-597.76 0-9.12-0.192-18.176-0.608-27.168 41.056-29.632 76.672-66.624 104.832-108.736z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Weibo.">
+        <a class="button button--circle weibo-button" itemprop="sameAs" href="https://weibo.com/desgard" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+	<path d="M769.226164 496.610234c-14.420098-4.330228-24.309277-7.266877-16.746482-26.214823 16.350218-41.133578 18.046881-76.626289 0.307181-101.939024-33.242099-47.500415-124.194284-44.928286-228.44638-1.280945 0-0.056317-32.73525 14.323848-24.371737-11.64523 16.042013-51.54906 13.626547-94.739726-11.332929-119.662341-56.566349-56.601163-206.976479 2.134908-335.954595 131.078209-96.594075 96.61353-152.681222 198.989775-152.681222 287.52035 0 169.337597 217.152361 272.292366 429.593589 272.292366 278.498445 0 463.752111-161.808592 463.752111-290.273715C893.345701 558.867622 827.968378 514.820945 769.226164 496.610234zM430.163922 866.063936c-169.51781 16.728051-315.851649-59.899262-326.864086-171.202185-11.010389-111.275277 117.530505-215.061482 287.031932-231.823323 169.537265-16.761841 315.876224 59.866496 326.86511 171.119247C728.190884 745.495411 599.705282 849.291856 430.163922 866.063936z" />
+	<path d="M954.16753 186.714824c-67.256246-74.565105-166.457264-102.990607-258.020739-83.522502l-0.037886 0c-21.188318 4.535015-34.695065 25.37929-30.159026 46.527675 4.516584 21.166816 25.352668 34.691993 46.54201 30.174385 65.139769-13.832358 135.634727 6.400627 183.442323 59.368863 47.765615 52.96414 60.740938 125.206957 40.282686 188.537431l0.011263 0.012287c-6.666851 20.629249 4.617954 42.698153 25.271777 49.366027 20.570885 6.662755 42.687913-4.607714 49.362955-25.188838 0-0.037886 0-0.116729 0.011263-0.150519C1039.577146 362.756133 1021.443231 261.206205 954.16753 186.714824" />
+	<path d="M850.886125 279.919669c-32.732179-36.315956-81.068126-50.108381-125.685136-40.621609-18.234261 3.885839-29.856965 21.833398-25.946551 40.085067 3.89915 18.173849 21.833398 29.851845 40.024654 25.893307l0 0.037886c21.809848-4.610786 45.459709 2.113405 61.461789 19.83365 16.018463 17.757107 20.323092 41.949655 13.45043 63.178931l0.035838 0c-5.715614 17.717174 3.983113 36.770584 21.717694 42.511796 17.7397 5.677728 36.76956-3.992328 42.493365-21.756603C892.458972 365.691759 883.686907 316.228458 850.886125 279.919669" />
+	<path d="M447.103928 548.691741c-80.666743-20.985579-171.84317 19.215193-206.880229 90.291746-35.685212 72.492657-1.180599 152.963828 80.321676 179.268757 84.41947 27.224424 183.926645-14.492797 218.521364-92.744074C573.187374 649.021137 530.586496 570.268131 447.103928 548.691741zM385.506979 733.819463c-16.398343 26.160554-51.51015 37.623523-77.954335 25.54824-26.066352-11.868448-33.760211-42.248645-17.360844-67.757975 16.197652-25.400793 50.129884-36.716316 76.378497-25.711046C393.129162 677.216253 401.60838 707.401901 385.506979 733.819463zM439.522702 664.493841c-5.929616 10.131852-19.03498 15.010909-29.304039 10.785123-10.096014-4.15411-13.261002-15.495231-7.522862-25.454038 5.906066-9.908634 18.500485-14.747758 28.572948-10.750309C441.502995 642.817105 445.180975 654.283146 439.522702 664.493841z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Zhihu.">
+        <a class="button button--circle zhihu-button" itemprop="sameAs" href="https://www.zhihu.com/people/devgua" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M351.791182 562.469462l192.945407 0c0-45.367257-21.3871-71.939449-21.3871-71.939449L355.897709 490.530013c3.977591-82.182744 7.541767-187.659007 8.816806-226.835262l159.282726 0c0 0-0.86367-67.402109-18.578124-67.402109s-279.979646 0-279.979646 0 16.850783-88.141456 39.318494-127.053698c0 0-83.60514-4.510734-112.121614 106.962104S81.344656 355.077018 76.80834 367.390461c-4.536316 12.313443 24.62791 5.832845 36.941354 0 12.313443-5.832845 68.050885-25.924439 84.252893-103.69571l86.570681 0c1.165546 49.28652 4.596691 200.335724 3.515057 226.835262L109.86113 490.530013c-25.275663 18.147312-33.701566 71.939449-33.701566 71.939449L279.868105 562.469462c-8.497535 56.255235-23.417339 128.763642-44.275389 167.210279-33.05279 60.921511-50.55235 116.65793-169.802314 212.576513 0 0-19.442818 14.257725 40.829917 9.073656 60.273758-5.185093 117.305683-20.739347 156.840094-99.807147 20.553105-41.107233 41.805128-93.250824 58.386782-146.138358l-0.055259 0.185218 167.855986 193.263655c0 0 22.035876-51.847855 5.832845-108.880803L371.045711 650.610918l-42.1244 31.157627-0.045025 0.151449c11.69946-41.020252 20.11206-81.5749 22.726607-116.858498C351.665315 564.212152 351.72876 563.345412 351.791182 562.469462z" p-id="907"></path><path d="M584.918753 182.033893l0 668.840094 70.318532 0 28.807093 80.512708 121.875768-80.512708 153.600307 0L959.520453 182.033893 584.918753 182.033893zM887.150192 778.934538l-79.837326 0-99.578949 65.782216-23.537066-65.782216-24.855084 0L659.341766 256.673847l227.807403 0L887.149169 778.934538z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Github.">
+        <a class="button button--circle github-button" itemprop="sameAs" href="https://github.com/Desgard" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path class="svgpath" data-index="path_0" fill="#272636" d="M0 525.2c0 223.6 143.3 413.7 343 483.5 26.9 6.8 22.8-12.4 22.8-25.4l0-88.7c-155.3 18.2-161.5-84.6-172-101.7-21.1-36-70.8-45.2-56-62.3 35.4-18.2 71.4 4.6 113.1 66.3 30.2 44.7 89.1 37.2 119 29.7 6.5-26.9 20.5-50.9 39.7-69.6C248.8 728.2 181.7 630 181.7 513.2c0-56.6 18.7-108.7 55.3-150.7-23.3-69.3 2.2-128.5 5.6-137.3 66.5-6 135.5 47.6 140.9 51.8 37.8-10.2 80.9-15.6 129.1-15.6 48.5 0 91.8 5.6 129.8 15.9 12.9-9.8 77-55.8 138.8-50.2 3.3 8.8 28.2 66.7 6.3 135 37.1 42.1 56 94.6 56 151.4 0 117-67.5 215.3-228.8 243.7 26.9 26.6 43.6 63.4 43.6 104.2l0 128.8c0.9 10.3 0 20.5 17.2 20.5C878.1 942.4 1024 750.9 1024 525.3c0-282.9-229.3-512-512-512C229.1 13.2 0 242.3 0 525.2L0 525.2z" />
+</svg>
+</div>
+        </a>
+      </li></ul>
+</div>
+</div>
+    </div><div class="site-info mt-2">
+      <div>© 一片瓜田 2020,
+        Powered by <a title="Jekyll is a simple, blog-aware, static site generator." href="http://jekyllrb.com/">Jekyll</a> & <a
+        title="TeXt is a super customizable Jekyll theme." href="https://github.com/kitian616/jekyll-TeXt-theme">TeXt Theme</a>.
+      </div>
+    </div>
+  </div>
+</footer>
+</div></div>
+    </div><script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $body = $('body'), $window = $(window);
+    var $pageRoot = $('.js-page-root'), $pageMain = $('.js-page-main');
+    var activeCount = 0;
+    function modal(options) {
+      var $root = this, visible, onChange, hideWhenWindowScroll = false;
+      var scrollTop;
+      function setOptions(options) {
+        var _options = options || {};
+        visible = _options.initialVisible === undefined ? false : show;
+        onChange = _options.onChange;
+        hideWhenWindowScroll = _options.hideWhenWindowScroll;
+      }
+      function init() {
+        setState(visible);
+      }
+      function setState(isShow) {
+        if (isShow === visible) {
+          return;
+        }
+        visible = isShow;
+        if (visible) {
+          activeCount++;
+          scrollTop = $(window).scrollTop() || $pageMain.scrollTop();
+          $root.addClass('modal--show');
+          $pageMain.scrollTop(scrollTop);
+          activeCount === 1 && ($pageRoot.addClass('show-modal'), $body.addClass('of-hidden'));
+          hideWhenWindowScroll && window.hasEvent('touchstart') && $window.on('scroll', hide);
+          $window.on('keyup', handleKeyup);
+        } else {
+          activeCount > 0 && activeCount--;
+          $root.removeClass('modal--show');
+          $window.scrollTop(scrollTop);
+          activeCount === 0 && ($pageRoot.removeClass('show-modal'), $body.removeClass('of-hidden'));
+          hideWhenWindowScroll && window.hasEvent('touchstart') && $window.off('scroll', hide);
+          $window.off('keyup', handleKeyup);
+        }
+        onChange && onChange(visible);
+      }
+      function show() {
+        setState(true);
+      }
+      function hide() {
+        setState(false);
+      }
+      function handleKeyup(e) {
+        // Char Code: 27  ESC
+        if (e.which ===  27) {
+          hide();
+        }
+      }
+      setOptions(options);
+      init();
+      return {
+        show: show,
+        hide: hide,
+        $el: $root
+      };
+    }
+    $.fn.modal = modal;
+  });
+})();
+</script><div class="modal modal--overflow page__search-modal d-print-none js-page-search-modal"><script>
+(function () {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    // search panel
+    var search = (window.search || (window.search = {}));
+    var useDefaultSearchBox = window.useDefaultSearchBox === undefined ?
+      true : window.useDefaultSearchBox ;
+
+    var $searchModal = $('.js-page-search-modal');
+    var $searchToggle = $('.js-search-toggle');
+    var searchModal = $searchModal.modal({ onChange: handleModalChange, hideWhenWindowScroll: true });
+    var modalVisible = false;
+    search.searchModal = searchModal;
+
+    var $searchBox = null;
+    var $searchInput = null;
+    var $searchClear = null;
+
+    function getModalVisible() {
+      return modalVisible;
+    }
+    search.getModalVisible = getModalVisible;
+
+    function handleModalChange(visible) {
+      modalVisible = visible;
+      if (visible) {
+        search.onShow && search.onShow();
+        useDefaultSearchBox && $searchInput[0] && $searchInput[0].focus();
+      } else {
+        search.onShow && search.onHide();
+        useDefaultSearchBox && $searchInput[0] && $searchInput[0].blur();
+        setTimeout(function() {
+          useDefaultSearchBox && ($searchInput.val(''), $searchBox.removeClass('not-empty'));
+          search.clear && search.clear();
+          window.pageAsideAffix && window.pageAsideAffix.refresh();
+        }, 400);
+      }
+    }
+
+    $searchToggle.on('click', function() {
+      modalVisible ? searchModal.hide() : searchModal.show();
+    });
+    // Char Code: 83  S, 191 /
+    $(window).on('keyup', function(e) {
+      if (!modalVisible && !window.isFormElement(e.target || e.srcElement) && (e.which === 83 || e.which === 191)) {
+        modalVisible || searchModal.show();
+      }
+    });
+
+    if (useDefaultSearchBox) {
+      $searchBox = $('.js-search-box');
+      $searchInput = $searchBox.children('input');
+      $searchClear = $searchBox.children('.js-icon-clear');
+      search.getSearchInput = function() {
+        return $searchInput.get(0);
+      };
+      search.getVal = function() {
+        return $searchInput.val();
+      };
+      search.setVal = function(val) {
+        $searchInput.val(val);
+      };
+
+      $searchInput.on('focus', function() {
+        $(this).addClass('focus');
+      });
+      $searchInput.on('blur', function() {
+        $(this).removeClass('focus');
+      });
+      $searchInput.on('input', window.throttle(function() {
+        var val = $(this).val();
+        if (val === '' || typeof val !== 'string') {
+          search.clear && search.clear();
+        } else {
+          $searchBox.addClass('not-empty');
+          search.onInputNotEmpty && search.onInputNotEmpty(val);
+        }
+      }, 400));
+      $searchClear.on('click', function() {
+        $searchInput.val(''); $searchBox.removeClass('not-empty');
+        search.clear && search.clear();
+      });
+    }
+  });
+})();
+</script><div class="search search--dark">
+  <div class="main">
+    <div class="search__header">Search</div>
+    <div class="search-bar">
+      <div class="search-box js-search-box">
+        <div class="search-box__icon-search"><i class="fas fa-search"></i></div>
+        <input type="text" />
+        <div class="search-box__icon-clear js-icon-clear">
+          <a><i class="fas fa-times"></i></a>
+        </div>
+      </div>
+      <button class="button button--theme-dark button--pill search__cancel js-search-toggle">
+        Cancel</button>
+    </div>
+    <div class="search-result js-search-result"></div>
+  </div>
+</div>
+<script>var SOURCES = window.TEXT_VARIABLES.sources;
+var PAHTS = window.TEXT_VARIABLES.paths;
+window.Lazyload.js([SOURCES.jquery, PAHTS.search_js], function() {
+  var search = (window.search || (window.search = {}));
+  var searchData = window.TEXT_SEARCH_DATA || {};
+
+  function memorize(f) {
+    var cache = {};
+    return function () {
+      var key = Array.prototype.join.call(arguments, ',');
+      if (key in cache) return cache[key];
+      else return cache[key] = f.apply(this, arguments);
+    };
+  }
+
+  /// search
+  function searchByQuery(query) {
+    var i, j, key, keys, cur, _title, result = {};
+    keys = Object.keys(searchData);
+    for (i = 0; i < keys.length; i++) {
+      key = keys[i];
+      for (j = 0; j < searchData[key].length; j++) {
+        cur = searchData[key][j], _title = cur.title;
+        if ((result[key] === undefined || result[key] && result[key].length < 4 )
+          && _title.toLowerCase().indexOf(query.toLowerCase()) >= 0) {
+          if (result[key] === undefined) {
+            result[key] = [];
+          }
+          result[key].push(cur);
+        }
+      }
+    }
+    return result;
+  }
+
+  var renderHeader = memorize(function(header) {
+    return $('<p class="search-result__header">' + header + '</p>');
+  });
+
+  var renderItem = function(index, title, url) {
+    return $('<li class="search-result__item" data-index="' + index + '"><a class="button" href="' + url + '">' + title + '</a></li>');
+  };
+
+  function render(data) {
+    if (!data) { return null; }
+    var $root = $('<ul></ul>'), i, j, key, keys, cur, itemIndex = 0;
+    keys = Object.keys(data);
+    for (i = 0; i < keys.length; i++) {
+      key = keys[i];
+      $root.append(renderHeader(key));
+      for (j = 0; j < data[key].length; j++) {
+        cur = data[key][j];
+        $root.append(renderItem(itemIndex++, cur.title, cur.url));
+      }
+    }
+    return $root;
+  }
+
+  // search box
+  var $result = $('.js-search-result'), $resultItems;
+  var lastActiveIndex, activeIndex;
+
+  function clear() {
+    $result.html(null);
+    $resultItems = $('.search-result__item'); activeIndex = 0;
+  }
+  function onInputNotEmpty(val) {
+    $result.html(render(searchByQuery(val)));
+    $resultItems = $('.search-result__item'); activeIndex = 0;
+    $resultItems.eq(0).addClass('active');
+  }
+
+  search.clear = clear;
+  search.onInputNotEmpty = onInputNotEmpty;
+
+  function updateResultItems() {
+    lastActiveIndex >= 0 && $resultItems.eq(lastActiveIndex).removeClass('active');
+    activeIndex >= 0 && $resultItems.eq(activeIndex).addClass('active');
+  }
+
+  function moveActiveIndex(direction) {
+    var itemsCount = $resultItems ? $resultItems.length : 0;
+    if (itemsCount > 1) {
+      lastActiveIndex = activeIndex;
+      if (direction === 'up') {
+        activeIndex = (activeIndex - 1 + itemsCount) % itemsCount;
+      } else if (direction === 'down') {
+        activeIndex = (activeIndex + 1 + itemsCount) % itemsCount;
+      }
+      updateResultItems();
+    }
+  }
+
+  // Char Code: 13  Enter, 37  ⬅, 38  ⬆, 39  ➡, 40  ⬇
+  $(window).on('keyup', function(e) {
+    var modalVisible = search.getModalVisible && search.getModalVisible();
+    if (modalVisible) {
+      if (e.which === 38) {
+        modalVisible && moveActiveIndex('up');
+      } else if (e.which === 40) {
+        modalVisible && moveActiveIndex('down');
+      } else if (e.which === 13) {
+        modalVisible && $resultItems && activeIndex >= 0 && $resultItems.eq(activeIndex).children('a')[0].click();
+      }
+    }
+  });
+
+  $result.on('mouseover', '.search-result__item > a', function() {
+    var itemIndex = $(this).parent().data('index');
+    itemIndex >= 0 && (lastActiveIndex = activeIndex, activeIndex = itemIndex, updateResultItems());
+  });
+});
+</script>
+</div></div>
+
+
+<script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function scrollToAnchor(anchor, duration, callback) {
+      var $root = this;
+      $root.animate({ scrollTop: $(anchor).position().top }, duration, function() {
+        window.history.replaceState(null, '', window.location.href.split('#')[0] + anchor);
+        callback && callback();
+      });
+    }
+    $.fn.scrollToAnchor = scrollToAnchor;
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function affix(options) {
+      var $root = this, $window = $(window), $scrollTarget, $scroll,
+        offsetBottom = 0, scrollTarget = window, scroll = window.document, disabled = false, isOverallScroller = true,
+        rootTop, rootLeft, rootHeight, scrollBottom, rootBottomTop,
+        hasInit = false, curState;
+
+      function setOptions(options) {
+        var _options = options || {};
+        _options.offsetBottom && (offsetBottom = _options.offsetBottom);
+        _options.scrollTarget && (scrollTarget = _options.scrollTarget);
+        _options.scroll && (scroll = _options.scroll);
+        _options.disabled !== undefined && (disabled = _options.disabled);
+        $scrollTarget = $(scrollTarget);
+        isOverallScroller = window.isOverallScroller($scrollTarget[0]);
+        $scroll = $(scroll);
+      }
+      function preCalc() {
+        top();
+        rootHeight = $root.outerHeight();
+        rootTop = $root.offset().top + (isOverallScroller ? 0 :  $scrollTarget.scrollTop());
+        rootLeft = $root.offset().left;
+      }
+      function calc(needPreCalc) {
+        needPreCalc && preCalc();
+        scrollBottom = $scroll.outerHeight() - offsetBottom - rootHeight;
+        rootBottomTop = scrollBottom - rootTop;
+      }
+      function top() {
+        if (curState !== 'top') {
+          $root.removeClass('fixed').css({
+            left: 0,
+            top: 0
+          });
+          curState = 'top';
+        }
+      }
+      function fixed() {
+        if (curState !== 'fixed') {
+          $root.addClass('fixed').css({
+            left: rootLeft + 'px',
+            top: 0
+          });
+          curState = 'fixed';
+        }
+      }
+      function bottom() {
+        if (curState !== 'bottom') {
+          $root.removeClass('fixed').css({
+            left: 0,
+            top: rootBottomTop + 'px'
+          });
+          curState = 'bottom';
+        }
+      }
+      function setState() {
+        var scrollTop = $scrollTarget.scrollTop();
+        if (scrollTop >= rootTop && scrollTop <= scrollBottom) {
+          fixed();
+        } else if (scrollTop < rootTop) {
+          top();
+        } else {
+          bottom();
+        }
+      }
+      function init() {
+        if(!hasInit) {
+          var interval, timeout;
+          calc(true); setState();
+          // run calc every 100 millisecond
+          interval = setInterval(function() {
+            calc();
+          }, 100);
+          timeout = setTimeout(function() {
+            clearInterval(interval);
+          }, 45000);
+          window.pageLoad.then(function() {
+            setTimeout(function() {
+              clearInterval(interval);
+              clearTimeout(timeout);
+            }, 3000);
+          });
+          $scrollTarget.on('scroll', function() {
+            disabled || setState();
+          });
+          $window.on('resize', function() {
+            disabled || (calc(true), setState());
+          });
+          hasInit = true;
+        }
+      }
+
+      setOptions(options);
+      if (!disabled) {
+        init();
+      }
+      $window.on('resize', window.throttle(function() {
+        init();
+      }, 200));
+      return {
+        setOptions: setOptions,
+        refresh: function() {
+          calc(true, { animation: false }); setState();
+        }
+      };
+    }
+    $.fn.affix = affix;
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function toc(options) {
+      var $root = this, $window = $(window), $scrollTarget, $scroller, $tocUl = $('<ul class="toc toc--ellipsis"></ul>'), $tocLi, $headings, $activeLast, $activeCur,
+        selectors = 'h1,h2,h3', container = 'body', scrollTarget = window, scroller = 'html, body', disabled = false,
+        headingsPos, scrolling = false, hasRendered = false, hasInit = false;
+
+      function setOptions(options) {
+        var _options = options || {};
+        _options.selectors && (selectors = _options.selectors);
+        _options.container && (container = _options.container);
+        _options.scrollTarget && (scrollTarget = _options.scrollTarget);
+        _options.scroller && (scroller = _options.scroller);
+        _options.disabled !== undefined && (disabled = _options.disabled);
+        $headings = $(container).find(selectors).filter('[id]');
+        $scrollTarget = $(scrollTarget);
+        $scroller = $(scroller);
+      }
+      function calc() {
+        headingsPos = [];
+        $headings.each(function() {
+          headingsPos.push(Math.floor($(this).position().top));
+        });
+      }
+      function setState(element, disabled) {
+        var scrollTop = $scrollTarget.scrollTop(), i;
+        if (disabled || !headingsPos || headingsPos.length < 1) { return; }
+        if (element) {
+          $activeCur = element;
+        } else {
+          for (i = 0; i < headingsPos.length; i++) {
+            if (scrollTop >= headingsPos[i]) {
+              $activeCur = $tocLi.eq(i);
+            } else {
+              $activeCur || ($activeCur = $tocLi.eq(i));
+              break;
+            }
+          }
+        }
+        $activeLast && $activeLast.removeClass('active');
+        ($activeLast = $activeCur).addClass('active');
+      }
+      function render() {
+        if(!hasRendered) {
+          $root.append($tocUl);
+          $headings.each(function() {
+            var $this = $(this);
+            $tocUl.append($('<li></li>').addClass('toc-' + $this.prop('tagName').toLowerCase())
+              .append($('<a></a>').text($this.text()).attr('href', '#' + $this.prop('id'))));
+          });
+          $tocLi = $tocUl.children('li');
+          $tocUl.on('click', 'a', function(e) {
+            e.preventDefault();
+            var $this = $(this);
+            scrolling = true;
+            setState($this.parent());
+            $scroller.scrollToAnchor($this.attr('href'), 400, function() {
+              scrolling = false;
+            });
+          });
+        }
+        hasRendered = true;
+      }
+      function init() {
+        var interval, timeout;
+        if(!hasInit) {
+          render(); calc(); setState(null, scrolling);
+          // run calc every 100 millisecond
+          interval = setInterval(function() {
+            calc();
+          }, 100);
+          timeout = setTimeout(function() {
+            clearInterval(interval);
+          }, 45000);
+          window.pageLoad.then(function() {
+            setTimeout(function() {
+              clearInterval(interval);
+              clearTimeout(timeout);
+            }, 3000);
+          });
+          $scrollTarget.on('scroll', function() {
+            disabled || setState(null, scrolling);
+          });
+          $window.on('resize', window.throttle(function() {
+            if (!disabled) {
+              render(); calc(); setState(null, scrolling);
+            }
+          }, 100));
+        }
+        hasInit = true;
+      }
+
+      setOptions(options);
+      if (!disabled) {
+        init();
+      }
+      $window.on('resize', window.throttle(function() {
+        init();
+      }, 200));
+      return {
+        setOptions: setOptions
+      };
+    }
+    $.fn.toc = toc;
+  });
+})();
+/*(function () {
+
+})();*/
+</script><script>
+  /* toc must before affix, since affix need to konw toc' height. */(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  var TOC_SELECTOR = window.TEXT_VARIABLES.site.toc.selectors;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $window = $(window);
+    var $articleContent = $('.js-article-content');
+    var $tocRoot = $('.js-toc-root'), $col2 = $('.js-col-aside');
+    var toc;
+    var tocDisabled = false;
+    var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+    var hasToc = $articleContent.find(TOC_SELECTOR).length > 0;
+
+    function disabled() {
+      return $col2.css('display') === 'none' || !hasToc;
+    }
+
+    tocDisabled = disabled();
+
+    toc = $tocRoot.toc({
+      selectors: TOC_SELECTOR,
+      container: $articleContent,
+      scrollTarget: hasSidebar ? '.js-page-main' : null,
+      scroller: hasSidebar ? '.js-page-main' : null,
+      disabled: tocDisabled
+    });
+
+    $window.on('resize', window.throttle(function() {
+      tocDisabled = disabled();
+      toc && toc.setOptions({
+        disabled: tocDisabled
+      });
+    }, 100));
+
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $window = $(window), $pageFooter = $('.js-page-footer');
+    var $pageAside = $('.js-page-aside');
+    var affix;
+    var tocDisabled = false;
+    var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+
+    affix = $pageAside.affix({
+      offsetBottom: $pageFooter.outerHeight(),
+      scrollTarget: hasSidebar ? '.js-page-main' : null,
+      scroller: hasSidebar ? '.js-page-main' : null,
+      scroll: hasSidebar ? $('.js-page-main').children() : null,
+      disabled: tocDisabled
+    });
+
+    $window.on('resize', window.throttle(function() {
+      affix && affix.setOptions({
+        disabled: tocDisabled
+      });
+    }, 100));
+
+    window.pageAsideAffix = affix;
+  });
+})();
+</script><script>
+  window.Lazyload.js(['https://cdn.bootcss.com/jquery/3.1.1/jquery.min.js', 'https://cdn.bootcss.com/Chart.js/2.7.2/Chart.bundle.min.js'], function() {
+    var $canvas = null, $this = null, _ctx = null, _text = '';
+    $('.language-chart').each(function(){
+      $this = $(this);
+      $canvas = $('<canvas></canvas>');
+      _text = $this.text();
+      $this.text('').append($canvas);
+      _ctx = $canvas.get(0).getContext('2d');
+      (_ctx && _text) && (new Chart(_ctx, JSON.parse(_text)) && $this.attr('data-processed', true));
+    });
+  });
+</script>
+<script type="text/x-mathjax-config">
+	var _config = { tex2jax: {
+		inlineMath: [['$','$'], ['\\(','\\)']]
+	}};MathJax.Hub.Config(_config);
+</script>
+<script type="text/javascript" src="https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+<script>
+  window.Lazyload.js('https://cdn.bootcss.com/mermaid/8.0.0-rc.8/mermaid.min.js', function() {
+    mermaid.initialize({
+      startOnLoad: true
+    });
+    mermaid.init(undefined, '.language-mermaid');
+  });
+</script>
+
+    </div>
+    <script>(function () {
+  var $root = document.getElementsByClassName('root')[0];
+  if (window.hasEvent('touchstart')) {
+    $root.dataset.isTouch = true;
+    document.addEventListener('touchstart', function(){}, false);
+  }
+})();
+</script>
+  </body>
+</html>
+

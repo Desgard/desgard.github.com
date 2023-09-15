@@ -1,0 +1,1851 @@
+<!DOCTYPE html><html lang="zh_CN">
+  <head><!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-TM7J1LHC1Z"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+		gtag('js', new Date());
+
+		gtag('config', 'G-TM7J1LHC1Z');
+		
+			gtag('config', 'G-TM7J1LHC1Z', { 'anonymize_ip': true });
+		
+	</script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><title>CocoaPods 命令解析 - CLAide - 一片瓜田</title><meta name="description" content="引子在上文 整体把握 CocoaPods 核心组件 中，我们通过对 pod install 的流程的介绍，引出 CocoaPods 的各个核心组件的角色分工和其主要作用，希望通过对这些组件的使用和介绍来帮助大家更好的了解 CocoaPods 的完整工作流以及背后的原理。今天我们主要聊一聊为 CocoaPods 提...">
+<link rel="canonical" href="https://www.desgard.com/2020/09/02/cocoapods-story-3.html"><link rel="alternate" type="application/rss+xml" title="一片瓜田" href="/feed.xml"><!-- start favicons snippet, use https://realfavicongenerator.net/ --><link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png"><link rel="manifest" href="/assets/site.webmanifest"><link rel="mask-icon" href="/assets/safari-pinned-tab.svg" color="#fc4d50"><link rel="shortcut icon" href="/assets/favicon.ico">
+
+<meta name="msapplication-TileColor" content="#ffc40d"><meta name="msapplication-config" content="/assets/browserconfig.xml">
+
+<meta name="theme-color" content="#ffffff">
+<!-- end favicons snippet --><link rel="stylesheet" href="/assets/css/main.css"><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" ><!-- start custom head snippets -->
+
+<!-- end custom head snippets -->
+<script>(function() {
+  window.isArray = function(val) {
+    return Object.prototype.toString.call(val) === '[object Array]';
+  };
+  window.isString = function(val) {
+    return typeof val === 'string';
+  };
+
+  window.hasEvent = function(event) {
+    return 'on'.concat(event) in window.document;
+  };
+
+  window.isOverallScroller = function(node) {
+    return node === document.documentElement || node === document.body || node === window;
+  };
+
+  window.isFormElement = function(node) {
+    var tagName = node.tagName;
+    return tagName === 'INPUT' || tagName === 'SELECT' || tagName === 'TEXTAREA';
+  };
+
+  window.pageLoad = (function () {
+    var loaded = false, cbs = [];
+    window.addEventListener('load', function () {
+      var i;
+      loaded = true;
+      if (cbs.length > 0) {
+        for (i = 0; i < cbs.length; i++) {
+          cbs[i]();
+        }
+      }
+    });
+    return {
+      then: function(cb) {
+        cb && (loaded ? cb() : (cbs.push(cb)));
+      }
+    };
+  })();
+})();
+(function() {
+  window.throttle = function(func, wait) {
+    var args, result, thisArg, timeoutId, lastCalled = 0;
+
+    function trailingCall() {
+      lastCalled = new Date;
+      timeoutId = null;
+      result = func.apply(thisArg, args);
+    }
+    return function() {
+      var now = new Date,
+        remaining = wait - (now - lastCalled);
+
+      args = arguments;
+      thisArg = this;
+
+      if (remaining <= 0) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+        lastCalled = now;
+        result = func.apply(thisArg, args);
+      } else if (!timeoutId) {
+        timeoutId = setTimeout(trailingCall, remaining);
+      }
+      return result;
+    };
+  };
+})();
+(function() {
+  var Set = (function() {
+    var add = function(item) {
+      var i, data = this._data;
+      for (i = 0; i < data.length; i++) {
+        if (data[i] === item) {
+          return;
+        }
+      }
+      this.size ++;
+      data.push(item);
+      return data;
+    };
+
+    var Set = function(data) {
+      this.size = 0;
+      this._data = [];
+      var i;
+      if (data.length > 0) {
+        for (i = 0; i < data.length; i++) {
+          add.call(this, data[i]);
+        }
+      }
+    };
+    Set.prototype.add = add;
+    Set.prototype.get = function(index) { return this._data[index]; };
+    Set.prototype.has = function(item) {
+      var i, data = this._data;
+      for (i = 0; i < data.length; i++) {
+        if (this.get(i) === item) {
+          return true;
+        }
+      }
+      return false;
+    };
+    Set.prototype.is = function(map) {
+      if (map._data.length !== this._data.length) { return false; }
+      var i, j, flag, tData = this._data, mData = map._data;
+      for (i = 0; i < tData.length; i++) {
+        for (flag = false, j = 0; j < mData.length; j++) {
+          if (tData[i] === mData[j]) {
+            flag = true;
+            break;
+          }
+        }
+        if (!flag) { return false; }
+      }
+      return true;
+    };
+    Set.prototype.values = function() {
+      return this._data;
+    };
+    return Set;
+  })();
+
+  window.Lazyload = (function(doc) {
+    var queue = {js: [], css: []}, sources = {js: {}, css: {}}, context = this;
+    var createNode = function(name, attrs) {
+      var node = doc.createElement(name), attr;
+      for (attr in attrs) {
+        if (attrs.hasOwnProperty(attr)) {
+          node.setAttribute(attr, attrs[attr]);
+        }
+      }
+      return node;
+    };
+    var end = function(type, url) {
+      var s, q, qi, cbs, i, j, cur, val, flag;
+      if (type === 'js' || type ==='css') {
+        s = sources[type], q = queue[type];
+        s[url] = true;
+        for (i = 0; i < q.length; i++) {
+          cur = q[i];
+          if (cur.urls.has(url)) {
+            qi = cur, val = qi.urls.values();
+            qi && (cbs = qi.callbacks);
+            for (flag = true, j = 0; j < val.length; j++) {
+              cur = val[j];
+              if (!s[cur]) {
+                flag = false;
+              }
+            }
+            if (flag && cbs && cbs.length > 0) {
+              for (j = 0; j < cbs.length; j++) {
+                cbs[j].call(context);
+              }
+              qi.load = true;
+            }
+          }
+        }
+      }
+    };
+    var load = function(type, urls, callback) {
+      var s, q, qi, node, i, cur,
+        _urls = typeof urls === 'string' ? new Set([urls]) : new Set(urls), val, url;
+      if (type === 'js' || type ==='css') {
+        s = sources[type], q = queue[type];
+        for (i = 0; i < q.length; i++) {
+          cur = q[i];
+          if (_urls.is(cur.urls)) {
+            qi = cur;
+            break;
+          }
+        }
+        val = _urls.values();
+        if (qi) {
+          callback && (qi.load || qi.callbacks.push(callback));
+          callback && (qi.load && callback());
+        } else {
+          q.push({
+            urls: _urls,
+            callbacks: callback ? [callback] : [],
+            load: false
+          });
+          for (i = 0; i < val.length; i++) {
+            node = null, url = val[i];
+            if (s[url] === undefined) {
+              (type === 'js' ) && (node = createNode('script', { src: url }));
+              (type === 'css') && (node = createNode('link', { rel: 'stylesheet', href: url }));
+              if (node) {
+                node.onload = (function(type, url) {
+                  return function() {
+                    end(type, url);
+                  };
+                })(type, url);
+                (doc.head || doc.body).appendChild(node);
+                s[url] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+    return {
+      js: function(url, callback) {
+        load('js', url, callback);
+      },
+      css: function(url, callback) {
+        load('css', url, callback);
+      }
+    };
+  })(this.document);
+})();
+</script><script>
+  (function() {
+    var TEXT_VARIABLES = {
+      version: '2.2.6',
+      sources: {
+        font_awesome: 'https://use.fontawesome.com/releases/v5.0.13/css/all.css',
+        jquery: 'https://cdn.bootcss.com/jquery/3.1.1/jquery.min.js',
+        leancloud_js_sdk: '//cdn.jsdelivr.net/npm/leancloud-storage@3.13.2/dist/av-min.js',
+        chart: 'https://cdn.bootcss.com/Chart.js/2.7.2/Chart.bundle.min.js',
+        gitalk: {
+          js: 'https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js',
+          css: 'https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css'
+        },
+        valine: 'https://unpkg.com/valine/dist/Valine.min.js',
+        mathjax: 'https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML',
+        mermaid: 'https://cdn.bootcss.com/mermaid/8.0.0-rc.8/mermaid.min.js'
+      },
+      site: {
+        toc: {
+          selectors: 'h1,h2,h3'
+        }
+      },
+      paths: {
+        search_js: '/assets/search.js'
+      }
+    };
+    window.TEXT_VARIABLES = TEXT_VARIABLES;
+  })();
+</script>
+</head>
+  <body>
+    <div class="root" data-is-touch="false">
+      <div class="layout--page js-page-root"><div class="page__main js-page-main page__viewport has-aside cell cell--auto">
+
+      <div class="page__main-inner"><div class="page__header d-print-none"><header class="header"><div class="main">
+      <div class="header__title">
+        <div class="header__brand"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<rect y="5" width="24" height="13.8483" fill="url(#pattern0)"/>
+<defs>
+<pattern id="pattern0" patternContentUnits="objectBoundingBox" width="1" height="1">
+<use xlink:href="#image0" transform="scale(0.00229885 0.00398406)"/>
+</pattern>
+<image id="image0" width="435" height="251" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAbMAAAD7CAYAAADgkXoyAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAADQ6SURBVHgB7Z0LlBzleaa/6u656TojdL+gGYkFJFsgwNzsA8jCdmy8i4Rk47PrxCAbyMabrOXsHmOc2IicY2OzObbxJuusgCA7ITkxkWRwTGwvFiNhAwIjCQkjcRGa0f06M9JImktfav+3umtotaqqq7qru6uq34dTdHdVzUia7vnf//2+7/9+TQghpDRabc63WZxrzh2FtNic9/q9W1z8mYfUMZg7enOPhwoeSUjRhBBSSyo5yHu9360oRBVT5PrUsUeyAkeRCwkUMxIF/BKESroEp+9Dgg0E7rC8J3B7hAQOihkBXsXAr/sBHQIJG2ZYcqe8J3CkxlDMqoc5ELeJ9aDcVuTrrGjzeJ5iQIj/wLlB1LYKXVvNoJj5iylWU9UxLfd8mlBECKkX4NrekKxr2ymkalDMygM5kI7cMS13EFIv9Nmc77U4h0F+wOb8oMvvYXe/m++N39W2gufm5DP/tZ/QsVURipk38GGHYM1Tx3xhQp+Uj91gPiDeBnkvwmJ3v1fBiRqmqOF3vCP32q8JKt6H59Txrti/V6QMKGbFgYBBvK6U90KGJFj4JQheXYIXQbC7nwQbcwKbH4EpdwzYInRrvkMxswcf3Csk68CiLmBOM28vISPgxwBf7w6BBJuOgqNUTLe2RUjZUMzOBaL1wdxRCQHDwG26hUKRsBuoS5npe3UehJDSMPPmmPTOk9LA7+uLki0coXsvEYpZFnwgIWAIJZYrYvgwYt1Jb+4Riy0HhB9SQqKOmZIoVdjMgpENwvHCM/UuZphRLZbyQgVmRwBz8SQ/hIQQ07FhklxKEQlCjxQ1D9SrmJUjYuY6EojXTmHYjhDiDMQMoga35iXyA6eGQhEIG0WtCPUmZpgt3SzZwg4vmAKGDxYbjxJCSsEMQ2IM8rKsh4UiLqgXMSu1sMN0X/gQUcAIIX4BUcN45CU6RFFzoB7EDB+W5eJtJsR1IISQamCGIL1EizDB/rkw9HgOURYziNcnxX1VEZzXC7mDLowQUk1KSYGgQITjVY6oihlmOijwcBNSpIgRQoKCV1Fj6DFH1MQM4oWQols3BgHD7IYiRggJEgg/LhP3Zf11X8ofJTHzkhtDLmytMOZMCAk2cGhuqx/r2qVFRcxukWxosRh4s9cJCzsIIeECaRN0KHIjanXp0sIuZnhj4cbclLcyWUoICTNe8ml159LCLGaIJX9Wis9UsMh5Xe4xdKxa/3jrqGSyPS2yMN4QG59KS0dMk/HqUnvulnYhhFQNXZc+TVOHcj5pXbo1Xe/TNW0bHocSiW2rbltRaUeEmgBUart1ac9IHUziwypmCCne4uI+OLFnJCQ8uP6H7ZKML9JjsYVKsC5XpxYKNwAlJGx04dAz+kZD5OLJbffd9idd4j+Lc0cx4NIek4iHHcMoZm7ewFDkxh76yeqF0hC7Sc/IIl1kkVC4CIkqXeroVI6uM6MlN/oobhgz7hJ3Y8eG3BFJwiRmKLuHtS4WL4aAPSEBtNUIGTalUgvVbG2pcl53CMWLkLpEhSq3qQnsxkQms+Yrt9+zTcrHrUuLbNgxLGIGIfuCFF9zEciZx4NPPrJIi2kQr6VCASOEnEtXRpenfBA2ty4tkmHHMIiZmzcIswy4scCEFeHCmiXzJcnoK4UCRghxgXJsW2MxebiMUCQm/nBoxZYqYczEWtudEhGCLmZuhCxQs4ycC7tfsjkwQggplTWxdObhEt2a28XWkcmjBVnM3AgZyu0hZDWP/z64dvWdmsQQSlwkhBDiHygcWXPvsrt+JN5wG3YMVdW3HUEVMzdvArZowTYINRWynIjBibULIYRUjj1K1B4oQdTcdEiCMUCqJrR5tCCKmRshq7k1pogRQmpEKaLmZm1uqAtDgiZmgRcy5sQIIQHBq6i5rUH4Jwlhx6QgiVmghQzdObRMw+NCESOEBAp9jx5LLXZZ/YjxFW0AnZY5hbLSMShi5mYdWc2E7NvrH7ufJfaEkICzRo8lH3Aham7L99FFKTSNioMiZpgpOG2oWRMhy4UU4cbahRBCAo/epQb1h+9dfvf3XdzspmsIqhxfkBAQBDEr9gOtupBhwXOLZO7Xs26MEEJChuvQoxtBC8VatFqLWeCE7KH1qxdmMrH1QjdGCAk3usS0B7562xceKHIfFlij722zwz2BF7RaihnCip91uF71hXwPrX/0S5mMuLHnhBASEly5NNQroG4htIJWKzFDIcWfiv0PDj0WH5MqYfRRzKThxhYJIYREDzcuzc2Gx4EVtFqIWbESfKxz+FupUmcPhhUJIXXEc3os+XkHl+ZmiVQgqxxjUn2ctvs2V6BXScgQVoyhLVa7EEJI9PmwlmnYgEptm+vo/vGoOHcBWaaOKyVgVFvMUOzhVIKPledVaaXynfWPfY/5MUJIHdKhxbQNxvpZa9wIGlpjFdtfsqpUM8zYIdkEox1VWc/A/BghhGRRArB+4FT886tWrLASrmIhR0TQ/kYC0suxWmJW7IdSlaRiriXVc8KwIiGE5HCsdixWrBeY5sTVCjM6bRKHhpYVFzIUelDICCGkEK1DyyQ2PPST1QstLkKknOoY2qR4SX9VqIaYof/XFTbXoOpPSIXJVSxSyAghxBKtIxOPbfnO2kesuh6Ze53ZAUFzWjNcFSotZnBjTnvooMSzovb0O+sevSMnZGwSTAgh9mi6aN+1KQzB2t+1Dl+Lmohi+6VVlLhUFqdYK0KLW6WCQMh0XdZIACwwIYSEAE10uekj/3mJPPsvT28suHY499hh87WzJBuO3Cc1oJLODGX4TuvJKponyxMyQggh7tEko6/69trH/t7iGsZtp6rzT0iNSvYrVc0IEfufNtcqXs5JISOEkPJR4+jWof74YovSfRR92Dm0qnZxMqmUM7vL4RqUnUJGCCEBR9Pkiqax6Q2rHn+8MMqGghC7cbwmBSGVEDNUL9qFF5FErNjC6G/966NLKWSEEOIfNoIG1/Wo2LsvuLZi+6T5it9ihn+s3Vbc+Ec7VcOUBcrvY5o8LoQQQnzFRtDgzJzGdIhZh1QJv8XMaXF0xcKL6OyR63zP8ntCCKkANoK2U5yL+dCUuCrV5H6KGRoIOy2Orkh4kS2qCCGkOtgIGsRsj82XIH+2XKqAn2L2SYdrFdloE02DKWSEEFI9IGjN4zLfLTiNcKNd5A1Gxy795Bt+iRkcWdXDiy2ZNHJk7UIIIaSK6CsK1qG5yZ9VNA3kh5jhL3izzbWKhRfVD/J+XWSpEEIIqQH6nQWtr5yq1ZE3q2i40Q8xcyrFRwjQ94Vz2CFa/SBXCSGEkFqBTiH3FwgaInGHbO5HZWPFdqguV8ycSvHxD9oiPpOtXJRVQgghpNYYgoZmFbnXMC/rHO5HM+KKVDeWK2Y3O1zzfWuXvMpFluATQkgw0HRdvpe3H5rTHpUQsoospi5HzCAodqX4cGS+F33EMg3fExZ8EEJI0GjLxLV1MBy5107hRkTzfF9MXY6YObky3zvis+CDEEKCjNYh6YZ1eWvQnnG42Xd3VqqYVdWVoVUVCz4IISTYYA1ay7jMN3Ivnaob4cx8XXtWqphVzZXltaoihBAScHTRV35n7SMrcy+hB3YV7XBnvhWDlCJmTq7M/wXS6cQqYZ6MEELCgqaL9l0UhMycMwdC5lQM4ps7K0XMnBZI+1qK/+Da1XdqmnaHEEIICRNaJh5bd9c3vo7ejAg12vVuhJj54s68ipmTK8Nf1jdXZpThS+x+IYQQEkY6msem1/3Jt76qSRXcmVcxq14FI8OLhBASdm5qv2TulxZce2WXVNideREzuLJ5Ntd8rWBkeJEQQiKBkT/7o//xX7Gg2q5U3xd35kXMOsRePX1zZQwvEkJIpED+bO3XH3sUxSBbbe4p2515ETO7EKO/68oYXiSEkKjRMaZV+0YsHqtY7sytmCG8aNcPcav4BMOLhBASTXTRv/TNf/6/CDdWxJ25FTOnzvh7xCcYXiSEkMiiaTF5bP7VV9tpBoSs5C1i3IgZHJldU8gXxSfQe1EYXiSEkOiiaR133PvHfyT2JmielEjcxT1oOTLL4jwWSa8THzCKPvTYT4UQQki00eTaSTOmPv36S6+2WVzFuZLWLLtxZvNtzvsWXswVfRBCCIk+2uUfuvrrbZMmDdhcL8mdFRMzhBftCj98Kcd/8MlHFrHogxBC6ghNa7/1rs98zOYq8maeC0GKiZldMs631lVaTHtcCCGE1BX/4bL33Thj7uwpFpdKKgRJOFzDN7Trw+hLOT5K8SWkRR8b1/+7vPyLTuP55TdcIzfedos0j24RQkhpDJ45K5t/tXHk9+qSqxbIxz67nL9XESXR2CBXf/SGjx7Y3f2PFpcRanxBPOBUALJA7PNla9WRkjL56GeWYJ+yVgkZv3xinbzws2cllUwZh3oz5I2Xthi/fM2jRwkhxBuHu/fLk99/VH6vfo/M36sjew+o360uNVm8Vkg0GTV2TOvxQ4cHTxw6erDgEnQB1fKudcYpzGgnZOj4MShlEmZXtn3T5vPO9R3vkUf+8iF57fnNQghxz+Zfdso/fOt/y2ElXoV079qtHNuAkGgyYfJEmXnRnBubW5qbCi6h076nUKOdmCHEaFdRslN8IIoLpAfPDsjTq5+QX/3jWv4CElKEvmMn5Mff+oH6fVln/O6Q+mTWRe3NFy2Yd43FJU9VjXZhRrsQI9aWPS1lYrStEu1OCSlpFQLp3vWO7XWGHQlxBm5s/d/+SFR4yfE+hBjfd33JTSFICIgl4tJz9PiU3qM9bwwNDAzlXUKy9GVxGWq0EzM0FZ5kcX6n+ODMwporM5k97z/IkJpJIp5vB2aaL/9yo2GW29X9hJCsG/vJw4/Klg2/NfJiTlxy1WVyy4rPSKKhQUh0aVDvrzIAidHjRo8/uGfvG3mXUKD4trisnLcTsyViXemItWXHpQzC7spM5l42z6iy2r3dWdu7d76jEtn7Zcbcdro0Ute4dWPNo1rk5ttvlY/94TIKWR0Qi8fl+KEjkk5nJg4NDu093XfyZN5l1Ge87eb7WIkZFkpbxS/xTctuXxV2V5bPzIva5fIbr5W3tmx3jPnjl/etV3cY4jd19kwhpJ5ApeK6/7PGlRubfelF8l++8kVjskjqh9RwUgnaURk9Zsz4/bu7tudfEpdLwazEDCHGaRbnoY47pAyi4srywSwScf20UaLfZXsfxO5NJWgnj5+QKRfOoEsjkQfrxn795M/kZ6ufUJ/7Hsd7TTd2y+c/Yzwn9UVTS7N0v7lbGpoaWwvcmeu8mZWYfVKsW4k8L9ktX0omSq4sH4RCMJNsnTTBCCs6zT6xdoYujUSdrjfeln/+678rGoYHdGOkobFB9u7aLZlMptCdQaNeV8fpYt+jUMwgNItt7v25lLG+LIqurBCI0/uuv6po2JEujUQVs8Bj0/pfFC23pxsj+Zw80SNnTp0udGdYb4Y6jX3Fvr5QzDA1sirJhyN7Xsrgo7cv+Z76a7VLxMEv5bV/sMh4B5zK9wFdGokKCCn+9ufPGl08ioUUAd0YKQSNJ06e6DWeF7izfnFRRV8oZnYl+ciVuaooscLYr0zi35c6AuX7bopDTJe2/fnNXJdGQgmqFCFibkKKdGPEjkw6PdIFxiJ39kqxry8Usz8Q63zZr6SMLvkf+fTS72uatlDqDC8uzVyXxtAjCQtvvrpd/vl//XCkn2IxsG7sc3/x342JHiGFYPE0ikBM8twZ1mdsKvb1+WKGCsYbbe57RkpsLJxzZXW9zYtblwbM0OPgwAAXW5NA0rXzbXn6kSfkhX971lUbKhRG3b7ybvnQf/oI140RW1AEsnvHrvdev+fOUPxRtOlwvpjNUsdlFvdg77KiFs+Oj9y+ZKkm2lKpc7y6NFRFIvTIfBoJAsiJvfrcb2X9367JRRCK58Xwmf/Qf/yo3HrPH8rE6VOEkGIcfHevcvnJkdd57gwa5FiAmN/lo8PmnrLK8aPYULgcblz2CblMubR/+NYPpO+Y84CAhCgaF29a9+9yzccXySVXLlCz3AuEkGoBF/aWCie+9vzLnpoBI6SIDh6tEycIIW5pUemVATVxGnk9dvTs5pbm5sGBwTYpkurS8p5/QawF7QkpsR/jg08+skiLac8JsQTbxWxa/+9FRS0fFIlgoICwMa9GKoG5SSZyYke6D3j6WlQp3rTsFhVav0gI8cqOl1413Fk+x/Yd3PT6y1tXSpFOIJV1ZprcKcQWdA5BPg3Oy+0+aKh8xAEwYBjfQw0gdGykHCBgr/3mZUPAEOL2CvJit979hxQx4jsXTJ9y9YQpE5p7jjhP+k0xm2ZzHTHKkqsYNU27SYgjCMPces9njfAj9nXCYOIWDDrmwDP1whkyZfYMw7VB3OjaSDEgYJgYvfabzSUJGICI3XjbJ7gbNPGFFotxKxaPN8+/5sqbfvOzZ190+lozzIiVi5+1uI7ij8ekBLIdP2J1XcVYChhUnn7kHz2FHq2AuGGWDOeHUn86NwLyBQwhxFI3xcSECRW6FDHiJ+/s2HlORaPJlNnTOy+//poP3/fpu22/1nRmFSj+iC0R4hkI0J99d5UhahvXPVO08tEOLD7EsRl7qknWAcK5meLGsv/6wS8BQ3UiROzaj3+Y4URSVcaMG4co3yJ1dNrdYzozX4s/Vq1/vLU5k+4VUjaoaEROrXvX22W7tULM0OSU2TMpcBGj3BxYPhCwSz5wmeHC2LWDVBI7ZzZ3waUy5/3zHh7qj698YMUKy681nVmzzfcuKV/WlEkuVc5MSPmYOTWQLf7Ybhylzq7zMd2bPP/yyDkI3HiVBzEd3FR2IwkNfcdPjHxGyhUwc10kPgd0YSQIxDT5nHJfq8RGl4oVgJTorhhirATZsvwFgvQmBisMWlgHdGSvt/JpJ0yBMysmAQY2OLisk5vJPEmAwPuPUPRbv9s+0teuVMy9+YwiIgoYCR6tTWNSaIvYaXURYuYkZCVt+aLUs+47flSabHFHdsBBKLIbgxqqGysQjjQ7kpizffxZ6OpAqg/Ch4eNlmfeFzJbAQG7WE2QFt5wHQWMBB1Ni2nfuP/xxzutQo0QM19DjN/510eX6kKqCUKRrTe8V1kGcUOiH84NW9b76dwABtHL1J/FHFt1MAs43tySDR/6KWBw3MyDkaCQ3/0jn7yS/YWaZuy7eZ4+FXNmnsmIjl6MQmqHIW7qyIYks84K4pYNSe73ZUDE96CYVZ6+o8flHx78G2OCUg4MIZKI0No0NoPI35rCC747My6UDh5GSXVeWBKY7g3OrTuXd/MicFPVjJ5UGBXiePqRfypZyChgJGykh5OW5/N2W1DGTP+cCjWuKQw1QsxaxRrP+bJvrl+9UFmzdiGB51z39gnjXKGDQ+7NKkRpDpCksujqP6/rDPGemm3SKGAkbCRtxKyhsTH/5UJNzg81QszaxBrPYcZERlvEfFl4sXJwAAUHJ5WwwcW1c5CsKhCnYs7MXAeGCQa71JM6wLKqMeHwBZ6dma5rS5guix5Tc+vNzBwcqQ4qZG9so/KT7z96znljqQTeDy5kJhHDtgBkzDlrXTVdM/bI7Mw/6eTMvJfla7JQCCG+Abf1Z99bJS//onPkNSsQSVRJFc+ZGWAB9UM/Wb3yK7ff8949Yo+ncjfsXSb2+TdCSIkgdAiHRkjUSSbtcmYNhaegNTBP28wT6DllV83oyZnFYnRlhBBCSsPFGrNzUKHGRfmvfROzjLAknxBCSGkMnDljeb4wxJhD5c3kHM3xrRuwJnRmhBBCSiM15DrEmEXTbnpw/Q9HXvoiZtjyRT20CyGEEFICdmHGsW3j7b7kHN3xRcyaUim6MkIIISVjJ2YJO2cGMo2LzKe+iBmLPwghhJTDoJ0za7V1ZmhtNZI3g5jZFXrYFYacB4s/CCGElMPZ09ZiVtDK6hw0XS43n/siZqIzX0YIIaR0+vtOWp53yJmJrsnCh36y2niORdNYHG212BktBlx1ztfY+cOSmPrBNMcaJaHFJBGLS1w09TxuHNnrOM6P9KYyGTH+03XjSEpanUvLcCYlw3rKOEcIIVGhv9dayJAva3DKmWUxFk9DzOycGQTukBThwfU/bFfjLlE0aglpjjdIixKwxlhCCVhpKcns19l/bUpXwpZOy0BmWAbTSUPgCKkGmKA1xbMTtLiaoOG1MVFzOUHTcxM0TM7SuQlaMsMJWr2TTA5bnh9nny8bIR2Pj4gZuuN3WNzjLsyYSrT7t1otfDTHGmRUoknGxpssf4krgeHuEnEZJdlYMsQNotafGpTBTFII8YuGWHaC1pRoNJ5XbIKmhC2pjqFUdoIGgSP1Q3+PvTMrgiaZTLtxr9g7szZxg663S521ysdsdHxilIxLNFdNwJyAuI1J4Gg2hK03eVYNCMPqefUsMwQ9EY/LuKbR0qAeMfCNamjK/v1yrxPqwLVzvi53jxcw0CWVMy1kIDl03n2pvPvO5l3Pfz5g8fxs6tzvVU80Ibqg3s/RDVWcoCl3h6MlkZugQdiUqJ1JDhqPJNrYhRmd8mUmWkybjUeImV0o0V3TYE1rlzohaCJmBYRtUuNYQ9ROqwH5ZOqs7yEciNLUMW2GcF0wapyMaszO2qsF/iyrP68UYSyGKZw4Ujm3MCJ4eY+F14cz770OA/hsj20cJWMaAjJBy4nbaPX3gbCdGlYTNOXa0jpzGlFkwHtZ/ghmRaOTM5smLtA0rS465SOcCJHAL1gYgKi1NqjBSc2w4dROp7zv6FNIixKLjtZpMqt1YlXFq5aMCGfRaIc1+UJnOkXjnHp+dnh45PzZ5HBNxC9oImYFfucmNI81RA2OuX/4LHNsEaPn6HHL8y1jRksxdC1rvJycmaswo/pGs6MeZLygcYxyY+HcP8p0ag3qsTd5ptRvIxdfMFM6JkytGxHzC8MtehBCCN1ATuxODZ4deX1i4JT4DcKJEInQTNDU33OcEl6EtOHUEIIk4cepknGcizCjoh09GjEyofwen4rCgg+8bpUi5fnK4rVGOWU2qXGc4W7CDlwaKtCODfd7+jq4sQ9Mv0TGN48SUnkgfma4dOqYCSPnIW6H+3vlrRP7z8sNlkJb8xjlxkI6Qcs5NTyeHCp9gkaCwcBp6/fQTSVjHu3mNBsVjVZhRZxzFDNl9lujqmVtDaMjIWQm2QKRjGuHNkUNpgunzaEbCwB4D2aNn2Qcbx3fb4haqUxoHmcUd4QduLS4mqD1DHqboJFgYRdiHNvmScxGamXtQo0dUgRNi+bu0nAxcDNRA/8m5P+KMadtqlw942IKWQC5eOJMWTznCsM1ewVFO1EQMhMUiIxvKp5XIcHFLszYNnmiuCaVaDfF7LDNLW7yZpEUs9aG6P6CjE04LyGcNW6SzJ/cLiS4IBR5/az5ngQtHovJ+MboTdDg0JD/IyFEL6/4wyQRj483xWyPzT1FnZlEVMxGxxslqoyK2w+A41Ru7PJpc4UEH6+CNr4xuhM0ODQSPnqOHbM876H4wyCl6235YUar0iCzCKTuCGqZsh+gHNsKs9iDhAcvgmYuSI4iLRHKbdcTdp0/JngJMebIH7Ht8mbzpQ7JRHhxpt0anYVT51Zk4TGpLKNyk5BEkfxmPU7QSLA5ut9adiZMqYyYuQk1Ro4z6WGJKmfT55d2zxw/yejmQcIJlk5cPHGG4z31OEEjwca2jVWr94BgvpjttLmnLsXMj44ZQQUdQfJBiAqLokm4mdM2zXFCMpCK7gRtoI57aYaVnqPHJJk8v+8m8mV+ODO7vJmToLna8yxsoPt8OR0zggr+TejbmA+qFxlejAaXq1CxXbgxyh0zTg2dFRIu7PJlHhdLZ8lkuvLFDJ/0UkKNkRQz0KccTH+EHBr+LX0WrgwhRhINMCnBGkEr0H0+ih0zTg2dP0EjwccuXzZ5lqu2wOdRmBH2HGpUoerIihk4PtwfCYd2MjVg/FsKMbre05VFCvTQtHNnUetpiH/LyWG6srCRGkrad/5oLa2AvlDM3rC5D2Jm+SdoEXZmJnAzx4b6ja7dYQMz1kODfdIzfNryOnNl0QNdW+zcGUD7pyg4tP7hAbayCinIl1nRMnpUSfkySaS6CsWsT+zFybJEXxe9W+qA0+lBOTDUm805hUDUMrkejAcGe213n76gha4sqji5MwCHBiEI5QRN/Z2Pnu2TvqHTQsKJXYixrRQhUwz1NfdZLTzZYnP/PMuzunRJnYDyX7i0Q0MnA+vUTBHbN9hj/F2dSpaZK4suZmNiJxCiO3K213BpYZmg4e+KvzN3nw43diHGUhZLg1UrVvRZTd2cWludvyWMrndJlPeAscDYxTmdNtwamvaiG32LeqzVvlD4Je9PDxkbF9q5MCvGN3FblyiD3cD39B5yvAeTHbg0fHbQ3xB9DoO2v5nx+VYhxdPJAa4niwBYW2a3s/SEKd4n2Jou2/BoJ2YQLKsc2ZXq2JB/IhaL9dXzxwviMTicFZBGLSHNakCAwDWpmXGlBgX8cg+omSn+7OFMypOAmaCKcVwzu41HGbO456yL/c/gzHDArUHU0OsQj7WcoJ3BxqRKZOnCosWBd60zU3BlyJl5RdeyBssuqI5Q42KL81dIgZhl4sltWoYdq8GwnpLhVEpOyYDxGi12IHCNOWFLSMxoKRTTUHkTU6Eg64EimQv5YO8xuMCMiuUag416DuHyY3ZKV1YfYE+6Yu6sEIiHKSD47ELUcDTEKztBG0pl/1xM0Chg0cXvknxFF/5nJ2Yo0bcSM2wJg3DjSCjyvtv+pOvbax+1c3J1DURnUE+W5JwqzTjuAVUXuAk1OgFhwdGffG+ChnwcRC6OCZqWnaChNSIe7cTOzMmlM7kJmvrdSOcmaBAuhg/rA6cQ4+SZ06UU9Ey2CNFOzPDph2BZrS+bJwV5NfU57FIf5oVCQgPFrD7Alj5+AtHJd26EeMEuxDi2dXxJIUaFnojHbXNmJnBnVmJm5s3yVl7qr6k0HMUsRIxq8LYdyM6dO+WVV16R06dZDh1ULrnkElm8eLFySe8VZMFFjVMhZbZ7IkHALsQ4Y+6FUiqpdNroi+UkZmberHDXO7z+oOTlzlQOaJsKEtwhJDQk4gnX9z777LOycuVKIcFnyZIl8s1vfvOcc3DhFDNSa7BQ2u8QIxg6nTCcmdMGR3BedmvOrsh/kYrpnUJChZfF0g899JCQcPD0008bDjofLownQeDg7r2W58sIMYI+rDHDk2K79dn1ajQLQQz+4rZ7oIyRb2tVjxw4cEAOHjwoJBzoKqf1u9/97pxzFDNSc3T7hdKzL50rZbDNfFJMzPaI/SLqc6sd9fe+KQk+yUzK1X0zZsyQsWPHCgkHyJddfPHFQkiQOLBnr68LpU0yurxmPnezj7pTJ/0Rd6ZmhBuFhIaBYfebGd57773nFBWQYIL3CDmzm2+++ZzziXiwOnqQ+uOgTRXj5JnTygkx6g2xWKf5wk0VgF0hCEDuzHRuneq4X0goODHQ77oDyNKlS+Xqq6+Wp556SkgwgZB94AMfMN4nQoLEQP9Z2xAjxKwc9FRqRCXdiBkKQV4Q60XUZpl+31Aisa05k+bi6ZBw+HSPdDhsE1IIwo1f/OIXhYSPVJobV5Lasft16+AeHNmMObOlHL5y+z2uc2YmEDO7Hf0MkVt124o+5s3Cw4mzp4yDRB83vRkJqQgOhR+lbveSR2f+C7diZrozK7DPmRGC1DSdcagQUU6bIxIeTgxw0kJqg1Phx0UL5kk55Bd/ALdiBuzEDEJmuLNMLPVTIaHh8OleurM64OQgF0yT2rB7h3WIsdQO+XmcU/wBvIgZ3NlWm2voCNKKpsM6Q42h4q0T+4VEF0xWUi6XYRDiJ04dPy68pKy1ZQYpbahkZwZ+7XAtWyCiM9QYJjDY7ek9LCSa7Dt1TAipBXt37bY8D0c2ZVbp7asANuSEeco/51XMUK1o585Q2Yh1Z51CQsVbx/exSCCC4D3df5JiRqoPyvGP2DQVnrvgUikXXTs/AuhVzADcmW1l432fvrtTcpulkXCAzUBf3PeG664gJBzQcZNaUclyfIUe12Ln1WeUImZwZ3bFIEZXED2j/0hIqBhQs/g3jnYLiQZwZaxWJbUArgxVjFZML1/IDM6c1DYVnitFzIDTurNb9HhyjZDQsU+FpFgQEg34PpJaYefKwIw5pe9blken2Sk/n1LFzGnd2bSvLfvidNGZOwsjbx3fz4Ew5GBSwlwZqQXOruzCcsvxDVTkz7IPcKliBiBmdtu+LB44c/qXQkIJBS28ILzI947UCidXVu4i6Rx63KZivhwxgzv7uc215r/7xl9DnrnHWUihoIWT36u85wArU0kNGOg/U3FXpujK78eYTzliBiDDlvudHeneP//Qnn3cFibEUNDCBd6rI6d7hJBa8PrmLbbXfHJloNPuQrliBjbYXfjFP63rFxJqIGi/Z5Vj4IGQ4b0ipBYceHev/U7Sl1zklyvTVb7sx3YX/di1D6FE9GecVXjhxKGjJ2dc1D570vQp3BYmxPQNnpbDZ3pk0uhWaYi72TWIVBMKGakpusi251+SVDJ53iWI2PxrFkpDY4P4QNd9n7r7y3YX/XBmAO7MslT/+ad/tf1U70kh4ebU4FljYfU+VskFCgoZqTXdb75j24MR68p8cmWg0+miX2IGIVtrdeHd13dt3/HCK4NCQg8KC147vFu2qYPtr2oPhYzUGpTid79p34PxIh9aV+VwDDECP8KMJgiYogNIW+GFRENDYvT4sbMnTJkkJPycGjprbB+TyqSlpaGJoccqg7Zjrx/Zw3ZVpOa8uWW7ba7s0qsWyLg23zJMjiFG4JczM4E7O8+F7d6x65W3t/1+kOHG6ACXBleA0COcGrrvs7dj5elT4d5NXTsY7iU15+i+A7al+GPbxvvRg3GEjC5Fd2Pxe0qNYhDkz27JPzk0MDB47OCRl7dteunG6z+x2K9kIAkAA7nO7GbHiUQsIaMaG6VBPTbE4tLSqJybljDON8bjhpMDWUcXN+4j7kBY8d2ew9yfjNQeXWTXltdtL19x43Xi55+mxZMPF7upEiMJOoNgUUFH/km4s0nTp1yze8fO5kuvukxINMFAe2rQ+2A7SolbIk/cTNEblcg+mmIIAUwU3pN7jCrHlet941iXUYRDSBBApw+7og8fS/FNOgv3LrOiUtNihBv/VLIl+wamO4vF4zcidzZ55jQhxMQoKElKWZiCB0yhgztM5HJ6hcKYf985XxMQx4jQLdwYHgkJCuj08c6OXZbXIGJzL/Ot6APomiZr3NyoSeW4Qh3L8080tbQ0X/cHN/23xpbm5g9+fLG0jPFVvQnxHTvhsxJJ47mFOFq9thLMpOFqzxpr+vb1HWc4kQSO5FBSXvzFBltX9v7rrvQ1V6bY89Xld81xc2Mlp5/YkRr264PmCdOdTZk1/catz78kH1T5M0KCDATFFBUuRyD1jlN4Ef0XfRYy5ba0n7q91+9qxkJQDHJOs2HkzjLp9GB/70nZ9ep2IYQQEnzQssp5TZlv/RdN9Exs+Adub660mKFM/4n8E6Y7w3P8YLB6nBBCSHBBnmz3DvvtXeYuuNTvog+wxk3hh0mlxQxg7/Zn8k+Y7gzPkUjk+jNCCAkousgrG35T1fAi/lQ9lvwrL19QDTEDKNcfkfV8d5YaTsq2TS/JwGmWHRNCSNDYtWW7rZChiK9CS606vbgyUC0xAyjXH8mfwZ2lksPGa/ygUBCSHC6zNpsQQohvdO96xzZPBq6++QZpaPC9CQb6MHpyZcDP3ozFQEnYG+q4Uh2JdCqltCx1dOK0KYasDw8OyfDAoEyeNV0IIYTUlv4TfbL1N5ttr89dME+mVGa9cOd9n7r7AfFINZ0ZgBP7ufni0J693SqxOLLzI/p8OSUZCSGEVB4UfDgJGfJkPnbEz6ckVwaq6cxMzFbfRrurUz193dM7LrzGvIgOzOjd2DpxghBCCKkuEDKngg/kydB7MR6viHyU5MpAtZ2ZCdafYVG1nOrtO3lk38FN+Rd3vbpDDrzbLYQQQqqHGyGrUJ4MoILx81IitRIzgHAjyvbPKQYx2bVlB0v2CSGkSgwPDRuhRTshA1fccF0l1pOZrPFawZhPLcXMXFDdh1L9d3a8+W/5F1Gy/8qvn6egEUJIhYGQ/U45sn6H8RYl+NinrEJ4XldWSC1yZvlA0IwKx9N9J89MnD51alNz0wXmxUw6IycOHZHJM6dzDzRCCKkAboQMlYtz5l8sFULXRX/gvmV/XHQDTidq6cxMEF58TB2DO1743c/MziAmsLxwaFxUTQgh/uJWyCpUuWjSNRRLFN18sxi1dmYmp9VxLJ1KzW8a3ZIe1zp+bv7FVDIpR/cfokMjhBCfQLHHy/9vk5w5ddr2Hmy0efHC90kFwX5lK/9y2Rc2S5kERczAcXX0njh0dHxhuBFQ0AghxB+KVS2C6R2z5X3XLJRKouny03uX3/U18YEghBnzQbn+M1bhRsCQIyGElAc6e7z4i+eKCtmC66+UCqNn4sk/F58IkjMz2YdWVyojOH7C5InzCy/CoaFTyMRpU6SppVkIIYS44+Dubnl144uSyWRs76mWkPlR9JFPEMUM7Dl5oufE2Alt80aNGT2j8CKqHA/v3S8qFCnj2lqFEEKIA3p2l2is33UCxR7zrlogVfgL7blv+d3LxEeCKmZgz+Dpswcnz5xySywebym8CEFDDk1TzydMmSSEEELOBxWLWzpfMCJaTlShatGkV4+lPvTrf/l5n/hIkMVMhgYH3040Ne4d1zr+Fi0Ws6z6QC9HChohhJwP8mNG6X2fc/MJLIiu4DqyfHQto9/31eV//EvxmUCLGeg9cvz1+R+88kxqKPlxu3sgaOgYMn7ihEo1vySEkFCBvche37xFmYIh23tQGX7Vhz8k02bPlCqggp2y5qufutuX6sVCQjHyv7P19y/d/Jlb20/3nlxol7g8eaJXDnfvZ+k+IaSuGR5KyvbfviLdb+12LPRA0+BrP7ZIxlWuRVUB+p7BWGJ55788NSgVIDQ2ZsmX7tk4afIFn+k5fKwNFY1WmGvR2lTIkZWOhJB6o+fwUdmy8UVjcu/EhMkT5eqP3CBNzVUbJ4082ddvu/uwVAhNQsSD63/YPnhqeMsrv/5Nm9MaCYBEJhKahBASdZLKjaFasfvN3UXvRVePS6tSsTgC8mRfvvfTd5fdssqJUIkZePDJRxYNDgw8t3XjS0WTmjM6LpRLVGKTYUdCSFSBG3t981YpNsHHHmQYD2fMuVCqSHY92fLSNtz0QujEDChBW6XFtPt3vbq96EwEe+9gMznEhwkhJCp4cWPYugW7Q1dwLzJLlMCsv3f5Xb6uJ7MjlKV/v37yZ50fuf3W1onTp1yHH1fv0eO29yKPhjeb5fuEkKhwdP9B2fb8Zjl+6GjRexFWfP/1V1UzP5ZDf3cwlvhkpQo+CgmlMzP59r8+ukH9Cz58dN8h2bVle1GbbcxOsFMqXRohJISgQTDK7XscJvAmGOfef91VRrFH9dH36LHU4nJ2jvZKqMVs1frHW5szqS3qn9FhNCF+9vmigpZQ+TMUh2C2QgghYQAhxb1vvSPv7Njl6v7JM6cZbgx5shrQo8eSV1VTyECoxQygwlHLJDZA0PDaTR4NMJdGCAk8uZ6K3bt2S9JmSVI+KHaDG4OY1Qg9Fstc+ZXb7tkmVSb0YgYeWr96YSYTU4ImbXh94N29snvHzqIuDbCEnxASRLyMYwDRprmXXVorNwZ0XTIr7lt+z4+kBkRCzEChoOED8PqLr7qLLSuXNleJ2ow5s4UQQmpJz5FjSsR2uRq7QG1zYyPUVMhAZMQMPLh29Z2axP5e8v5diDFjduMGfBjwoWDokRBSbY7uO2ikSNyKGBzYhZdeVK1O905UZVF0MSIlZsBK0NwWh5hgsTVCjxQ1QkglQWHHwT3dhoi5HZ/A9DkXKhGbV/V1YxYEQshA5MQMWAkawAdm9/adrhKpgKJGCKkEyeGk7H3zHdeFHSaIHs29bF6tQ4omNQ8t5hNJMQN2gobZzzsq7Hjw3b2uvxdFjRDiB8iHYVLde+S4JxHDGlnsORYQEQOBEjIQWTEDdoIGvFYKAYga7D07iRBC3AIXdvDdbmNHD7f5MJOAFqf16hl92X2fvrtTAkSkxQw4CRooRdRY/UgIKYZZldjfe9KTCwPBHWP0PbGYvqwW68iKEXkxAzlB+67kyvYLgZBhV1Y3i63zQTURFifSrRFCAAQMDgxpDK8CBhBGxHgSzIly9VtUeaEuxAwUrkOzopR8mglmUthaYXrHbObWCKkTEELs7+0rS8BAwAo7CtFVgmybxJPLgipkoG7EDBS2vrKjHFEDEDY4Nhx0bIREi1NKvFDAAQErJYRogsjO9LkXqnFielBFDCgh0380FE98edVtK/okwNSVmIGsoDXAoXUUu9cUNXxwveTU8sEHtm3KREPYUJE0rq1VCCHhwRQvbAaMHTpKFS8TjAMQsNmXzq1l6yk3VG1jTT+oOzEDRrf9dHodto9xcz+ErEd9mL0WiliBDy8+zBC4cepxbGsrw5KEBACEDAfOnDHcVv5RrniBkLiwfHozuqz42qfuekpCQl2KmUlux+pviIefA0prD7zbXXII0gpT4LA9DR4RpsSB1+iC3TJ6tBBCygNilUoOy8Dps8akNGWIV/Y5RKvciaoV2YKO2TJ51rSguzCTUOTHrKhrMQPfWvvIyphoqHT09LMw3RqqIBF+qAYBaF1DSCiphFDZAQEzqpznzg6LgJnoyo09PByPPxD0/JgVdS9mIFvpqK0rVhhiB35R0CQUa9aqJWyEkGBgLNFRzqtt8qQwObBCerWM/kAQeiyWCsUsBwpDRG9Yp+lyhZSB6diw4t/ran9CSDiA+2qbMkkmqNx3SHJgdiCsuFWFFZeHLaxYCMWsgFLyaE5A0I7uPyj9PScpboSEkPeKtrLihechdV+FGGHFr33qri9LBKCYWaAEbZEWk78vNezoBAStv6dPTqlwJASOYUlCggPy0kYR1phRRqUxxCuCuWpdHV1KyT4ftP6K5UAxs8EIO6YT92uadodU+Odklv9C5AbOnjWqrVBpheqrQRW29KM0mJB6B24KFcIJ9QixMo5RqBpuNJbJNKvXEXFcToS6yMMJilkRivV1rCbVrMgiJGoYS12iL1Z2ZEvudf3Po+TG8qGYuaCaLo0QQnwm9JWKbuDA7IGsS0NxiP+5NEII8RldDfA/zcSSfx72SkU3UMw8QpdGCAk4uvqvU8UV/yqqIUUrOBiXSF7D4nbhz5EQUnuMKkVNk1X3Lrvrx1JncBAuk1yBCNalMfRICKkFELE+PaM/PJRIPBy1KkW3UMx8AF34m1KplVpMPsd8GiGkSlDE8qCY+QjzaYSQKkARs4ADbgXIE7UlEoD1aYSQSEARc4BiVkEMUUsl7tRimgo/slCEEFISRnWiSmOsqcfCDrdwcK0SeYUi7cKfOyHEGcOFaUrEMrr+g3oqsS8VDqpVBk2M1U/9jlxeDfA9IISYGC4sFpefnpX4jxlKdA8H0hphVEBmkks1PfY59S4syp3m+0FI/WG4sIwuP9J0/Sm6sNLg4BkAjNxaJr6IwkZI3UAB8xkOmAHDFLaYxG5Vn/ZF6lRr7hLfK0LCi577P9pMbVLPOilg/sIBMuAgxxZPaJdn0rJEvVsLheJGSNDRR57osk292BhXx0A83skcWOXggBgyHlq/eqGejrWnRW6KiVxeIHCA7ykh1UEveN2ljs5YTF5Lp/TXhhKJbRSv6sGBLwLk2mktjGlaa0bXF2ox7UL1a9ZuXNSMx1Y5V/AIId7pU06rK6ZJV1qX7kRcuvS0dGfiyW1D0txH4aotFLM6w8jJEUI8Uw97goWZ/w9QLWsrhrvn0AAAAABJRU5ErkJggg=="/>
+</defs>
+</svg>
+<a title="I write more code to write less.
+" href="/">一片瓜田</a></div><button class="button button--secondary button--circle search-button js-search-toggle"><i class="fas fa-search"></i></button></div><nav class="navigation">
+        <ul><li class="navigation__item"><a href="https://www.desgard.com/algo/index.html">《Alog》</a></li><li class="navigation__item"><a href="/feed.xml">RSS</a></li><li class="navigation__item"><a href="/qrcode">Wechat</a></li><li><button class="button button--secondary button--circle search-button js-search-toggle"><i class="fas fa-search"></i></button></li></ul>
+      </nav></div>
+  </header>
+</div><div class="page__content"><div class ="main"><div class="grid grid--reverse">
+
+              <!-- 不需要 -->
+              <!-- <div class="col-aside d-print-none js-col-aside"><aside class="page__aside js-page-aside"><div class="toc-aside js-toc-root"></div>
+</aside></div> -->
+
+              <div class="col-main cell cell--auto"><!-- start custom main top snippet -->
+
+<!-- end custom main top snippet -->
+<article itemscope itemtype="http://schema.org/Article"><div class="article__header"><header><h1>CocoaPods 命令解析 - CLAide</h1></header><span class="split-space">&nbsp;</span>
+          <!-- <a class="edit-on-github"
+            title="Edit on Github"
+            href="https://github.com/Desgard/desgard.github.com/tree/guardia-v5.0/_posts/2020-09-02-cocoapods-story-3.md">
+            <i class="far fa-edit"></i></a> --></div><meta itemprop="headline" content="CocoaPods 命令解析 - CLAide"><div class="article__info clearfix"><ul class="left-col menu"><li>
+              <a class="button button--secondary button--pill button--sm"
+                href="/archive.html?tag=CocoaPods+%E5%8E%86%E9%99%A9%E8%AE%B0">CocoaPods 历险记</a>
+            </li><li>
+              <a class="button button--secondary button--pill button--sm"
+                href="/archive.html?tag=Ruby">Ruby</a>
+            </li></ul><ul class="right-col menu"><li><!-- <i class="far fa-calendar-alt"></i>  -->
+              <span>Sep 02, 2020</span>
+            </li></ul></div><meta itemprop="author" content="冬瓜"/><meta itemprop="datePublished" content="2020-09-02T00:00:00-08:00">
+    <meta itemprop="keywords" content="CocoaPods 历险记,Ruby"><div class="js-article-content"><div class="layout--article"><!-- start custom article top snippet -->
+
+<!-- end custom article top snippet -->
+<div class="article__content" itemprop="articleBody"><h1 id="引子">引子</h1>
+
+<p><br />在上文 <a href="/2020/08/17/cocoapods-story-2.html">整体把握 CocoaPods 核心组件</a> 中，我们通过对 <code class="language-plaintext highlighter-rouge">pod install</code> 的流程的介绍，引出 CocoaPods 的各个核心组件的角色分工和其主要作用，希望通过对这些组件的使用和介绍来帮助大家更好的了解 CocoaPods 的完整工作流以及背后的原理。<br />
+<br />今天我们主要聊一聊为 CocoaPods 提供的命令行解析的工具 <code class="language-plaintext highlighter-rouge">CLAide</code>，它是如何来解析 Pod 命令以及 CocoaPods 的插件机制。<br /></p>
+
+<p><a name="41cb7c3f"></a></p>
+<h1 id="open-class">Open Class</h1>
+
+<p><br />开始之前，我们需要了解一个 Ruby 的语言特性：<a href="http://rubylearning.com/satishtalim/ruby_open_classes.html">Open Classes</a><br />
+<br />在 Ruby 中，类永远是开放的，你总是可以将新的方法加入到已有的类中，除了在你自己的代码中，还可以用在标准库和内置类中，这个特性被称为 <code class="language-plaintext highlighter-rouge">Open Classes</code>。说到这里作为 iOS 工程师，脑中基本能闪现出 Objective-C 的 <a href="https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/Category.html"><strong>Category</strong></a> 或者 Swift 的 <a href="https://docs.swift.org/swift-book/LanguageGuide/Extensions.html"><strong>Extensions</strong></a> 特性。不过，这种动态替换方法的功能也称作 Monkeypatch。(🐒  到底招谁惹谁了）<br />
+<br />下面，我们通过在 <code class="language-plaintext highlighter-rouge">Monkey.rb</code> 文件中添加一个自定义类 <code class="language-plaintext highlighter-rouge">Monkey</code> 来简单看一下该特性，<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Monkey</span>
+  <span class="k">def</span> <span class="nf">eat</span>
+    <span class="nb">puts</span> <span class="s2">"i have banana"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="n">monkey</span> <span class="o">=</span> <span class="no">Monkey</span><span class="p">.</span><span class="nf">new</span>
+
+<span class="k">class</span> <span class="nc">Monkey</span>
+  <span class="k">def</span> <span class="nf">eat</span>
+    <span class="nb">puts</span> <span class="s2">"I have apple"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="n">monkey</span><span class="p">.</span><span class="nf">eat</span>
+</code></pre></div></div>
+
+<p><br />直接在 VSCode 中运行，效果如下：<br /></p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>Running] ruby <span class="s2">"/Users/edmond/Desktop/Monkey.rb"</span>
+I have apple
+</code></pre></div></div>
+
+<p><br />可以看到，<code class="language-plaintext highlighter-rouge">Monkey</code> 类的实例输出已经改为 <code class="language-plaintext highlighter-rouge">I have apple</code>。<br /></p>
+
+<blockquote>
+  <p>需要注意，即使是已经创建好的实例，方法替换同样是生效的。
+另外 ⚠️ <code class="language-plaintext highlighter-rouge">Open Class</code> 可以跨文件、跨模块进行访问的，甚至对 Ruby 内置方法的也同样适用 (谨慎)。</p>
+</blockquote>
+
+<p><br />这强大的功能让我们可以很容易的对三方模块进行扩展，这也是 CocoaPods 的插件体系所依赖的基础。<br />
+<br />举个例子，在 <em>CocoaPods</em> 主仓库 <code class="language-plaintext highlighter-rouge">cocoapods/downloader.rb</code> 中定义了一些 download 方法：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">module</span> <span class="nn">Pod</span>
+  <span class="k">module</span> <span class="nn">Downloader</span>
+    <span class="c1"># ...</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><br />但是在 <em><a href="https://github.com/CocoaPods/cocoapods-downloader">cocoapods-downloader</a></em> 模块中，module <code class="language-plaintext highlighter-rouge">Downloader</code> 的方法并不能满足全部需求，于是在 <code class="language-plaintext highlighter-rouge">cocoapods-downloader/api.rbapi.rb</code> 中就对齐进行了扩展：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">module</span> <span class="nn">Pod</span>
+  <span class="k">module</span> <span class="nn">Downloader</span>
+    <span class="k">module</span> <span class="nn">API</span>
+      <span class="k">def</span> <span class="nf">execute_command</span><span class="p">(</span><span class="n">executable</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">raise_on_failure</span> <span class="o">=</span> <span class="kp">false</span><span class="p">)</span>
+        <span class="c1"># ...</span>
+      <span class="k">end</span>
+      <span class="c1"># ...</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><a name="CLAide"></a></p>
+<h1 id="claide">CLAide</h1>
+
+<p><br /><a href="https://github.com/CocoaPods/CLAide">CLAide</a> 虽然是一个简单的命令行解释器，但它提供了功能齐全的命令行界面和 API。它不仅负责解析我们使用到的 <code class="language-plaintext highlighter-rouge">Pods</code> 命令，例如：<code class="language-plaintext highlighter-rouge">pod install</code>, <code class="language-plaintext highlighter-rouge">pod update</code> 等，还可用于封装常用的一些脚本，将其打包成简单的命令行小工具。<br /></p>
+
+<blockquote>
+  <p>备注：所谓命令行解释器就是从标准输入或者文件中读取命令并执行的程序。详见 <a href="https://www.wikiwand.com/en/Command-line_argument_parsing">Wiki</a>。</p>
+</blockquote>
+
+<p><a name="7db62e5c"></a></p>
+<h2 id="claide-功能概览">CLAide 功能概览</h2>
+
+<p><br />我们先通过 <code class="language-plaintext highlighter-rouge">pod --help</code> 来查看 <code class="language-plaintext highlighter-rouge">CLAide</code> 的真实输出效果：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">$</span> <span class="n">pod</span>
+<span class="no">Usage</span><span class="p">:</span>
+    <span class="err">$</span> <span class="n">pod</span> <span class="no">COMMAND</span>
+      <span class="no">CocoaPods</span><span class="p">,</span> <span class="n">the</span> <span class="no">Cocoa</span> <span class="n">library</span> <span class="n">package</span> <span class="n">manager</span><span class="o">.</span>
+
+<span class="no">Commands</span><span class="p">:</span>
+    <span class="o">+</span> <span class="n">cache</span>               <span class="no">Manipulate</span> <span class="n">the</span> <span class="no">CocoaPods</span> <span class="n">cache</span>
+    <span class="o">+</span> <span class="n">deintegrate</span>         <span class="no">Deintegrate</span> <span class="no">CocoaPods</span> <span class="n">from</span> <span class="n">your</span> <span class="n">project</span>
+    <span class="o">+</span> <span class="n">env</span>                 <span class="no">Display</span> <span class="n">pod</span> <span class="n">environment</span>
+    <span class="o">+</span> <span class="n">init</span>                <span class="no">Generate</span> <span class="n">a</span> <span class="no">Podfile</span> <span class="k">for</span> <span class="n">the</span> <span class="n">current</span> <span class="n">directory</span>
+  	<span class="o">...</span>
+
+<span class="no">Options</span><span class="p">:</span>
+    <span class="o">--</span><span class="n">allow</span><span class="o">-</span><span class="n">root</span>          <span class="no">Allows</span> <span class="no">CocoaPods</span> <span class="n">to</span> <span class="n">run</span> <span class="n">as</span> <span class="n">root</span>
+    <span class="o">--</span><span class="n">silent</span>              <span class="no">Show</span> <span class="n">nothing</span>
+    <span class="o">--</span><span class="n">version</span>             <span class="no">Show</span> <span class="n">the</span> <span class="n">version</span> <span class="n">of</span> <span class="n">the</span> <span class="n">tool</span>
+    <span class="o">...</span>
+</code></pre></div></div>
+
+<p><br />👆所展示的 <code class="language-plaintext highlighter-rouge">Usage</code>、<code class="language-plaintext highlighter-rouge">Commands</code>、<code class="language-plaintext highlighter-rouge">Options</code> section 及其内容均是由 <code class="language-plaintext highlighter-rouge">CALide</code> 的输出模版 <strong>Banner</strong> 来完成的。<code class="language-plaintext highlighter-rouge">CALide</code> 提供了 Command 基类帮助我们快速定义出标准且美观的命令。除了 <code class="language-plaintext highlighter-rouge">pod</code> 命令之外，例如：<a href="https://github.com/CocoaPods/Xcodeproj">Xcodeproj</a> 所提供的命令也是由 <code class="language-plaintext highlighter-rouge">CALide</code> 来实现的。<br />
+<br /><code class="language-plaintext highlighter-rouge">CALide</code> 还提供了一套插件加载机制在命令执行前获取所有插件中的命令，例如：<code class="language-plaintext highlighter-rouge">cocoapods-packeger</code> 提供的 <code class="language-plaintext highlighter-rouge">pod package NAME [SOURCE]</code> 就是从其 source code 中的 <code class="language-plaintext highlighter-rouge">lib/pod/commnad/package.rb</code> 读取出来的，它令我们仅需一份 <code class="language-plaintext highlighter-rouge">podspec</code> 信息，即可完成 Cocoa 依赖库的 📦。<br /></p>
+
+<p><a name="dd2009ca"></a></p>
+<h2 id="calide-的目录结构">CALide 的目录结构</h2>
+
+<blockquote>
+  <p>对于 Ruby 的项目结构，在 Rubygems.org 中有 <a href="https://guides.rubygems.org/make-your-own-gem/">文件结构手册</a> 这个标准供大家参考学习。</p>
+</blockquote>
+
+<p>首先来看 CALide 项目的文件入口 lib/calide.rb：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">module</span> <span class="nn">CLAide</span>
+  <span class="no">VERSION</span> <span class="o">=</span> <span class="s1">'1.0.3'</span><span class="p">.</span><span class="nf">freeze</span>
+  <span class="nb">require</span> <span class="s1">'claide/ansi'</span>
+  <span class="nb">require</span> <span class="s1">'claide/argument'</span>
+  <span class="nb">require</span> <span class="s1">'claide/argv'</span>
+  <span class="nb">require</span> <span class="s1">'claide/command'</span>
+  <span class="nb">require</span> <span class="s1">'claide/help'</span>
+  <span class="nb">require</span> <span class="s1">'claide/informative_error'</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><br />我们接下来分析一下 <code class="language-plaintext highlighter-rouge">lib/cladie/</code> 目录下的相关代码。<br /></p>
+
+<p><a name="Command"></a></p>
+<h2 id="command-抽象类">Command 抽象类</h2>
+
+<p><br /><code class="language-plaintext highlighter-rouge">Command</code> 是用于构建命令行界面的基础抽象类。所有我们添加的命令都需要继承自 <code class="language-plaintext highlighter-rouge">Command</code>，这些子类可以嵌套组合成更加精细的命令。<br />
+<br /><code class="language-plaintext highlighter-rouge">pod</code> 命令正是由多个 <code class="language-plaintext highlighter-rouge">Pod::Command &lt; CLAide::Command</code> 的子类组合而成的 <code class="language-plaintext highlighter-rouge">abstract command</code>。当然 <code class="language-plaintext highlighter-rouge">pod</code> 的 subcommand 同样也能声明为 <code class="language-plaintext highlighter-rouge">abstact command</code>，通过这样的方式我们就能达到多级嵌套命令的效果。有抽象命令当然也需要有具体执行任务的 <code class="language-plaintext highlighter-rouge">normal command</code>。<br />
+<br />举个例子：</p>
+<pre><code class="language-basic">$ pod update --help
+Usage:
+    $ pod update [POD_NAMES ...]
+      Updates the Pods identified by the specified `POD_NAMES`
+
+Options:
+    --verbose                              Show more debugging information
+    --no-ansi                              Show output without ANSI codes
+    --help                                 Show help banner of specified command
+</code></pre>
+
+<p><br />对应的， <code class="language-plaintext highlighter-rouge">pod update</code> 这个命令的逻辑在 <code class="language-plaintext highlighter-rouge">CLAide</code> 中就是如下描述：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">module</span> <span class="nn">Pod</span>
+  <span class="k">class</span> <span class="nc">Command</span>
+    <span class="k">class</span> <span class="nc">Update</span> <span class="o">&lt;</span> <span class="no">Command</span>
+      <span class="nb">self</span><span class="p">.</span><span class="nf">arguments</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="no">CLAide</span><span class="o">::</span><span class="no">Argument</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s1">'POD_NAMES'</span><span class="p">,</span> <span class="kp">false</span><span class="p">,</span> <span class="kp">true</span><span class="p">),</span>
+      <span class="p">]</span>
+      
+      <span class="nb">self</span><span class="p">.</span><span class="nf">description</span> <span class="o">=</span> <span class="o">&lt;&lt;-</span><span class="no">DESC</span><span class="sh">
+        Updates the Pods identified by the specified `POD_NAMES`.
+</span><span class="no">      DESC</span>
+      
+      <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">options</span>
+        <span class="p">[</span>
+          <span class="p">[</span><span class="s2">"--sources"</span><span class="p">,</span> <span class="s1">'The sources from which to update dependent pods'</span><span class="p">],</span>
+          <span class="p">[</span><span class="s1">'--exclude-pods'</span><span class="p">,</span> <span class="s1">'Pods to exclude during update'</span><span class="p">],</span>
+          <span class="p">[</span><span class="s1">'--clean-install'</span><span class="p">,</span> <span class="s1">'Ignore the contents of the project cache and force a full pod installation'</span><span class="p">]</span>
+        <span class="p">].</span><span class="nf">concat</span><span class="p">(</span><span class="k">super</span><span class="p">)</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+<p>当我们如此描述后，CLAide 会对这个类进行以下方式的解析：</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1599005020049-ddaee5cf-5280-4586-b5ab-0a3587f0d245.png" alt="" /></p>
+
+<p><br />此外，<code class="language-plaintext highlighter-rouge">Command</code> class 提供了大量基础功能，其中最核心的方法为 <code class="language-plaintext highlighter-rouge">run</code>，会在 <code class="language-plaintext highlighter-rouge">normal command</code> 小节会介绍。对于任何命令类型都可以设置以下几个属性和方法：</p>
+
+<ul>
+  <li><strong>summary</strong>: 用于简单描述该命令的作用</li>
+  <li><strong>options</strong>: 用于返回该命令的可选项及对应的描述，返回的 options 需要通过调用 <code class="language-plaintext highlighter-rouge">super</code> 插入到父类的可选项前</li>
+  <li><strong>initialize</strong>: 如果需要获取命令行传递的实参，需要通过重载 <code class="language-plaintext highlighter-rouge">initialize</code> 方法来获取</li>
+  <li><strong>validate!</strong>: 用于检查输入实参的有效性，如果校验失败，会通过调用 <code class="language-plaintext highlighter-rouge">help!</code> 方法来输出帮助信息</li>
+  <li><strong>help!</strong>：用于错误信息的处理和展示</li>
+</ul>
+
+<p><br />注意 ⚠️：这里我们说的 <strong><code class="language-plaintext highlighter-rouge">abstract command</code> 和 <code class="language-plaintext highlighter-rouge">normal command</code> 均是通过 <code class="language-plaintext highlighter-rouge">Command</code> 来实现的</strong>，只是它们的配置不同。<br /></p>
+
+<p><a name="09aadeee"></a></p>
+<h3 id="abstract-command">Abstract Command</h3>
+
+<p><br /><code class="language-plaintext highlighter-rouge">abstract command</code> 为不提供具体命令实现的抽象容器命令类，不过它可以包含一个或多个的 subcommands。我们可以指定 subcommands 中的 <code class="language-plaintext highlighter-rouge">normal command</code> 为默认命令，就能将 <code class="language-plaintext highlighter-rouge">abstract command</code> 作为作为普通命令直接执行了。<br />
+<br />抽象命令的现实比较简单：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">self</span><span class="p">.</span><span class="nf">abstract_command</span> <span class="o">=</span> <span class="kp">true</span>
+</code></pre></div></div>
+
+<p><br />仅需设置 <code class="language-plaintext highlighter-rouge">abstract_command</code>，然后就可以继承它来实现普通命令或者多级嵌套的抽象命令。<br />
+<br />以 <code class="language-plaintext highlighter-rouge">pod</code> 命令的实现为例：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">module</span> <span class="nn">Pod</span>
+  <span class="k">class</span> <span class="nc">Command</span> <span class="o">&lt;</span> <span class="no">CLAide</span><span class="o">::</span><span class="no">Command</span>
+    <span class="nb">require</span> <span class="s1">'cocoapods/command/install'</span> <span class="c1"># 1</span>
+    <span class="nb">require</span> <span class="s1">'cocoapods/command/update'</span>
+    <span class="c1"># ...</span>
+    <span class="nb">self</span><span class="p">.</span><span class="nf">abstract_command</span> <span class="o">=</span> <span class="kp">true</span>
+    <span class="nb">self</span><span class="p">.</span><span class="nf">command</span> <span class="o">=</span> <span class="s1">'pod'</span>
+    <span class="c1"># ...</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><br />上述通过 <strong>require</strong> 引入的 <code class="language-plaintext highlighter-rouge">update</code>、<code class="language-plaintext highlighter-rouge">install</code> 等子命令都是继承自 <code class="language-plaintext highlighter-rouge">Pod::Command</code> 的 <code class="language-plaintext highlighter-rouge">normal command</code>。<br /></p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1598855030376-84980ad9-7ff0-4c97-bee8-266bc77772e9.jpeg" alt="" /></p>
+
+<p><a name="87eebb65"></a></p>
+<h3 id="normal-command">Normal Command</h3>
+
+<p><br />相对于抽象命令，普通命令就需要设置传递实参的名称和描述，以及重载 <code class="language-plaintext highlighter-rouge">run</code> 方法。<br />
+<br /><strong>Arguments</strong><br />
+<br /><code class="language-plaintext highlighter-rouge">arguments</code> 用于配置该命令支持的参数列表的 banner 输出，类型为 <code class="language-plaintext highlighter-rouge">Array&lt;Argument&gt;]</code>，它最终会格式化成对应的信息展示在 <code class="language-plaintext highlighter-rouge">Usage</code> banner 中。<br />
+<br />我们来看 <code class="language-plaintext highlighter-rouge">pod update</code> 的 <code class="language-plaintext highlighter-rouge">arguments</code> 是如何配置的：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">self</span><span class="p">.</span><span class="nf">arguments</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="no">CLAide</span><span class="o">::</span><span class="no">Argument</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s1">'POD_NAMES'</span><span class="p">,</span> <span class="kp">false</span><span class="p">,</span> <span class="kp">true</span><span class="p">),</span>
+<span class="p">]</span>
+</code></pre></div></div>
+
+<p><br />其中 <code class="language-plaintext highlighter-rouge">Argument</code> 的构造方法如下：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">module</span> <span class="nn">CLAide</span>
+  <span class="k">class</span> <span class="nc">Argument</span>
+   
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">required</span><span class="p">,</span> <span class="n">repeatable</span> <span class="o">=</span> <span class="kp">false</span><span class="p">)</span>
+      <span class="vi">@names</span> <span class="o">=</span> <span class="no">Array</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+      <span class="vi">@required</span> <span class="o">=</span> <span class="n">required</span>
+      <span class="vi">@repeatable</span> <span class="o">=</span> <span class="n">repeatable</span>
+    <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><br />这里传入的 names 就是在 <code class="language-plaintext highlighter-rouge">Usage</code> banner 中输出的 <code class="language-plaintext highlighter-rouge">[POD_NAMES ...]</code> 。<br />
+<br /><strong>require</strong> 表示该 Argument 是否为必传参数，可选参数会用 <code class="language-plaintext highlighter-rouge">[ ]</code> 将其包裹起来。也就是说 <code class="language-plaintext highlighter-rouge">pod update</code> 命令默认是不需要传 <code class="language-plaintext highlighter-rouge">POD_NAMES</code><br />
+<br /><strong>repeatable</strong> 表示该 Argument 是否可以重复多次出现。如果设置为可重复，那么会在 names 的输出信息后面会添加 <code class="language-plaintext highlighter-rouge">...</code> 表示该参数为复数参数。<br />
+<br />举个例子：<br /></p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>pod update Alamofire, SwiftyJSON
+</code></pre></div></div>
+
+<p><br />我们可以指定 <code class="language-plaintext highlighter-rouge">pod update</code> 仅更新特定的依赖库，如果不传 <code class="language-plaintext highlighter-rouge">POD_NAMES</code> 将进行全量更新。
+<a name="Run"></a></p>
+<h3 id="run-方法">Run 方法</h3>
+
+<p><br />在 <code class="language-plaintext highlighter-rouge">Command</code> 类中定义了两个 <code class="language-plaintext highlighter-rouge">run</code> 方法：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">run</span><span class="p">(</span><span class="n">argv</span> <span class="o">=</span> <span class="p">[])</span>
+  <span class="c1"># 根据文件前缀来匹配对应的插件</span>
+  <span class="n">plugin_prefixes</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">plugin_prefix</span><span class="o">|</span>
+    <span class="no">PluginManager</span><span class="p">.</span><span class="nf">load_plugins</span><span class="p">(</span><span class="n">plugin_prefix</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="n">argv</span> <span class="o">=</span> <span class="no">ARGV</span><span class="p">.</span><span class="nf">coerce</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+  <span class="c1"># 解析 argument 生成对应的 command instance</span>
+  <span class="n">command</span> <span class="o">=</span> <span class="n">parse</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span> 
+  <span class="no">ANSI</span><span class="p">.</span><span class="nf">disabled</span> <span class="o">=</span> <span class="o">!</span><span class="n">command</span><span class="p">.</span><span class="nf">ansi_output?</span>
+  <span class="k">unless</span> <span class="n">command</span><span class="p">.</span><span class="nf">handle_root_options</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+    <span class="n">command</span><span class="p">.</span><span class="nf">validate!</span>
+    <span class="n">command</span><span class="p">.</span><span class="nf">run</span>
+  <span class="k">end</span>
+<span class="k">rescue</span> <span class="no">Object</span> <span class="o">=&gt;</span> <span class="n">exception</span>
+  <span class="n">handle_exception</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">exception</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="k">def</span> <span class="nf">run</span>
+  <span class="k">raise</span> <span class="s1">'A subclass should override the `CLAide::Command#run` method to '</span> <span class="p">\</span>
+  <span class="s1">'actually perform some work.'</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><br />这里的 <code class="language-plaintext highlighter-rouge">self.run</code> 方法是 class method，而 <code class="language-plaintext highlighter-rouge">run</code> 是 instanced method。对于 <code class="language-plaintext highlighter-rouge">Ruby</code> 不太熟悉的同学可以看看这个：<a href="https://stackoverflow.com/questions/13706373/what-does-def-self-function-name-mean">What does def self.function name mean?</a><br />
+<br />作为 <code class="language-plaintext highlighter-rouge">Command</code> 类的核心方法，类方法 <code class="language-plaintext highlighter-rouge">self.run</code> 将终端传入的参数解析成对应的 <strong>command</strong> 和 <strong>argv</strong>，并最终调用 command 的实例方法 <code class="language-plaintext highlighter-rouge">run</code> 来触发真正的命令逻辑。因此，子类需要通过重载 <code class="language-plaintext highlighter-rouge">run</code> 方法来完成对应命令的实现。<br />
+<br />那么问题来了，方法 <code class="language-plaintext highlighter-rouge">Command::parse</code> 是如何将 <code class="language-plaintext highlighter-rouge">run</code> 的类方法转换为实例方法的呢？<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">parse</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+  <span class="c1"># 通过解析 argv 获取到与 cmd 名称</span>
+  <span class="n">argv</span> <span class="o">=</span> <span class="no">ARGV</span><span class="p">.</span><span class="nf">coerce</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+  <span class="n">cmd</span> <span class="o">=</span> <span class="n">argv</span><span class="p">.</span><span class="nf">arguments</span><span class="p">.</span><span class="nf">first</span>
+  <span class="c1"># 如果 cmd 对应的 Command 类，则更新 argv，继续解析命令</span>
+  <span class="k">if</span> <span class="n">cmd</span> <span class="o">&amp;&amp;</span> <span class="n">subcommand</span> <span class="o">=</span> <span class="n">find_subcommand</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="n">argv</span><span class="p">.</span><span class="nf">shift_argument</span>
+    <span class="n">subcommand</span><span class="p">.</span><span class="nf">parse</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+  <span class="c1"># 如果 cmd 为抽象命令且指定了默认命令，则返回默认命令继续解析参数</span>
+  <span class="k">elsif</span> <span class="n">abstract_command?</span> <span class="o">&amp;&amp;</span> <span class="n">default_subcommand</span>
+    <span class="n">load_default_subcommand</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+  <span class="k">else</span>
+    <span class="c1"># 初始化真正的 cmd 实例</span>
+    <span class="n">new</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>可以说，<code class="language-plaintext highlighter-rouge">CLAide</code> 的命令解析就是一个<strong>多叉树遍历</strong>，通过分割参数及遍历 <code class="language-plaintext highlighter-rouge">CLAide::Command</code> 的子类，最终找到用户输入的 <code class="language-plaintext highlighter-rouge">normal command</code> 并初始化返回。</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1598855030365-d6ee55d5-df42-4160-af5d-7e06c0c46b36.jpeg" alt="" /></p>
+
+<p>这里还有一个知识点就是，<code class="language-plaintext highlighter-rouge">CLAide::Command</code> 是如何知道有哪些子类集成它的呢？<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">inherited</span><span class="p">(</span><span class="n">subcommand</span><span class="p">)</span>
+  <span class="n">subcommands</span> <span class="o">&lt;&lt;</span> <span class="n">subcommand</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><br /><strong>这里利用了 <code class="language-plaintext highlighter-rouge">Ruby</code> 提供的 <em>Hook Method</em> <code class="language-plaintext highlighter-rouge">self.inherited</code> 来获取它所继承的子类，并将其保存在 <code class="language-plaintext highlighter-rouge">subcommands</code>。</strong><br />
+<br />另外，这里在真正执行 <code class="language-plaintext highlighter-rouge">self.run</code> 方法之前会遍历当前项目所引入的 Gems 包中的指定目录下的命令插件文件，并进行插件加载，具体内容将在 <code class="language-plaintext highlighter-rouge">PluginManager</code> 中展开。<br /></p>
+
+<p><a name="ARGV"></a></p>
+<h3 id="argv-传入参数">ARGV 传入参数</h3>
+<p><code class="language-plaintext highlighter-rouge">CLAide</code> 提供了专门的类 <code class="language-plaintext highlighter-rouge">ARGV</code> 用于解析命令行传入的参数。主要功能是对 <code class="language-plaintext highlighter-rouge">Parse</code> 解析后的 tuple 列表进行各种过滤、CURD 等操作。<br />
+<br />按照 <code class="language-plaintext highlighter-rouge">CALide</code> 的定义参数分三种类型：<br /></p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">arg</code>: 普通的实参，所谓的实参就是直接跟在命令后面的，且不带任何 <code class="language-plaintext highlighter-rouge">--</code> 修饰的字符</li>
+  <li><code class="language-plaintext highlighter-rouge">flag</code>: 简单理解 <code class="language-plaintext highlighter-rouge">flag</code> 就是限定为 bool 变量的 <code class="language-plaintext highlighter-rouge">option</code> 类型参数，如果 <code class="language-plaintext highlighter-rouge">flag</code> 前面添加带 <code class="language-plaintext highlighter-rouge">--no-</code> 则值为 false，否则为 true</li>
+  <li><code class="language-plaintext highlighter-rouge">option</code>: 可选项参数，以 <code class="language-plaintext highlighter-rouge">--</code> 为前缀且以 <code class="language-plaintext highlighter-rouge">=</code> 作为分割符来区分 key 和 value</li>
+</ul>
+
+<p><br />而在 <code class="language-plaintext highlighter-rouge">ARGV</code> 内部又提供了私有工具类 <code class="language-plaintext highlighter-rouge">Parser</code> 来解析终端的输入，其核心方法为 <code class="language-plaintext highlighter-rouge">parse</code>:<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">module</span> <span class="nn">Parser</span>
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">parse</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+    <span class="n">entries</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">copy</span> <span class="o">=</span> <span class="n">argv</span><span class="p">.</span><span class="nf">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:to_s</span><span class="p">)</span>
+    <span class="n">double_dash</span> <span class="o">=</span> <span class="kp">false</span>
+    <span class="k">while</span> <span class="n">argument</span> <span class="o">=</span> <span class="n">copy</span><span class="p">.</span><span class="nf">shift</span>
+      <span class="k">next</span> <span class="k">if</span> <span class="o">!</span><span class="n">double_dash</span> <span class="o">&amp;&amp;</span> <span class="n">double_dash</span> <span class="o">=</span> <span class="p">(</span><span class="n">argument</span> <span class="o">==</span> <span class="s1">'--'</span><span class="p">)</span>
+      <span class="n">type</span> <span class="o">=</span> <span class="n">double_dash</span> <span class="p">?</span> <span class="ss">:arg</span> <span class="p">:</span> <span class="n">argument_type</span><span class="p">(</span><span class="n">argument</span><span class="p">)</span>
+      <span class="n">parsed_argument</span> <span class="o">=</span> <span class="n">parse_argument</span><span class="p">(</span><span class="n">type</span><span class="p">,</span> <span class="n">argument</span><span class="p">)</span>
+      <span class="n">entries</span> <span class="o">&lt;&lt;</span> <span class="p">[</span><span class="n">type</span><span class="p">,</span> <span class="n">parsed_argument</span><span class="p">]</span>
+    <span class="k">end</span>
+    <span class="n">entries</span>
+  <span class="k">end</span>
+  <span class="c1"># ,,,</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><br />parse 的返回值为 <code class="language-plaintext highlighter-rouge">[Array&lt;Array&lt;Symbol, String, Array&gt;&gt;]</code> 类型的 tuple，其中 tuple 的第一个变量为实参的类型，第二个才是对应的实参。<br />
+<br />依旧以 <code class="language-plaintext highlighter-rouge">pod update</code> 为例：<br /></p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pod update Alamofire <span class="nt">--no-repo-update</span> <span class="nt">--exclude-pods</span><span class="o">=</span>SwiftyJSON
+</code></pre></div></div>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1598855030381-29d93c99-1c6c-4a40-8bf7-a40eee4140a7.jpeg" alt="" />
+<br />解析后，输出的 tuple 列表如下：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span>
+  <span class="p">[</span><span class="ss">:arg</span><span class="p">,</span> <span class="s2">"Alamofire"</span><span class="p">],</span>
+  <span class="p">[</span><span class="ss">:flag</span><span class="p">,</span> <span class="p">[</span><span class="s2">"repo-update"</span><span class="p">,</span> <span class="kp">false</span><span class="p">]],</span>
+  <span class="p">[</span><span class="ss">:option</span><span class="p">,</span> <span class="p">[</span><span class="s2">"exclude-pods"</span><span class="p">,</span> <span class="s2">"SwiftyJSON"</span><span class="p">]]</span>
+<span class="p">]</span>
+</code></pre></div></div>
+
+<p><a name="Banner"></a></p>
+<h2 id="banner-与输出格式化">Banner 与输出格式化</h2>
+
+<p><br />接下来，我们再来聊聊 <code class="language-plaintext highlighter-rouge">CLAide</code> 提供的格式化效果的 banner。<br />
+<br />那什么是 banner 呢？回看第一个例子 <code class="language-plaintext highlighter-rouge">pod --help</code> 所输出的帮助信息，它分为三个 Section：<br /></p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">Usage</code>：用于描该述命令的用法</li>
+  <li><code class="language-plaintext highlighter-rouge">Commands</code>：用于描述该命令所包含的子命令，没有则不显示。在子命令前面存在两种类型的标识
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">+</code> ：用于强调该 command 是单独添加的子命令</li>
+      <li><code class="language-plaintext highlighter-rouge">&gt;</code> ：用于表示指引的意思，表示该 command 是当前命令的默认实现</li>
+    </ul>
+  </li>
+  <li><code class="language-plaintext highlighter-rouge">Options</code>：用于描述该命令的可选项</li>
+</ul>
+
+<p><br /><strong>这三段帮助信息就是对应的不同的 banner。</strong><br />
+<br /><code class="language-plaintext highlighter-rouge">CLAide</code> 对于输出的 banner 信息提供了 <a href="https://www.wikiwand.com/en/ANSI_escape_code">ANSI 转义</a>，用于在不同的终端里显示富文本的效果。banner 的主要格式化效果如下：<br /></p>
+
+<ol>
+  <li>对于 setcion 标题： <code class="language-plaintext highlighter-rouge">Usage</code>、<code class="language-plaintext highlighter-rouge">Commands</code>、<code class="language-plaintext highlighter-rouge">Options</code> 添加了下划线且加粗处理</li>
+  <li>Command 配置为绿色</li>
+  <li>Options 配置为蓝色</li>
+  <li>提示警告信息配置为黄色</li>
+  <li>错误信息则是红色</li>
+</ol>
+
+<p><br />对于这些配色方案，<code class="language-plaintext highlighter-rouge">CLAide</code> 提供了 String 的 convince method 来完成 ANSI 转义：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">String</span>
+  <span class="k">def</span> <span class="nf">ansi</span>
+    <span class="no">CLAide</span><span class="o">::</span><span class="no">ANSI</span><span class="o">::</span><span class="no">StringEscaper</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><br />例如：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s2">"example"</span><span class="p">.</span><span class="nf">ansi</span><span class="p">.</span><span class="nf">yellow</span> <span class="c1">#=&gt; "\e[33mexample\e[39m"</span>
+<span class="s2">"example"</span><span class="p">.</span><span class="nf">ansi</span><span class="p">.</span><span class="nf">on_red</span> <span class="c1">#=&gt; "\e[41mexample\e[49m"</span>
+<span class="s2">"example"</span><span class="p">.</span><span class="nf">ansi</span><span class="p">.</span><span class="nf">bold</span>   <span class="c1">#=&gt; "\e[1mexample\e[21m"</span>
+</code></pre></div></div>
+
+<p><br />对于 Banner 的一些高亮效果也提供了 convince method：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">prettify_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+  <span class="n">title</span><span class="p">.</span><span class="nf">ansi</span><span class="p">.</span><span class="nf">underline</span>
+<span class="k">end</span>
+
+<span class="k">def</span> <span class="nf">prettify_subcommand</span><span class="p">(</span><span class="nb">name</span><span class="p">)</span>
+  <span class="nb">name</span><span class="p">.</span><span class="nf">chomp</span><span class="p">.</span><span class="nf">ansi</span><span class="p">.</span><span class="nf">green</span>
+<span class="k">end</span>
+
+<span class="k">def</span> <span class="nf">prettify_option_name</span><span class="p">(</span><span class="nb">name</span><span class="p">)</span>
+  <span class="nb">name</span><span class="p">.</span><span class="nf">chomp</span><span class="p">.</span><span class="nf">ansi</span><span class="p">.</span><span class="nf">blue</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><a name="PluginManager"></a></p>
+<h2 id="pluginmanager-载入插件">PluginManager 载入插件</h2>
+<p><code class="language-plaintext highlighter-rouge">PluginManager</code> 是 Command 的管理类，会在第一次运行命令 <code class="language-plaintext highlighter-rouge">self.run</code> 时进行加载，且仅加载命令类中指定前缀标识的文件下的命令。让我们先看 <code class="language-plaintext highlighter-rouge">PluginManager.rb</code> 的核心实现：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">load_plugins</span><span class="p">(</span><span class="n">plugin_prefix</span><span class="p">)</span>
+    <span class="n">loaded_plugins</span><span class="p">[</span><span class="n">plugin_prefix</span><span class="p">]</span> <span class="o">||=</span>
+    <span class="n">plugin_gems_for_prefix</span><span class="p">(</span><span class="n">plugin_prefix</span><span class="p">).</span><span class="nf">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">spec</span><span class="p">,</span> <span class="n">paths</span><span class="o">|</span>
+        <span class="n">spec</span> <span class="k">if</span> <span class="n">safe_activate_and_require</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">paths</span><span class="p">)</span>
+    <span class="k">end</span><span class="p">.</span><span class="nf">compact</span>
+<span class="k">end</span>
+
+<span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">plugin_gems_for_prefix</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+    <span class="n">glob</span> <span class="o">=</span> <span class="s2">"</span><span class="si">#{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_plugin</span><span class="si">#{</span><span class="no">Gem</span><span class="p">.</span><span class="nf">suffix_pattern</span><span class="si">}</span><span class="s2">"</span>
+    <span class="no">Gem</span><span class="o">::</span><span class="no">Specification</span><span class="p">.</span><span class="nf">latest_specs</span><span class="p">(</span><span class="kp">true</span><span class="p">).</span><span class="nf">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">spec</span><span class="o">|</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="n">spec</span><span class="p">.</span><span class="nf">matches_for_glob</span><span class="p">(</span><span class="n">glob</span><span class="p">)</span>
+        <span class="p">[</span><span class="n">spec</span><span class="p">,</span> <span class="n">matches</span><span class="p">]</span> <span class="k">unless</span> <span class="n">matches</span><span class="p">.</span><span class="nf">empty?</span>
+    <span class="k">end</span><span class="p">.</span><span class="nf">compact</span>
+<span class="k">end</span>
+
+<span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">safe_activate_and_require</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">paths</span><span class="p">)</span>
+    <span class="n">spec</span><span class="p">.</span><span class="nf">activate</span>
+    <span class="n">paths</span><span class="p">.</span><span class="nf">each</span> <span class="p">{</span> <span class="o">|</span><span class="n">path</span><span class="o">|</span> <span class="nb">require</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="p">}</span>
+    <span class="kp">true</span>
+<span class="k">rescue</span> <span class="no">Exception</span> <span class="o">=&gt;</span> <span class="n">exception</span>
+    <span class="c1"># ...</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><br />整体的流程大致是：</p>
+
+<ol>
+  <li>调用 <code class="language-plaintext highlighter-rouge">load_plugins</code> 并传入 <code class="language-plaintext highlighter-rouge">plugin_prefix</code></li>
+  <li><code class="language-plaintext highlighter-rouge">plugin_gems_for_prefix</code> 对插件名进行处理，取出我们需要加载的文件</li>
+  <li>调用 <code class="language-plaintext highlighter-rouge">safe_activate_and_require</code> 进行对应的 gem spec 检验并对每个文件进行加载</li>
+</ol>
+
+<p><br />CocoaPods 的插件加载正是依托于 CLAide 的 <code class="language-plaintext highlighter-rouge">load_plugins</code>，它会遍历所有的 RubyGem，并搜索这些 Gem 中是否包含名为 <code class="language-plaintext highlighter-rouge">#{plugin_prefix}_plugin.rb</code> 的文件。<br />例如，在 Pod 命令的实现中有如下配置：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">self</span><span class="p">.</span><span class="nf">plugin_prefixes</span> <span class="o">=</span> <span class="sx">%w(claide cocoapods)</span>
+</code></pre></div></div>
+
+<p><br />也就是说在 Pod 命令执行前，<strong>它会加载所有包含 <code class="language-plaintext highlighter-rouge">claide_plugin.rb</code> 或 <code class="language-plaintext highlighter-rouge">cocoapods_plugin.rb</code> 文件的 Gem</strong>。通过在运行时的文件检查来加载符合要求的相关命令。</p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1599006816575-464e442d-5b43-475f-bc5f-4b086c59190c.png" alt="" /></p>
+
+<p><a name="a77fbc1d"></a></p>
+<h1 id="用-claide-实现一款--贩卖机">用 CLAide 实现一款 🥤 贩卖机</h1>
+<p>最后一节让我们一起来创建一个 CLAide 命令。需求是希望实现一个自动 🥤 贩卖机，它有如下功能：<br />主要售卖 ☕️ 和 🍵，这两种 🥤 都可以按需选择是否添加 🥛 和 🍬，对于 🍬 还可以选择不同的甜度。</p>
+
+<ul>
+  <li>☕️：对于咖啡，我们提供了：BlackEye、Affogato、CaPheSuaDa、RedTux 的口味</li>
+  <li>🍵：对于茶，你可以选择不同的品种，有黑茶、绿茶、乌龙茶和白茶，同时茶还提供了加 🧊 的选项</li>
+</ul>
+
+<p><a name="5353b1ef"></a></p>
+<h2 id="配置模版项目">配置模版项目</h2>
+
+<p><br />基于上述构想，我们最终的 <code class="language-plaintext highlighter-rouge">BeverageMaker</code> 目录将由以下文件组成：<br /></p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">.</span>
+├── BeverageMaker.gemspec
+│   <span class="c"># ...</span>
+├── exe
+│   └── beverage-maker
+├── lib
+│   ├── beveragemaker
+│   │   ├── <span class="nb">command</span>
+│   │   │   ├── coffee.rb <span class="c"># 包含 abstract command 以及用于制作不同咖啡的 normal command</span>
+│   │   │   ├── maker.rb  <span class="c"># Command 抽象类</span>
+│   │   │   └── tea.rb    <span class="c"># normal command, 不同种类的 🍵 通过参数配置来完成</span>
+│   │   ├── command.rb
+│   │   └── version.rb
+│   └── beveragemaker.rb
+└── spec
+    ├── BeverageMaker_spec.rb
+    └── spec_helper.rb
+</code></pre></div></div>
+
+<p><a name="24196b8c"></a></p>
+<h3 id="0x1-生成模版项目">0x1 生成模版项目</h3>
+
+<p><br />首先，我们使用 <code class="language-plaintext highlighter-rouge">bundler gem GEM_NAME</code> 命令生成一个模版项目，项目取名为 <strong>BeverageMaker</strong>。<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">$</span> <span class="n">bundle</span> <span class="n">gem</span> <span class="no">BeverageMaker</span>
+<span class="no">Creating</span> <span class="n">gem</span> <span class="s1">'BeverageMaker'</span><span class="o">...</span>
+<span class="no">MIT</span> <span class="no">License</span> <span class="n">enabled</span> <span class="k">in</span> <span class="n">config</span>
+<span class="no">Code</span> <span class="n">of</span> <span class="n">conduct</span> <span class="n">enabled</span> <span class="k">in</span> <span class="n">config</span>
+      <span class="n">create</span>  <span class="no">BeverageMaker</span><span class="o">/</span><span class="no">Gemfile</span>
+      <span class="n">create</span>  <span class="no">BeverageMaker</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="no">BeverageMaker</span><span class="p">.</span><span class="nf">rb</span>
+      <span class="n">create</span>  <span class="no">BeverageMaker</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="no">BeverageMaker</span><span class="o">/</span><span class="n">version</span><span class="p">.</span><span class="nf">rb</span>
+      <span class="n">create</span>  <span class="no">BeverageMaker</span><span class="o">/</span><span class="no">BeverageMaker</span><span class="p">.</span><span class="nf">gemspec</span>
+      <span class="n">create</span>  <span class="no">BeverageMaker</span><span class="o">/</span><span class="no">Rakefile</span>
+      <span class="c1"># ...</span>
+<span class="no">Initializing</span> <span class="n">git</span> <span class="n">repo</span> <span class="k">in</span> <span class="o">~</span><span class="sr">/$HOME/</span><span class="no">Desktop</span><span class="o">/</span><span class="no">BeverageMaker</span>
+<span class="no">Gem</span> <span class="s1">'BeverageMaker'</span> <span class="n">was</span> <span class="n">successfully</span> <span class="n">created</span><span class="o">.</span> <span class="no">For</span> <span class="n">more</span> <span class="n">information</span> <span class="n">on</span> <span class="n">making</span> <span class="n">a</span> <span class="no">RubyGem</span> <span class="n">visit</span> <span class="n">https</span><span class="ss">:/</span><span class="o">/</span><span class="n">bundler</span><span class="p">.</span><span class="nf">io</span><span class="o">/</span><span class="n">guides</span><span class="o">/</span><span class="n">creating_gem</span><span class="p">.</span><span class="nf">html</span>
+</code></pre></div></div>
+
+<p><a name="5b8f4f8b"></a></p>
+<h3 id="0x2-修改-gemspec-配置">0x2 修改 gemspec 配置</h3>
+
+<p><br />生成的项目中需要将 <code class="language-plaintext highlighter-rouge">BeverageMaker.gemspec</code> 文件所包含 <strong>TODO</strong> 的字段进行替换，作为示例项目相关链接都替换为个人主页了 😂。<br />
+<br />另外，需要添加我们的依赖 <code class="language-plaintext highlighter-rouge">'claide', '&gt;= 1.0.2', '&lt; 2.0'</code> 和 <code class="language-plaintext highlighter-rouge">'colored2', '~&gt; 3.1'</code>。<br /></p>
+
+<blockquote>
+  <p><strong>colored2</strong> 用于 banner 信息的 ANSI 转义并使其能在终端以富文本格式输出。</p>
+</blockquote>
+
+<p><br />最终 <code class="language-plaintext highlighter-rouge">.gempsc</code> 配置如下：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">require_relative</span> <span class="s1">'lib/BeverageMaker/version'</span>
+
+<span class="no">Gem</span><span class="o">::</span><span class="no">Specification</span><span class="p">.</span><span class="nf">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">spec</span><span class="o">|</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">name</span>          <span class="o">=</span> <span class="s2">"BeverageMaker"</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">version</span>       <span class="o">=</span> <span class="no">BeverageMaker</span><span class="o">::</span><span class="no">VERSION</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">authors</span>       <span class="o">=</span> <span class="p">[</span><span class="s2">"Edmond"</span><span class="p">]</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">email</span>         <span class="o">=</span> <span class="p">[</span><span class="s2">"chun574271939@gmail.com"</span><span class="p">]</span>
+
+  <span class="n">spec</span><span class="p">.</span><span class="nf">summary</span>       <span class="o">=</span> <span class="s2">"BeverageMaker"</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">description</span>   <span class="o">=</span> <span class="s2">"BeverageMaker"</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">homepage</span>      <span class="o">=</span> <span class="s2">"https://looseyi.github.io"</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">license</span>       <span class="o">=</span> <span class="s2">"MIT"</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">required_ruby_version</span> <span class="o">=</span> <span class="no">Gem</span><span class="o">::</span><span class="no">Requirement</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">"&gt;= 2.3.0"</span><span class="p">)</span>
+
+  <span class="n">spec</span><span class="p">.</span><span class="nf">metadata</span><span class="p">[</span><span class="s2">"allowed_push_host"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"https://looseyi.github.io"</span>
+
+  <span class="n">spec</span><span class="p">.</span><span class="nf">metadata</span><span class="p">[</span><span class="s2">"homepage_uri"</span><span class="p">]</span> <span class="o">=</span> <span class="n">spec</span><span class="p">.</span><span class="nf">homepage</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">metadata</span><span class="p">[</span><span class="s2">"source_code_uri"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"https://looseyi.github.io"</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">metadata</span><span class="p">[</span><span class="s2">"changelog_uri"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"https://looseyi.github.io"</span>
+
+  <span class="n">spec</span><span class="p">.</span><span class="nf">files</span>         <span class="o">=</span> <span class="no">Dir</span><span class="p">.</span><span class="nf">chdir</span><span class="p">(</span><span class="no">File</span><span class="p">.</span><span class="nf">expand_path</span><span class="p">(</span><span class="s1">'..'</span><span class="p">,</span> <span class="kp">__FILE__</span><span class="p">))</span> <span class="k">do</span>
+    <span class="sb">`git ls-files -z`</span><span class="p">.</span><span class="nf">split</span><span class="p">(</span><span class="s2">"</span><span class="se">\x0</span><span class="s2">"</span><span class="p">).</span><span class="nf">reject</span> <span class="p">{</span> <span class="o">|</span><span class="n">f</span><span class="o">|</span> <span class="n">f</span><span class="p">.</span><span class="nf">match</span><span class="p">(</span><span class="sr">%r{^(test|spec|features)/}</span><span class="p">)</span> <span class="p">}</span>
+  <span class="k">end</span>
+  <span class="c1"># 1</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">bindir</span>        <span class="o">=</span> <span class="s2">"exe"</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">executables</span>   <span class="o">=</span> <span class="s2">"beverage-maker"</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">require_paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"lib"</span><span class="p">]</span>
+   
+  <span class="n">spec</span><span class="p">.</span><span class="nf">add_runtime_dependency</span> <span class="s1">'claide'</span><span class="p">,</span>         <span class="s1">'&gt;= 1.0.2'</span><span class="p">,</span> <span class="s1">'&lt; 2.0'</span>
+  <span class="n">spec</span><span class="p">.</span><span class="nf">add_runtime_dependency</span> <span class="s1">'colored2'</span><span class="p">,</span>       <span class="s1">'~&gt; 3.1'</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><a name="ea906b09"></a></p>
+<h3 id="0x3-添加命令行入口">0x3 添加命令行入口</h3>
+
+<p><br />通过修改 <code class="language-plaintext highlighter-rouge">.gemspec</code> 的 <code class="language-plaintext highlighter-rouge">bindir</code> 和 <code class="language-plaintext highlighter-rouge">executables</code> 字段，把最终的 binary 执行文件暴露给用户，使其成为一个真正的 CLI：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">spec</span><span class="p">.</span><span class="nf">bindir</span>        <span class="o">=</span> <span class="s2">"exe"</span>
+<span class="n">spec</span><span class="p">.</span><span class="nf">executables</span>   <span class="o">=</span> <span class="s2">"beverage-maker"</span>
+</code></pre></div></div>
+
+<p><br />在默认生成的模版中指定的 <code class="language-plaintext highlighter-rouge">bindir</code> 为 <code class="language-plaintext highlighter-rouge">/bin</code> 目录，这里我们替换为新建的 <code class="language-plaintext highlighter-rouge">exe</code> 目录，并在 <code class="language-plaintext highlighter-rouge">exe</code> 目录下创建一个名为 <code class="language-plaintext highlighter-rouge">beverage-maker</code> 的文件，它将作为 CLI 的入口，其内容如下：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#!/usr/bin/env ruby</span>
+
+<span class="nb">require</span> <span class="s1">'beveragemaker'</span>
+
+<span class="no">BeverageMaker</span><span class="o">::</span><span class="no">Command</span><span class="p">.</span><span class="nf">run</span><span class="p">(</span><span class="no">ARGV</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p><a name="ff7af885"></a></p>
+<h2 id="添加命令实现">添加命令实现</h2>
+
+<p><br />为了让 Demo 结构清晰，我们将不能类型的饮料制作分到了不同的文件和命令类中。<br /></p>
+
+<p><img src="https://raw.githubusercontent.com/Desgard/img/master/img/guardia1598855030357-6c577c34-8687-4aa3-b495-876a2a6e4ecb.jpeg" alt="" /></p>
+
+<p><a name="BeverageMaker"></a></p>
+<h3 id="beveragemaker">BeverageMaker</h3>
+
+<p><br />先来实现 <code class="language-plaintext highlighter-rouge">beverage-maker</code> 命令，它是一个 <code class="language-plaintext highlighter-rouge">abstract command</code>，其内容如下：<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">require</span> <span class="s1">'claide'</span>
+<span class="nb">require</span> <span class="s1">'colored2'</span>
+
+<span class="k">module</span> <span class="nn">BeverageMaker</span>
+  <span class="c1"># 引入具体的 coffee &amp; tea maker</span>
+  <span class="nb">require</span> <span class="s1">'beveragemaker/command/coffee'</span>
+  <span class="nb">require</span> <span class="s1">'beveragemaker/command/tea'</span>
+  
+  <span class="k">class</span> <span class="nc">Command</span> <span class="o">&lt;</span> <span class="no">CLAide</span><span class="o">::</span><span class="no">Command</span>
+
+    <span class="nb">self</span><span class="p">.</span><span class="nf">command</span> <span class="o">=</span> <span class="s1">'beverage-maker'</span>  
+    <span class="nb">self</span><span class="p">.</span><span class="nf">abstract_command</span> <span class="o">=</span> <span class="kp">true</span>   
+    <span class="nb">self</span><span class="p">.</span><span class="nf">description</span> <span class="o">=</span> <span class="s1">'Make delicious beverages from the comfort of your terminal.'</span>
+
+    <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">options</span>
+      <span class="p">[</span>
+        <span class="p">[</span><span class="s1">'--no-milk'</span><span class="p">,</span> <span class="s1">'Don’t add milk to the beverage'</span><span class="p">],</span>
+        <span class="p">[</span><span class="s1">'--sweetener=[sugar|honey]'</span><span class="p">,</span> <span class="s1">'Use one of the available sweeteners'</span><span class="p">],</span>
+      <span class="p">].</span><span class="nf">concat</span><span class="p">(</span><span class="k">super</span><span class="p">)</span>
+    <span class="k">end</span>
+  
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+      <span class="vi">@add_milk</span> <span class="o">=</span> <span class="n">argv</span><span class="p">.</span><span class="nf">flag?</span><span class="p">(</span><span class="s1">'milk'</span><span class="p">,</span> <span class="kp">true</span><span class="p">)</span>
+      <span class="vi">@sweetener</span> <span class="o">=</span> <span class="n">argv</span><span class="p">.</span><span class="nf">option</span><span class="p">(</span><span class="s1">'sweetener'</span><span class="p">)</span>
+      <span class="k">super</span>
+    <span class="k">end</span>
+  
+    <span class="k">def</span> <span class="nf">validate!</span>
+      <span class="k">super</span>
+      <span class="k">if</span> <span class="vi">@sweetener</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="sx">%w(sugar honey)</span><span class="p">.</span><span class="nf">include?</span><span class="p">(</span><span class="vi">@sweetener</span><span class="p">)</span>
+        <span class="n">help!</span> <span class="s2">"`</span><span class="si">#{</span><span class="vi">@sweetener</span><span class="si">}</span><span class="s2">' is not a valid sweetener."</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  
+    <span class="k">def</span> <span class="nf">run</span>
+      <span class="nb">puts</span> <span class="s1">'* Boiling water…'</span>
+      <span class="nb">sleep</span> <span class="mi">1</span>
+      <span class="k">if</span> <span class="vi">@add_milk</span>
+        <span class="nb">puts</span> <span class="s1">'* Adding milk…'</span>
+        <span class="nb">sleep</span> <span class="mi">1</span>
+      <span class="k">end</span>
+      <span class="k">if</span> <span class="vi">@sweetener</span>
+        <span class="nb">puts</span> <span class="s2">"* Adding </span><span class="si">#{</span><span class="vi">@sweetener</span><span class="si">}</span><span class="s2">…"</span>
+        <span class="nb">sleep</span> <span class="mi">1</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><br />正常来说，对于不同口味的咖啡和茶是可以用相同的命令模式来实现的，不过为了更好的展示 <code class="language-plaintext highlighter-rouge">CLAide</code> 的效果，我们将咖啡的生产配置为 <code class="language-plaintext highlighter-rouge">abstact command</code>，对于不同口味的咖啡，需要实现不同的 <code class="language-plaintext highlighter-rouge">normal command</code>。而茶的生产直接通过 <code class="language-plaintext highlighter-rouge">normal command</code> 实现，不同品种的茶叶会以参数的形式来配置。<br /></p>
+
+<p><a name="Coffee"></a></p>
+<h3 id="coffee">Coffee</h3>
+
+<p><br />接着添加 ☕️ 的代码<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Coffee</span> <span class="o">&lt;</span> <span class="no">Command</span>
+  <span class="c1"># ...</span>
+  <span class="nb">self</span><span class="p">.</span><span class="nf">abstract_command</span> <span class="o">=</span> <span class="kp">true</span>
+
+  <span class="k">def</span> <span class="nf">run</span>
+    <span class="k">super</span>
+    <span class="nb">puts</span> <span class="s2">"* Grinding </span><span class="si">#{</span><span class="nb">self</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">command</span><span class="si">}</span><span class="s2"> beans…"</span>
+    <span class="nb">sleep</span> <span class="mi">1</span>
+    <span class="nb">puts</span> <span class="s1">'* Brewing coffee…'</span>
+    <span class="nb">sleep</span> <span class="mi">1</span>
+    <span class="nb">puts</span> <span class="s1">'* Enjoy!'</span>
+  <span class="k">end</span>
+
+  <span class="k">class</span> <span class="nc">BlackEye</span> <span class="o">&lt;</span> <span class="no">Coffee</span>
+    <span class="nb">self</span><span class="p">.</span><span class="nf">summary</span> <span class="o">=</span> <span class="s1">'A Black Eye is dripped coffee with a double shot of '</span> <span class="p">\</span>
+    <span class="s1">'espresso'</span>
+  <span class="k">end</span>
+  <span class="c1"># ...</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><a name="Tea"></a></p>
+<h3 id="tea">Tea</h3>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Tea</span> <span class="o">&lt;</span> <span class="no">Command</span>
+  <span class="c1"># ...</span>
+  <span class="nb">self</span><span class="p">.</span><span class="nf">arguments</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="no">CLAide</span><span class="o">::</span><span class="no">Argument</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s1">'FLAVOR'</span><span class="p">,</span> <span class="kp">true</span><span class="p">),</span>
+  <span class="p">]</span>
+
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">options</span>
+    <span class="p">[[</span><span class="s1">'--iced'</span><span class="p">,</span> <span class="s1">'the ice-tea version'</span><span class="p">]].</span><span class="nf">concat</span><span class="p">(</span><span class="k">super</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+    <span class="vi">@flavor</span> <span class="o">=</span> <span class="n">argv</span><span class="p">.</span><span class="nf">shift_argument</span>
+    <span class="vi">@iced</span> <span class="o">=</span> <span class="n">argv</span><span class="p">.</span><span class="nf">flag?</span><span class="p">(</span><span class="s1">'iced'</span><span class="p">)</span>
+    <span class="k">super</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">validate!</span>
+    <span class="k">super</span>
+    <span class="k">if</span> <span class="vi">@flavor</span><span class="p">.</span><span class="nf">nil?</span>
+      <span class="n">help!</span> <span class="s1">'A flavor argument is required.'</span>
+    <span class="k">end</span>
+    <span class="k">unless</span> <span class="sx">%w(black green oolong white)</span><span class="p">.</span><span class="nf">include?</span><span class="p">(</span><span class="vi">@flavor</span><span class="p">)</span>
+      <span class="n">help!</span> <span class="s2">"`</span><span class="si">#{</span><span class="vi">@flavor</span><span class="si">}</span><span class="s2">' is not a valid flavor."</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+  <span class="c1"># ...</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><a name="789ac0b0"></a></p>
+<h2 id="安装--贩卖机">安装 🥤 贩卖机</h2>
+
+<p><br />我们知道，对于正常发布的 gem 包，可以直接通过 <code class="language-plaintext highlighter-rouge">gem install GEM_NAME</code> 安装。<br />
+<br />而我们的 Demo 程序并未发布，那要如何安装使用呢？幸好 Gem 提供了源码安装的方式：<br /></p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>gem build <span class="k">*</span>.gemspec
+gem <span class="nb">install</span> <span class="k">*</span>.gem
+</code></pre></div></div>
+
+<p><br /><code class="language-plaintext highlighter-rouge">gem build</code> 可以根据一个 <code class="language-plaintext highlighter-rouge">.gemspec</code> 生成一个 <code class="language-plaintext highlighter-rouge">.gem</code> 文件供 gem 安装，所以在拥有源码的情况下，执行上面命令就可以安装了。<br />
+<br />执行结果如下：<br /></p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>gem build <span class="k">*</span>.gemspec
+WARNING:  description and summary are identical
+WARNING:  See http://guides.rubygems.org/specification-reference/ <span class="k">for </span><span class="nb">help
+  </span>Successfully built RubyGem
+  Name: BeverageMaker
+  Version: 0.1.0
+  File: BeverageMaker-0.1.0.gem
+  
+<span class="nv">$ </span>gem <span class="nb">install</span> <span class="k">*</span>.gem
+
+Successfully installed BeverageMaker-0.1.0
+Parsing documentation <span class="k">for </span>BeverageMaker-0.1.0
+Done installing documentation <span class="k">for </span>BeverageMaker after 0 seconds
+1 gem installed
+</code></pre></div></div>
+
+<p><br />编译通过！<br />
+<br />现在可以开始我们的 🥤 制作啦！</p>
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">$</span> <span class="n">beverage</span><span class="o">-</span><span class="n">maker</span>
+<span class="no">Usage</span><span class="p">:</span>
+
+    <span class="err">$</span> <span class="n">beverage</span><span class="o">-</span><span class="n">maker</span> <span class="no">COMMAND</span>
+
+      <span class="no">Make</span> <span class="n">delicious</span> <span class="n">beverages</span> <span class="n">from</span> <span class="n">the</span> <span class="n">comfort</span> <span class="n">of</span> <span class="n">yourterminal</span><span class="o">.</span>
+
+<span class="no">Commands</span><span class="p">:</span>
+
+    <span class="o">+</span> <span class="n">coffee</span>                    <span class="no">Drink</span> <span class="n">brewed</span> <span class="n">from</span> <span class="n">roasted</span> <span class="n">coffee</span> <span class="n">beans</span>
+
+<span class="no">Options</span><span class="p">:</span>
+
+    <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">milk</span>                   <span class="no">Don</span><span class="err">’</span><span class="n">t</span> <span class="n">add</span> <span class="n">milk</span> <span class="n">to</span> <span class="n">the</span> <span class="n">beverage</span>
+    <span class="o">--</span><span class="n">sweetener</span><span class="o">=</span><span class="p">[</span><span class="n">sugar</span><span class="o">|</span><span class="n">honey</span><span class="p">]</span>   <span class="no">Use</span> <span class="n">one</span> <span class="n">of</span> <span class="n">the</span> <span class="n">available</span> <span class="n">sweeteners</span>
+    <span class="o">--</span><span class="n">version</span>                   <span class="no">Show</span> <span class="n">the</span> <span class="n">version</span> <span class="n">of</span> <span class="n">the</span> <span class="n">tool</span>
+    <span class="o">--</span><span class="n">verbose</span>                   <span class="no">Show</span> <span class="n">more</span> <span class="n">debugging</span> <span class="n">information</span>
+    <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">ansi</span>                   <span class="no">Show</span> <span class="n">output</span> <span class="n">without</span> <span class="no">ANSI</span> <span class="n">codes</span>
+    <span class="o">--</span><span class="n">help</span>                      <span class="no">Show</span> <span class="n">help</span> <span class="n">banner</span> <span class="n">of</span> <span class="n">specified</span> <span class="n">command</span>
+</code></pre></div></div>
+
+<p><br />来一杯 black-eye ☕️，休息一下吧!<br /></p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">$</span> <span class="n">beverage</span><span class="o">-</span><span class="n">maker</span> <span class="n">coffee</span> <span class="n">black</span><span class="o">-</span><span class="n">eye</span>
+<span class="o">*</span> <span class="no">Boiling</span> <span class="n">water</span><span class="err">…</span>
+<span class="o">*</span> <span class="no">Adding</span> <span class="n">milk</span><span class="err">…</span>
+<span class="o">*</span> <span class="no">Grinding</span> <span class="n">black</span><span class="o">-</span><span class="n">eye</span> <span class="n">beans</span><span class="err">…</span>
+<span class="o">*</span> <span class="no">Brewing</span> <span class="n">coffee</span><span class="err">…</span>
+<span class="o">*</span> <span class="no">Enjoy</span><span class="o">!</span>
+</code></pre></div></div>
+
+<p><br />如需本文的 Demo 代码，请访问：<a href="https://github.com/looseyi/BeverageMaker">https://github.com/looseyi/BeverageMaker</a>
+<a name="25f9c7fa"></a></p>
+<h1 id="总结">总结</h1>
+
+<p><br />本文简单聊了 <code class="language-plaintext highlighter-rouge">CLAide</code> 的实现，并手动制作了一款 🥤 贩卖机来展示 CALide 的命令配置。主要感受如下：<br /></p>
+
+<ol>
+  <li>通过对源码对阅读，终于了解了对  <code class="language-plaintext highlighter-rouge">pod</code> 命令的的正确使用姿势</li>
+  <li>仅需简单配置 <code class="language-plaintext highlighter-rouge">Command</code> banner，就能有比较精美的终端输出效果和帮助提示等</li>
+  <li>提供的抽象命令功能，方便的将相关逻辑收口到统一到命令中，方便查阅</li>
+  <li>从侧面简单了解了，如何在终端输出带富文本效果的提示信息</li>
+</ol>
+
+<p><a name="c6813027"></a></p>
+<h1 id="知识点问题梳理">知识点问题梳理</h1>
+
+<p><br />这里罗列了四个问题用来考察你是否已经掌握了这篇文章，如果没有建议你加入**收藏 **再次阅读：<br /></p>
+
+<ol>
+  <li><code class="language-plaintext highlighter-rouge">CLAide</code> 预设的 banner 有哪些，其作用分别是什么 ？</li>
+  <li><code class="language-plaintext highlighter-rouge">CALide</code> 中设定的 Argument 有几种类型，区别是什么 ？</li>
+  <li><code class="language-plaintext highlighter-rouge">CALide</code> 中抽象命令的和普通命令的区别 ？</li>
+  <li>要实现 CLI 需要修改 <code class="language-plaintext highlighter-rouge">.gemspec</code> 中的哪些配置 ？</li>
+</ol>
+</div><section class="article__sharing d-print-none"><!-- Addthis BEGIN --><script type="text/javascript"
+    src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-5f49bfe5e9a6234f"></script>
+  <div class="addthis_inline_share_toolbox addthis_default_style"></div><!-- Addthis END -->
+</section><div class="d-print-none"><footer class="article__footer"><meta itemprop="dateModified" content="2020-09-02T00:00:00-08:00"><!-- start custom article footer snippet -->
+
+<!-- end custom article footer snippet -->
+<div class="article__license"><div class="license">
+    <p style=" display: flex; align-items: center; ">
+     本作品采用 <a itemprop="license" rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.zh-Hans">知识署名-非商业性使用-禁止演绎 （BY-NC-ND） 4.0 国际许可协议</a> 进行许可。
+      <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">
+        <img alt="Attribution-NonCommercial 4.0 International" src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png" />
+      </a>
+    </p>
+  </div></div></footer>
+<img src="/assets/qrcode.png" width="80%"/><div class="article__section-navigator clearfix"><div class="previous"><span>PREVIOUS</span><a href="/2020/08/26/cocoapods-story-ex-1.html">CocoaPods 中的 Ruby 特性之 Mix-in</a></div><div class="next"><span>NEXT</span><a href="/2020/09/14/buy-big-house-in-sh-1.html">公积金贷买房能省多少钱</a></div></div></div>
+  
+</div>
+
+<script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    $(function() {
+      var $this ,$scroll;
+      var $articleContent = $('.js-article-content');
+      var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+      var scroll = hasSidebar ? '.js-page-main' : 'html, body';
+      $scroll = $(scroll);
+
+      $articleContent.find('.highlight').each(function() {
+        $this = $(this);
+        $this.attr('data-lang', $this.find('code').attr('data-lang'));
+      });
+      $articleContent.find('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]').each(function() {
+        $this = $(this);
+        $this.append($('<a class="anchor d-print-none" aria-hidden="true"></a>').html('<i class="fas fa-anchor"></i>'));
+      });
+      $articleContent.on('click', '.anchor', function() {
+        $scroll.scrollToAnchor('#' + $(this).parent().attr('id'), 400);
+      });
+    });
+  });
+})();
+</script>
+
+</div><section class="page__comments d-print-none"><style type="text/css">
+		.gitalk-wrapper .gt-header-textarea {
+			color: #333 !important;
+		}
+	</style><div class="gitalk-wrapper" id="js-gitalk-container"></div>
+	<script>
+		window.Lazyload.css('https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css');
+		var url = "/2020/09/02/cocoapods-story-3.html";
+		var key = url.split("/").pop();
+		key = key.substring(0, key.length - 5);
+		console.log("key", key);
+
+		var repo = 'desgard.github.com';
+
+		// 复用评论
+		var current_repo = '';
+		var current_key = '';
+		if (current_repo && current_repo !== '') {
+			repo = current_repo;
+		}
+		if (current_key && current_key !== '') {
+			key = current_key;
+		}
+
+		if (key !== "" && '' !== 'ban') {
+			window.Lazyload.js('https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', function() {
+				var gitalk = new Gitalk({
+					clientID: 'e2612df42f3f2a83e71c',
+					clientSecret: 'ad17bb24a3dba73607ec340ba593acba91414d99',
+					repo: repo,
+					owner: 'Desgard',
+					admin: ['Desgard'],
+					id: key,
+					distractionFreeMode: false
+				});
+				gitalk.render('js-gitalk-container');
+			});
+		}
+		
+		
+	</script></section></article><!-- start custom main bottom snippet -->
+<!-- end custom main bottom snippet -->
+</div>
+            </div></div></div><div class="page__footer d-print-none">
+<footer class="footer py-4 js-page-footer">
+  <div class="main"><div itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="冬瓜"><meta itemprop="url" content="https://www.desgard.com"><meta itemprop="description" content="I write more code to write less."><div class="footer__author-links"><div class="author-links">
+  <ul class="menu menu--nowrap menu--inline"><link itemprop="url" href="https://www.desgard.com"><li title="Send me an Email.">
+      <a class="button button--circle mail-button" itemprop="email" href="mailto:gua@desgard.com" target="_blank">
+        <i class="fas fa-envelope"></i>
+      </a><li title="Follow me on Facebook.">
+        <a class="button button--circle facebook-button" itemprop="sameAs" href="https://www.facebook.com/desgard.duan" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M767.428571 6.857143l0 150.857143-89.714286 0q-49.142857 0-66.285714 20.571429t-17.142857 61.714286l0 108 167.428571 0-22.285714 169.142857-145.142857 0 0 433.714286-174.857143 0 0-433.714286-145.714286 0 0-169.142857 145.714286 0 0-124.571429q0-106.285714 59.428571-164.857143t158.285714-58.571429q84 0 130.285714 6.857143z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Twitter.">
+        <a class="button button--circle twitter-button" itemprop="sameAs" href="https://twitter.com/Desgard_Duan" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M1024.032 194.432c-37.664 16.704-78.176 28-120.672 33.088 43.36-26.016 76.672-67.168 92.384-116.224-40.608 24.064-85.568 41.568-133.408 50.976-38.336-40.832-92.928-66.336-153.344-66.336-116.032 0-210.08 94.048-210.08 210.08 0 16.48 1.856 32.512 5.44 47.872-174.592-8.768-329.408-92.416-433.024-219.52-18.08 31.04-28.448 67.104-28.448 105.632 0 72.896 37.088 137.184 93.472 174.88-34.432-1.088-66.816-10.528-95.168-26.272-0.032 0.864-0.032 1.76-0.032 2.656 0 101.792 72.416 186.688 168.512 205.984-17.632 4.8-36.192 7.36-55.36 7.36-13.536 0-26.688-1.312-39.52-3.776 26.72 83.456 104.32 144.192 196.256 145.888-71.904 56.352-162.496 89.92-260.928 89.92-16.96 0-33.664-0.992-50.112-2.944 92.96 59.616 203.392 94.4 322.048 94.4 386.432 0 597.728-320.128 597.728-597.76 0-9.12-0.192-18.176-0.608-27.168 41.056-29.632 76.672-66.624 104.832-108.736z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Weibo.">
+        <a class="button button--circle weibo-button" itemprop="sameAs" href="https://weibo.com/desgard" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+	<path d="M769.226164 496.610234c-14.420098-4.330228-24.309277-7.266877-16.746482-26.214823 16.350218-41.133578 18.046881-76.626289 0.307181-101.939024-33.242099-47.500415-124.194284-44.928286-228.44638-1.280945 0-0.056317-32.73525 14.323848-24.371737-11.64523 16.042013-51.54906 13.626547-94.739726-11.332929-119.662341-56.566349-56.601163-206.976479 2.134908-335.954595 131.078209-96.594075 96.61353-152.681222 198.989775-152.681222 287.52035 0 169.337597 217.152361 272.292366 429.593589 272.292366 278.498445 0 463.752111-161.808592 463.752111-290.273715C893.345701 558.867622 827.968378 514.820945 769.226164 496.610234zM430.163922 866.063936c-169.51781 16.728051-315.851649-59.899262-326.864086-171.202185-11.010389-111.275277 117.530505-215.061482 287.031932-231.823323 169.537265-16.761841 315.876224 59.866496 326.86511 171.119247C728.190884 745.495411 599.705282 849.291856 430.163922 866.063936z" />
+	<path d="M954.16753 186.714824c-67.256246-74.565105-166.457264-102.990607-258.020739-83.522502l-0.037886 0c-21.188318 4.535015-34.695065 25.37929-30.159026 46.527675 4.516584 21.166816 25.352668 34.691993 46.54201 30.174385 65.139769-13.832358 135.634727 6.400627 183.442323 59.368863 47.765615 52.96414 60.740938 125.206957 40.282686 188.537431l0.011263 0.012287c-6.666851 20.629249 4.617954 42.698153 25.271777 49.366027 20.570885 6.662755 42.687913-4.607714 49.362955-25.188838 0-0.037886 0-0.116729 0.011263-0.150519C1039.577146 362.756133 1021.443231 261.206205 954.16753 186.714824" />
+	<path d="M850.886125 279.919669c-32.732179-36.315956-81.068126-50.108381-125.685136-40.621609-18.234261 3.885839-29.856965 21.833398-25.946551 40.085067 3.89915 18.173849 21.833398 29.851845 40.024654 25.893307l0 0.037886c21.809848-4.610786 45.459709 2.113405 61.461789 19.83365 16.018463 17.757107 20.323092 41.949655 13.45043 63.178931l0.035838 0c-5.715614 17.717174 3.983113 36.770584 21.717694 42.511796 17.7397 5.677728 36.76956-3.992328 42.493365-21.756603C892.458972 365.691759 883.686907 316.228458 850.886125 279.919669" />
+	<path d="M447.103928 548.691741c-80.666743-20.985579-171.84317 19.215193-206.880229 90.291746-35.685212 72.492657-1.180599 152.963828 80.321676 179.268757 84.41947 27.224424 183.926645-14.492797 218.521364-92.744074C573.187374 649.021137 530.586496 570.268131 447.103928 548.691741zM385.506979 733.819463c-16.398343 26.160554-51.51015 37.623523-77.954335 25.54824-26.066352-11.868448-33.760211-42.248645-17.360844-67.757975 16.197652-25.400793 50.129884-36.716316 76.378497-25.711046C393.129162 677.216253 401.60838 707.401901 385.506979 733.819463zM439.522702 664.493841c-5.929616 10.131852-19.03498 15.010909-29.304039 10.785123-10.096014-4.15411-13.261002-15.495231-7.522862-25.454038 5.906066-9.908634 18.500485-14.747758 28.572948-10.750309C441.502995 642.817105 445.180975 654.283146 439.522702 664.493841z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Zhihu.">
+        <a class="button button--circle zhihu-button" itemprop="sameAs" href="https://www.zhihu.com/people/devgua" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M351.791182 562.469462l192.945407 0c0-45.367257-21.3871-71.939449-21.3871-71.939449L355.897709 490.530013c3.977591-82.182744 7.541767-187.659007 8.816806-226.835262l159.282726 0c0 0-0.86367-67.402109-18.578124-67.402109s-279.979646 0-279.979646 0 16.850783-88.141456 39.318494-127.053698c0 0-83.60514-4.510734-112.121614 106.962104S81.344656 355.077018 76.80834 367.390461c-4.536316 12.313443 24.62791 5.832845 36.941354 0 12.313443-5.832845 68.050885-25.924439 84.252893-103.69571l86.570681 0c1.165546 49.28652 4.596691 200.335724 3.515057 226.835262L109.86113 490.530013c-25.275663 18.147312-33.701566 71.939449-33.701566 71.939449L279.868105 562.469462c-8.497535 56.255235-23.417339 128.763642-44.275389 167.210279-33.05279 60.921511-50.55235 116.65793-169.802314 212.576513 0 0-19.442818 14.257725 40.829917 9.073656 60.273758-5.185093 117.305683-20.739347 156.840094-99.807147 20.553105-41.107233 41.805128-93.250824 58.386782-146.138358l-0.055259 0.185218 167.855986 193.263655c0 0 22.035876-51.847855 5.832845-108.880803L371.045711 650.610918l-42.1244 31.157627-0.045025 0.151449c11.69946-41.020252 20.11206-81.5749 22.726607-116.858498C351.665315 564.212152 351.72876 563.345412 351.791182 562.469462z" p-id="907"></path><path d="M584.918753 182.033893l0 668.840094 70.318532 0 28.807093 80.512708 121.875768-80.512708 153.600307 0L959.520453 182.033893 584.918753 182.033893zM887.150192 778.934538l-79.837326 0-99.578949 65.782216-23.537066-65.782216-24.855084 0L659.341766 256.673847l227.807403 0L887.149169 778.934538z" />
+</svg>
+</div>
+        </a>
+      </li><li title="Follow me on Github.">
+        <a class="button button--circle github-button" itemprop="sameAs" href="https://github.com/Desgard" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path class="svgpath" data-index="path_0" fill="#272636" d="M0 525.2c0 223.6 143.3 413.7 343 483.5 26.9 6.8 22.8-12.4 22.8-25.4l0-88.7c-155.3 18.2-161.5-84.6-172-101.7-21.1-36-70.8-45.2-56-62.3 35.4-18.2 71.4 4.6 113.1 66.3 30.2 44.7 89.1 37.2 119 29.7 6.5-26.9 20.5-50.9 39.7-69.6C248.8 728.2 181.7 630 181.7 513.2c0-56.6 18.7-108.7 55.3-150.7-23.3-69.3 2.2-128.5 5.6-137.3 66.5-6 135.5 47.6 140.9 51.8 37.8-10.2 80.9-15.6 129.1-15.6 48.5 0 91.8 5.6 129.8 15.9 12.9-9.8 77-55.8 138.8-50.2 3.3 8.8 28.2 66.7 6.3 135 37.1 42.1 56 94.6 56 151.4 0 117-67.5 215.3-228.8 243.7 26.9 26.6 43.6 63.4 43.6 104.2l0 128.8c0.9 10.3 0 20.5 17.2 20.5C878.1 942.4 1024 750.9 1024 525.3c0-282.9-229.3-512-512-512C229.1 13.2 0 242.3 0 525.2L0 525.2z" />
+</svg>
+</div>
+        </a>
+      </li></ul>
+</div>
+</div>
+    </div><div class="site-info mt-2">
+      <div>© 一片瓜田 2020,
+        Powered by <a title="Jekyll is a simple, blog-aware, static site generator." href="http://jekyllrb.com/">Jekyll</a> & <a
+        title="TeXt is a super customizable Jekyll theme." href="https://github.com/kitian616/jekyll-TeXt-theme">TeXt Theme</a>.
+      </div>
+    </div>
+  </div>
+</footer>
+</div></div>
+    </div><script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $body = $('body'), $window = $(window);
+    var $pageRoot = $('.js-page-root'), $pageMain = $('.js-page-main');
+    var activeCount = 0;
+    function modal(options) {
+      var $root = this, visible, onChange, hideWhenWindowScroll = false;
+      var scrollTop;
+      function setOptions(options) {
+        var _options = options || {};
+        visible = _options.initialVisible === undefined ? false : show;
+        onChange = _options.onChange;
+        hideWhenWindowScroll = _options.hideWhenWindowScroll;
+      }
+      function init() {
+        setState(visible);
+      }
+      function setState(isShow) {
+        if (isShow === visible) {
+          return;
+        }
+        visible = isShow;
+        if (visible) {
+          activeCount++;
+          scrollTop = $(window).scrollTop() || $pageMain.scrollTop();
+          $root.addClass('modal--show');
+          $pageMain.scrollTop(scrollTop);
+          activeCount === 1 && ($pageRoot.addClass('show-modal'), $body.addClass('of-hidden'));
+          hideWhenWindowScroll && window.hasEvent('touchstart') && $window.on('scroll', hide);
+          $window.on('keyup', handleKeyup);
+        } else {
+          activeCount > 0 && activeCount--;
+          $root.removeClass('modal--show');
+          $window.scrollTop(scrollTop);
+          activeCount === 0 && ($pageRoot.removeClass('show-modal'), $body.removeClass('of-hidden'));
+          hideWhenWindowScroll && window.hasEvent('touchstart') && $window.off('scroll', hide);
+          $window.off('keyup', handleKeyup);
+        }
+        onChange && onChange(visible);
+      }
+      function show() {
+        setState(true);
+      }
+      function hide() {
+        setState(false);
+      }
+      function handleKeyup(e) {
+        // Char Code: 27  ESC
+        if (e.which ===  27) {
+          hide();
+        }
+      }
+      setOptions(options);
+      init();
+      return {
+        show: show,
+        hide: hide,
+        $el: $root
+      };
+    }
+    $.fn.modal = modal;
+  });
+})();
+</script><div class="modal modal--overflow page__search-modal d-print-none js-page-search-modal"><script>
+(function () {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    // search panel
+    var search = (window.search || (window.search = {}));
+    var useDefaultSearchBox = window.useDefaultSearchBox === undefined ?
+      true : window.useDefaultSearchBox ;
+
+    var $searchModal = $('.js-page-search-modal');
+    var $searchToggle = $('.js-search-toggle');
+    var searchModal = $searchModal.modal({ onChange: handleModalChange, hideWhenWindowScroll: true });
+    var modalVisible = false;
+    search.searchModal = searchModal;
+
+    var $searchBox = null;
+    var $searchInput = null;
+    var $searchClear = null;
+
+    function getModalVisible() {
+      return modalVisible;
+    }
+    search.getModalVisible = getModalVisible;
+
+    function handleModalChange(visible) {
+      modalVisible = visible;
+      if (visible) {
+        search.onShow && search.onShow();
+        useDefaultSearchBox && $searchInput[0] && $searchInput[0].focus();
+      } else {
+        search.onShow && search.onHide();
+        useDefaultSearchBox && $searchInput[0] && $searchInput[0].blur();
+        setTimeout(function() {
+          useDefaultSearchBox && ($searchInput.val(''), $searchBox.removeClass('not-empty'));
+          search.clear && search.clear();
+          window.pageAsideAffix && window.pageAsideAffix.refresh();
+        }, 400);
+      }
+    }
+
+    $searchToggle.on('click', function() {
+      modalVisible ? searchModal.hide() : searchModal.show();
+    });
+    // Char Code: 83  S, 191 /
+    $(window).on('keyup', function(e) {
+      if (!modalVisible && !window.isFormElement(e.target || e.srcElement) && (e.which === 83 || e.which === 191)) {
+        modalVisible || searchModal.show();
+      }
+    });
+
+    if (useDefaultSearchBox) {
+      $searchBox = $('.js-search-box');
+      $searchInput = $searchBox.children('input');
+      $searchClear = $searchBox.children('.js-icon-clear');
+      search.getSearchInput = function() {
+        return $searchInput.get(0);
+      };
+      search.getVal = function() {
+        return $searchInput.val();
+      };
+      search.setVal = function(val) {
+        $searchInput.val(val);
+      };
+
+      $searchInput.on('focus', function() {
+        $(this).addClass('focus');
+      });
+      $searchInput.on('blur', function() {
+        $(this).removeClass('focus');
+      });
+      $searchInput.on('input', window.throttle(function() {
+        var val = $(this).val();
+        if (val === '' || typeof val !== 'string') {
+          search.clear && search.clear();
+        } else {
+          $searchBox.addClass('not-empty');
+          search.onInputNotEmpty && search.onInputNotEmpty(val);
+        }
+      }, 400));
+      $searchClear.on('click', function() {
+        $searchInput.val(''); $searchBox.removeClass('not-empty');
+        search.clear && search.clear();
+      });
+    }
+  });
+})();
+</script><div class="search search--dark">
+  <div class="main">
+    <div class="search__header">Search</div>
+    <div class="search-bar">
+      <div class="search-box js-search-box">
+        <div class="search-box__icon-search"><i class="fas fa-search"></i></div>
+        <input type="text" />
+        <div class="search-box__icon-clear js-icon-clear">
+          <a><i class="fas fa-times"></i></a>
+        </div>
+      </div>
+      <button class="button button--theme-dark button--pill search__cancel js-search-toggle">
+        Cancel</button>
+    </div>
+    <div class="search-result js-search-result"></div>
+  </div>
+</div>
+<script>var SOURCES = window.TEXT_VARIABLES.sources;
+var PAHTS = window.TEXT_VARIABLES.paths;
+window.Lazyload.js([SOURCES.jquery, PAHTS.search_js], function() {
+  var search = (window.search || (window.search = {}));
+  var searchData = window.TEXT_SEARCH_DATA || {};
+
+  function memorize(f) {
+    var cache = {};
+    return function () {
+      var key = Array.prototype.join.call(arguments, ',');
+      if (key in cache) return cache[key];
+      else return cache[key] = f.apply(this, arguments);
+    };
+  }
+
+  /// search
+  function searchByQuery(query) {
+    var i, j, key, keys, cur, _title, result = {};
+    keys = Object.keys(searchData);
+    for (i = 0; i < keys.length; i++) {
+      key = keys[i];
+      for (j = 0; j < searchData[key].length; j++) {
+        cur = searchData[key][j], _title = cur.title;
+        if ((result[key] === undefined || result[key] && result[key].length < 4 )
+          && _title.toLowerCase().indexOf(query.toLowerCase()) >= 0) {
+          if (result[key] === undefined) {
+            result[key] = [];
+          }
+          result[key].push(cur);
+        }
+      }
+    }
+    return result;
+  }
+
+  var renderHeader = memorize(function(header) {
+    return $('<p class="search-result__header">' + header + '</p>');
+  });
+
+  var renderItem = function(index, title, url) {
+    return $('<li class="search-result__item" data-index="' + index + '"><a class="button" href="' + url + '">' + title + '</a></li>');
+  };
+
+  function render(data) {
+    if (!data) { return null; }
+    var $root = $('<ul></ul>'), i, j, key, keys, cur, itemIndex = 0;
+    keys = Object.keys(data);
+    for (i = 0; i < keys.length; i++) {
+      key = keys[i];
+      $root.append(renderHeader(key));
+      for (j = 0; j < data[key].length; j++) {
+        cur = data[key][j];
+        $root.append(renderItem(itemIndex++, cur.title, cur.url));
+      }
+    }
+    return $root;
+  }
+
+  // search box
+  var $result = $('.js-search-result'), $resultItems;
+  var lastActiveIndex, activeIndex;
+
+  function clear() {
+    $result.html(null);
+    $resultItems = $('.search-result__item'); activeIndex = 0;
+  }
+  function onInputNotEmpty(val) {
+    $result.html(render(searchByQuery(val)));
+    $resultItems = $('.search-result__item'); activeIndex = 0;
+    $resultItems.eq(0).addClass('active');
+  }
+
+  search.clear = clear;
+  search.onInputNotEmpty = onInputNotEmpty;
+
+  function updateResultItems() {
+    lastActiveIndex >= 0 && $resultItems.eq(lastActiveIndex).removeClass('active');
+    activeIndex >= 0 && $resultItems.eq(activeIndex).addClass('active');
+  }
+
+  function moveActiveIndex(direction) {
+    var itemsCount = $resultItems ? $resultItems.length : 0;
+    if (itemsCount > 1) {
+      lastActiveIndex = activeIndex;
+      if (direction === 'up') {
+        activeIndex = (activeIndex - 1 + itemsCount) % itemsCount;
+      } else if (direction === 'down') {
+        activeIndex = (activeIndex + 1 + itemsCount) % itemsCount;
+      }
+      updateResultItems();
+    }
+  }
+
+  // Char Code: 13  Enter, 37  ⬅, 38  ⬆, 39  ➡, 40  ⬇
+  $(window).on('keyup', function(e) {
+    var modalVisible = search.getModalVisible && search.getModalVisible();
+    if (modalVisible) {
+      if (e.which === 38) {
+        modalVisible && moveActiveIndex('up');
+      } else if (e.which === 40) {
+        modalVisible && moveActiveIndex('down');
+      } else if (e.which === 13) {
+        modalVisible && $resultItems && activeIndex >= 0 && $resultItems.eq(activeIndex).children('a')[0].click();
+      }
+    }
+  });
+
+  $result.on('mouseover', '.search-result__item > a', function() {
+    var itemIndex = $(this).parent().data('index');
+    itemIndex >= 0 && (lastActiveIndex = activeIndex, activeIndex = itemIndex, updateResultItems());
+  });
+});
+</script>
+</div></div>
+
+
+<script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function scrollToAnchor(anchor, duration, callback) {
+      var $root = this;
+      $root.animate({ scrollTop: $(anchor).position().top }, duration, function() {
+        window.history.replaceState(null, '', window.location.href.split('#')[0] + anchor);
+        callback && callback();
+      });
+    }
+    $.fn.scrollToAnchor = scrollToAnchor;
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function affix(options) {
+      var $root = this, $window = $(window), $scrollTarget, $scroll,
+        offsetBottom = 0, scrollTarget = window, scroll = window.document, disabled = false, isOverallScroller = true,
+        rootTop, rootLeft, rootHeight, scrollBottom, rootBottomTop,
+        hasInit = false, curState;
+
+      function setOptions(options) {
+        var _options = options || {};
+        _options.offsetBottom && (offsetBottom = _options.offsetBottom);
+        _options.scrollTarget && (scrollTarget = _options.scrollTarget);
+        _options.scroll && (scroll = _options.scroll);
+        _options.disabled !== undefined && (disabled = _options.disabled);
+        $scrollTarget = $(scrollTarget);
+        isOverallScroller = window.isOverallScroller($scrollTarget[0]);
+        $scroll = $(scroll);
+      }
+      function preCalc() {
+        top();
+        rootHeight = $root.outerHeight();
+        rootTop = $root.offset().top + (isOverallScroller ? 0 :  $scrollTarget.scrollTop());
+        rootLeft = $root.offset().left;
+      }
+      function calc(needPreCalc) {
+        needPreCalc && preCalc();
+        scrollBottom = $scroll.outerHeight() - offsetBottom - rootHeight;
+        rootBottomTop = scrollBottom - rootTop;
+      }
+      function top() {
+        if (curState !== 'top') {
+          $root.removeClass('fixed').css({
+            left: 0,
+            top: 0
+          });
+          curState = 'top';
+        }
+      }
+      function fixed() {
+        if (curState !== 'fixed') {
+          $root.addClass('fixed').css({
+            left: rootLeft + 'px',
+            top: 0
+          });
+          curState = 'fixed';
+        }
+      }
+      function bottom() {
+        if (curState !== 'bottom') {
+          $root.removeClass('fixed').css({
+            left: 0,
+            top: rootBottomTop + 'px'
+          });
+          curState = 'bottom';
+        }
+      }
+      function setState() {
+        var scrollTop = $scrollTarget.scrollTop();
+        if (scrollTop >= rootTop && scrollTop <= scrollBottom) {
+          fixed();
+        } else if (scrollTop < rootTop) {
+          top();
+        } else {
+          bottom();
+        }
+      }
+      function init() {
+        if(!hasInit) {
+          var interval, timeout;
+          calc(true); setState();
+          // run calc every 100 millisecond
+          interval = setInterval(function() {
+            calc();
+          }, 100);
+          timeout = setTimeout(function() {
+            clearInterval(interval);
+          }, 45000);
+          window.pageLoad.then(function() {
+            setTimeout(function() {
+              clearInterval(interval);
+              clearTimeout(timeout);
+            }, 3000);
+          });
+          $scrollTarget.on('scroll', function() {
+            disabled || setState();
+          });
+          $window.on('resize', function() {
+            disabled || (calc(true), setState());
+          });
+          hasInit = true;
+        }
+      }
+
+      setOptions(options);
+      if (!disabled) {
+        init();
+      }
+      $window.on('resize', window.throttle(function() {
+        init();
+      }, 200));
+      return {
+        setOptions: setOptions,
+        refresh: function() {
+          calc(true, { animation: false }); setState();
+        }
+      };
+    }
+    $.fn.affix = affix;
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function toc(options) {
+      var $root = this, $window = $(window), $scrollTarget, $scroller, $tocUl = $('<ul class="toc toc--ellipsis"></ul>'), $tocLi, $headings, $activeLast, $activeCur,
+        selectors = 'h1,h2,h3', container = 'body', scrollTarget = window, scroller = 'html, body', disabled = false,
+        headingsPos, scrolling = false, hasRendered = false, hasInit = false;
+
+      function setOptions(options) {
+        var _options = options || {};
+        _options.selectors && (selectors = _options.selectors);
+        _options.container && (container = _options.container);
+        _options.scrollTarget && (scrollTarget = _options.scrollTarget);
+        _options.scroller && (scroller = _options.scroller);
+        _options.disabled !== undefined && (disabled = _options.disabled);
+        $headings = $(container).find(selectors).filter('[id]');
+        $scrollTarget = $(scrollTarget);
+        $scroller = $(scroller);
+      }
+      function calc() {
+        headingsPos = [];
+        $headings.each(function() {
+          headingsPos.push(Math.floor($(this).position().top));
+        });
+      }
+      function setState(element, disabled) {
+        var scrollTop = $scrollTarget.scrollTop(), i;
+        if (disabled || !headingsPos || headingsPos.length < 1) { return; }
+        if (element) {
+          $activeCur = element;
+        } else {
+          for (i = 0; i < headingsPos.length; i++) {
+            if (scrollTop >= headingsPos[i]) {
+              $activeCur = $tocLi.eq(i);
+            } else {
+              $activeCur || ($activeCur = $tocLi.eq(i));
+              break;
+            }
+          }
+        }
+        $activeLast && $activeLast.removeClass('active');
+        ($activeLast = $activeCur).addClass('active');
+      }
+      function render() {
+        if(!hasRendered) {
+          $root.append($tocUl);
+          $headings.each(function() {
+            var $this = $(this);
+            $tocUl.append($('<li></li>').addClass('toc-' + $this.prop('tagName').toLowerCase())
+              .append($('<a></a>').text($this.text()).attr('href', '#' + $this.prop('id'))));
+          });
+          $tocLi = $tocUl.children('li');
+          $tocUl.on('click', 'a', function(e) {
+            e.preventDefault();
+            var $this = $(this);
+            scrolling = true;
+            setState($this.parent());
+            $scroller.scrollToAnchor($this.attr('href'), 400, function() {
+              scrolling = false;
+            });
+          });
+        }
+        hasRendered = true;
+      }
+      function init() {
+        var interval, timeout;
+        if(!hasInit) {
+          render(); calc(); setState(null, scrolling);
+          // run calc every 100 millisecond
+          interval = setInterval(function() {
+            calc();
+          }, 100);
+          timeout = setTimeout(function() {
+            clearInterval(interval);
+          }, 45000);
+          window.pageLoad.then(function() {
+            setTimeout(function() {
+              clearInterval(interval);
+              clearTimeout(timeout);
+            }, 3000);
+          });
+          $scrollTarget.on('scroll', function() {
+            disabled || setState(null, scrolling);
+          });
+          $window.on('resize', window.throttle(function() {
+            if (!disabled) {
+              render(); calc(); setState(null, scrolling);
+            }
+          }, 100));
+        }
+        hasInit = true;
+      }
+
+      setOptions(options);
+      if (!disabled) {
+        init();
+      }
+      $window.on('resize', window.throttle(function() {
+        init();
+      }, 200));
+      return {
+        setOptions: setOptions
+      };
+    }
+    $.fn.toc = toc;
+  });
+})();
+/*(function () {
+
+})();*/
+</script><script>
+  /* toc must before affix, since affix need to konw toc' height. */(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  var TOC_SELECTOR = window.TEXT_VARIABLES.site.toc.selectors;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $window = $(window);
+    var $articleContent = $('.js-article-content');
+    var $tocRoot = $('.js-toc-root'), $col2 = $('.js-col-aside');
+    var toc;
+    var tocDisabled = false;
+    var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+    var hasToc = $articleContent.find(TOC_SELECTOR).length > 0;
+
+    function disabled() {
+      return $col2.css('display') === 'none' || !hasToc;
+    }
+
+    tocDisabled = disabled();
+
+    toc = $tocRoot.toc({
+      selectors: TOC_SELECTOR,
+      container: $articleContent,
+      scrollTarget: hasSidebar ? '.js-page-main' : null,
+      scroller: hasSidebar ? '.js-page-main' : null,
+      disabled: tocDisabled
+    });
+
+    $window.on('resize', window.throttle(function() {
+      tocDisabled = disabled();
+      toc && toc.setOptions({
+        disabled: tocDisabled
+      });
+    }, 100));
+
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $window = $(window), $pageFooter = $('.js-page-footer');
+    var $pageAside = $('.js-page-aside');
+    var affix;
+    var tocDisabled = false;
+    var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+
+    affix = $pageAside.affix({
+      offsetBottom: $pageFooter.outerHeight(),
+      scrollTarget: hasSidebar ? '.js-page-main' : null,
+      scroller: hasSidebar ? '.js-page-main' : null,
+      scroll: hasSidebar ? $('.js-page-main').children() : null,
+      disabled: tocDisabled
+    });
+
+    $window.on('resize', window.throttle(function() {
+      affix && affix.setOptions({
+        disabled: tocDisabled
+      });
+    }, 100));
+
+    window.pageAsideAffix = affix;
+  });
+})();
+</script><script>
+  window.Lazyload.js(['https://cdn.bootcss.com/jquery/3.1.1/jquery.min.js', 'https://cdn.bootcss.com/Chart.js/2.7.2/Chart.bundle.min.js'], function() {
+    var $canvas = null, $this = null, _ctx = null, _text = '';
+    $('.language-chart').each(function(){
+      $this = $(this);
+      $canvas = $('<canvas></canvas>');
+      _text = $this.text();
+      $this.text('').append($canvas);
+      _ctx = $canvas.get(0).getContext('2d');
+      (_ctx && _text) && (new Chart(_ctx, JSON.parse(_text)) && $this.attr('data-processed', true));
+    });
+  });
+</script>
+<script type="text/x-mathjax-config">
+	var _config = { tex2jax: {
+		inlineMath: [['$','$'], ['\\(','\\)']]
+	}};MathJax.Hub.Config(_config);
+</script>
+<script type="text/javascript" src="https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+<script>
+  window.Lazyload.js('https://cdn.bootcss.com/mermaid/8.0.0-rc.8/mermaid.min.js', function() {
+    mermaid.initialize({
+      startOnLoad: true
+    });
+    mermaid.init(undefined, '.language-mermaid');
+  });
+</script>
+
+    </div>
+    <script>(function () {
+  var $root = document.getElementsByClassName('root')[0];
+  if (window.hasEvent('touchstart')) {
+    $root.dataset.isTouch = true;
+    document.addEventListener('touchstart', function(){}, false);
+  }
+})();
+</script>
+  </body>
+</html>
+
